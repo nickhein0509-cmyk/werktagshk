@@ -23,6 +23,10 @@ Aktueller Ausbau: [21 Formeln](docs/screenshots/formula-expanded.png),
 Privates Aufgabenverzeichnis mit rein synthetischen Beispielen:
 [Desktop](docs/screenshots/private-bank-desktop-synthetic.png) und
 [Handy](docs/screenshots/private-bank-mobile-synthetic.png).
+Fachwissen mit rein synthetischem Inhalt:
+[Übersicht](docs/screenshots/knowledge-overview-desktop-synthetic.png),
+[Reader](docs/screenshots/knowledge-reader-desktop-synthetic.png) und
+[Handy](docs/screenshots/knowledge-reader-mobile-synthetic.png).
 
 ## Was funktioniert
 
@@ -44,6 +48,12 @@ Privates Aufgabenverzeichnis mit rein synthetischen Beispielen:
   32 korrigierte Inhaltsfassungen erhalten die alten Versionen. 23 Fragen tragen
   noch gezielte Quellen-/Bildvorbehalte. Die [vollständige Inhaltsauswertung](docs/private-bank-release.md)
   beschreibt Umfang und Grenzen; Zugriff und Rechenwertebereiche bleiben geschützt.
+- Fachwissen aus dem vorhandenen privaten Lernkonto: 112 Fachartikel, 111 Begriffe
+  und 15 Lernfelder. Suche und Filter nach Thema, Inhalt und Lernfeld führen zu
+  Zusammenfassung, Zusammenhang, Formeln, Beispiel und Übungsweg. Volltexte öffnen
+  sich ausdrücklich; Nachschlagen kann bei offenen Aufgaben als Hilfe zählen.
+  Es erzeugt keinen Beherrschungsnachweis. Der [ausführliche Wissensstand](docs/knowledge-state.md)
+  beschreibt fachliche Abdeckung, Quellenstatus und sinnvolle nächste Vertiefungen.
 - Lernwerkstatt mit Suche, Themenfiltern und Merkliste.
 - Rechenaufgaben, Kontextaufgaben und Wissensfragen getrennt filtern.
   Großes Rechenblatt mit Teilschritten, eigenen Browsernotizen und Taschenrechner.

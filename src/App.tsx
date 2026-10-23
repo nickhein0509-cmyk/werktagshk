@@ -66,6 +66,9 @@ const CloudAccount = lazy(() =>
 const CloudPractice = lazy(() =>
   import('./CloudPractice').then((module) => ({ default: module.CloudPractice })),
 );
+const CloudKnowledge = lazy(() =>
+  import('./components/CloudKnowledge').then((module) => ({ default: module.CloudKnowledge })),
+);
 const FormulaWorkbench = lazy(() =>
   import('./components/FormulaWorkbench').then((module) => ({ default: module.FormulaWorkbench })),
 );
@@ -110,6 +113,9 @@ function App() {
   const [state, setState] = useState(loaded.state);
   const [warning, setWarning] = useState(loaded.warning);
   const [page, setPage] = useState<Page>('dashboard');
+  const [cloudSection, setCloudSection] = useState<'questions' | 'knowledge'>('questions');
+  const [knowledgeVisited, setKnowledgeVisited] = useState(false);
+  const [knowledgeLookups, setKnowledgeLookups] = useState(0);
   const [topicFilter, setTopicFilter] = useState<TopicId | 'all'>('all');
   const [examArea, setExamArea] = useState<ExamAreaId | 'all'>('all');
   const [activeExercise, setActiveExercise] = useState<Exercise | null>(null);
@@ -163,6 +169,12 @@ function App() {
     requestAnimationFrame(() => mainRef.current?.focus({ preventScroll: true }));
   }
 
+  function openCloud(section: 'questions' | 'knowledge' = 'questions') {
+    setCloudSection(section);
+    if (section === 'knowledge') setKnowledgeVisited(true);
+    navigate('cloud');
+  }
+
   function bookmark(id: string) {
     updateState({
       ...state,
@@ -202,6 +214,7 @@ function App() {
     } = supabase.auth.onAuthStateChange((_event, session) => {
       const nextUser = session?.user ?? null;
       if (accountId.current !== (nextUser?.id ?? null)) {
+        const changingAccount = typeof accountId.current === 'string';
         accountId.current = nextUser?.id ?? null;
         const next = loadState(nextUser ? `${STORAGE_KEY}:${nextUser.id}` : STORAGE_KEY);
         setUser(nextUser);
@@ -211,6 +224,11 @@ function App() {
         setActiveExercise(null);
         setPage((current) => (current === 'cloud' ? 'cloud' : 'dashboard'));
         setToast('');
+        if (changingAccount || !nextUser) {
+          setCloudSection('questions');
+          setKnowledgeVisited(false);
+          setKnowledgeLookups(0);
+        }
       }
       setAuthReady(true);
     });
@@ -265,7 +283,7 @@ function App() {
             <button
               key={id}
               className={`nav-item ${page === id ? 'active' : ''}`}
-              onClick={() => navigate(id)}
+              onClick={() => (id === 'cloud' ? openCloud() : navigate(id))}
               aria-current={page === id ? 'page' : undefined}
             >
               <Icon size={19} strokeWidth={1.7} />
@@ -337,10 +355,12 @@ function App() {
             <>
               <PageHeading
                 eyebrow="DEIN BESTEHENDER LERNBUDDY"
-                title="Mein Fragenbestand"
+                title={cloudSection === 'knowledge' ? 'Fachwissen' : 'Mein Fragenbestand'}
                 description={
                   user
-                    ? 'Öffne eine Aufgabe direkt oder stelle dir eine Runde nach Thema, Aufgabenart und Stufe zusammen.'
+                    ? cloudSection === 'knowledge'
+                      ? 'Fachartikel, Begriffe und Beispiele aus deinem Lernkonto. Suche nach Thema oder Lernfeld.'
+                      : 'Öffne eine Aufgabe direkt oder stelle dir eine Runde nach Thema, Aufgabenart und Stufe zusammen.'
                     : 'Deine Fragen, Rechenaufgaben und Übungsrunden. Melde dich mit deinem vorhandenen Lernkonto an.'
                 }
               />
@@ -351,7 +371,45 @@ function App() {
                   state={state}
                   onLoad={updateState}
                 />
-                {user && <CloudPractice key={`questions:${user.id}`} userId={user.id} />}
+                {user && (
+                  <>
+                    <div
+                      className="cloud-section-switch"
+                      role="group"
+                      aria-label="Bereich im Lernkonto"
+                    >
+                      <button
+                        className={`filter-chip ${cloudSection === 'questions' ? 'selected' : ''}`}
+                        aria-pressed={cloudSection === 'questions'}
+                        onClick={() => setCloudSection('questions')}
+                      >
+                        Fragen üben
+                      </button>
+                      <button
+                        className={`filter-chip ${cloudSection === 'knowledge' ? 'selected' : ''}`}
+                        aria-pressed={cloudSection === 'knowledge'}
+                        onClick={() => {
+                          setKnowledgeVisited(true);
+                          setCloudSection('knowledge');
+                        }}
+                      >
+                        Fachwissen nachschlagen
+                      </button>
+                    </div>
+                    <div hidden={cloudSection !== 'questions'}>
+                      <CloudPractice key={`questions:${user.id}`} userId={user.id} />
+                    </div>
+                    {knowledgeVisited && (
+                      <CloudKnowledge
+                        key={`knowledge:${user.id}`}
+                        userId={user.id}
+                        active={cloudSection === 'knowledge'}
+                        onQuestions={() => setCloudSection('questions')}
+                        onRead={() => setKnowledgeLookups((value) => value + 1)}
+                      />
+                    )}
+                  </>
+                )}
               </Suspense>
             </>
           )}
@@ -362,7 +420,7 @@ function App() {
               weekDots={<WeekDots state={state} />}
               onLibrary={(topic = 'all') => navigate('library', topic)}
               onArea={(area) => navigate('library', 'all', area)}
-              onCloud={() => navigate('cloud')}
+              onCloud={() => openCloud()}
               onExam={() => navigate('exam')}
               onReview={() => navigate(due.length ? 'review' : 'library')}
               onPlan={() => navigate('plan')}
@@ -380,7 +438,8 @@ function App() {
               onStart={startExercise}
               onBookmark={bookmark}
               onExam={() => navigate('exam')}
-              onPrivate={() => navigate('cloud')}
+              onPrivate={() => openCloud()}
+              onKnowledge={() => openCloud('knowledge')}
             />
           )}
           <div hidden={page !== 'exam'}>
@@ -388,6 +447,7 @@ function App() {
               key={`exam:${user?.id ?? 'guest'}`}
               storageScope={user?.id ?? 'guest'}
               onSubmit={answerBatch}
+              externalHelpSignal={knowledgeLookups}
             />
           </div>
           {page === 'review' && (
@@ -450,7 +510,7 @@ function App() {
         <footer className="workspace-footer">
           <span>WerkTag · Mit Kopf. Mit Hand. Mit dir.</span>
           <span>
-            WerkTag Flow <span className="footer-version">/ 0.7.0</span>
+            WerkTag Flow <span className="footer-version">/ 0.8.0</span>
           </span>
         </footer>
       </div>
@@ -612,6 +672,7 @@ function Library({
   onBookmark,
   onExam,
   onPrivate,
+  onKnowledge,
 }: {
   state: LearningState;
   mastered: string[];
@@ -623,6 +684,7 @@ function Library({
   onBookmark: (id: string) => void;
   onExam: () => void;
   onPrivate: () => void;
+  onKnowledge: () => void;
 }) {
   const [search, setSearch] = useState('');
   const [onlySaved, setOnlySaved] = useState(false);
@@ -658,6 +720,12 @@ function Library({
         Hier übst du mit den eigenen Aufgaben.{' '}
         <button className="text-button" onClick={onPrivate}>
           Alle Fragen aus deinem Lernkonto öffnen <ArrowRight size={16} aria-hidden="true" />
+        </button>
+      </p>
+      <p className="library-source-entry">
+        Einen Zusammenhang erst verstehen?{' '}
+        <button className="text-button" onClick={onKnowledge}>
+          Fachwissen im Lernkonto nachschlagen <ArrowRight size={16} aria-hidden="true" />
         </button>
       </p>
       <div className="library-exam-entry">

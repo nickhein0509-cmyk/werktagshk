@@ -1,6 +1,6 @@
 {
-  "release": "werktag-flow-private-bank-0.7.0",
-  "appVersion": "0.7.0",
+  "release": "werktag-flow-knowledge-0.8.0",
+  "appVersion": "0.8.0",
   "design": "flow",
   "designVersion": 2,
   "learningSchemaVersion": 1,
@@ -32,6 +32,11 @@
     "private-semantic-task-kinds",
     "private-targeted-practice",
     "private-filtered-rounds",
-    "versioned-editorial-corrections"
+    "versioned-editorial-corrections",
+    "private-knowledge-catalog",
+    "article-and-term-reader",
+    "knowledge-topic-and-learning-field-filters",
+    "explicit-audited-knowledge-lookups",
+    "knowledge-policy-and-masking"
   ]
 }

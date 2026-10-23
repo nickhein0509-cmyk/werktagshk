@@ -125,9 +125,11 @@ function loadRound(key: string): PracticeRound | null {
 export function ExamPractice({
   onSubmit,
   storageScope = 'guest',
+  externalHelpSignal = 0,
 }: {
   onSubmit: (answers: ExamAnswer[]) => boolean | void;
   storageScope?: string;
+  externalHelpSignal?: number;
 }) {
   const storageKey = `werktag-exam-session-v1:${encodeURIComponent(storageScope)}`;
   const [round, setRound] = useState<PracticeRound | null>(() => loadRound(storageKey));
@@ -172,6 +174,15 @@ export function ExamPractice({
   const areaTitle = examAreas.find((entry) => entry.id === (round?.area ?? area))!.title;
   const roundRef = useRef(round);
   roundRef.current = round;
+  const previousHelpSignal = useRef(externalHelpSignal);
+
+  useEffect(() => {
+    if (previousHelpSignal.current === externalHelpSignal) return;
+    previousHelpSignal.current = externalHelpSignal;
+    const active = roundRef.current;
+    if (active && active.endedAt === null && !active.usedLearningMode)
+      persist({ ...active, usedLearningMode: true });
+  }, [externalHelpSignal]);
 
   useEffect(() => {
     if (!round || round.endedAt !== null) return;
@@ -375,7 +386,7 @@ export function ExamPractice({
                 {areaTitle} · {answered} von {tasks.length} beantwortet
               </span>
               {round.usedLearningMode && currentMode && (
-                <small>Lernmodus war in dieser Runde aktiv.</small>
+                <small>Lernhilfen wurden in dieser Runde verwendet.</small>
               )}
             </div>
             <div
@@ -402,7 +413,7 @@ export function ExamPractice({
               <p>
                 Gemessene Zeit: {formatElapsed(elapsed)}.{' '}
                 {round.usedLearningMode
-                  ? 'Diese Runde wurde mit aktiviertem Lernmodus bearbeitet.'
+                  ? 'Diese Runde wurde mit Lernhilfen bearbeitet.'
                   : 'Diese Runde wurde ohne Lernhilfen bearbeitet.'}
               </p>
               {round.saveFailed && (

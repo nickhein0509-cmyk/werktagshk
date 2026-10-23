@@ -14,9 +14,9 @@ gesondert abzugleichen. Keine Prüfungsprognose oder Vollständigkeitsbehauptung
 
 | Bereich | Tatsächlich gelesene Anforderung | Umsetzung als eigene Übung |
 | --- | --- | --- |
-| [Arbeitsplanung, § 13](https://www.gesetze-im-internet.de/shkamausbv/__13.html) | Aufgaben analysieren; Komponenten und Arbeitsmittel auswählen; Montage- und Arbeitsschritte sowie Inbetriebnahme planen. Schriftlich, 150 Minuten. | 12 neue Fallaufgaben: Auftragsanalyse, Maße, Mengen, Auswahl anhand gegebener Kriterien, Ablauf und Dokumentation. Ergänzende Modellrechnungen bleiben verfügbar. |
-| [Systemanalyse und Instandhaltung, § 14](https://www.gesetze-im-internet.de/shkamausbv/__14.html) | Unterlagen und Funktionszusammenhänge auswerten; Größen ermitteln; Verhalten begründen; Fehler systematisch eingrenzen. Schriftlich, 90 Minuten. | 12 neue Fälle mit Messwerten, vereinfachten Regeln, Hypothesen und fachlichem Rechnen. Keine Anleitung zu gefährlichen Arbeiten an realen Anlagen. |
-| [Wirtschafts- und Sozialkunde, § 15](https://www.gesetze-im-internet.de/shkamausbv/__15.html) | Wirtschaftliche und gesellschaftliche Zusammenhänge der Berufs- und Arbeitswelt darstellen und beurteilen. Praxisbezogen, schriftlich, 60 Minuten. | 12 neue Fälle: wirtschaftliche Entscheidungen und Rechnungen sowie vier eng begrenzte Rechtsfälle mit gelesenen Primärquellen. Im Modell benötigte Vertragsregeln stehen ausdrücklich in der Aufgabe. |
+| [Arbeitsplanung, § 13](https://www.gesetze-im-internet.de/shkamausbv/__13.html) | Aufgaben analysieren; Komponenten und Arbeitsmittel auswählen; Montage- und Arbeitsschritte sowie Inbetriebnahme planen. Schriftlich, 150 Minuten. | 32 eigene Fallaufgaben: Auftragsanalyse, Maße, Mengen, Auswahl anhand gegebener Kriterien, Ablauf und Dokumentation. Ergänzende Modellrechnungen bleiben verfügbar. |
+| [Systemanalyse und Instandhaltung, § 14](https://www.gesetze-im-internet.de/shkamausbv/__14.html) | Unterlagen und Funktionszusammenhänge auswerten; Größen ermitteln; Verhalten begründen; Fehler systematisch eingrenzen. Schriftlich, 90 Minuten. | 32 eigene Fälle mit Messwerten, vereinfachten Regeln, Hypothesen und fachlichem Rechnen. Keine Anleitung zu gefährlichen Arbeiten an realen Anlagen. |
+| [Wirtschafts- und Sozialkunde, § 15](https://www.gesetze-im-internet.de/shkamausbv/__15.html) | Wirtschaftliche und gesellschaftliche Zusammenhänge der Berufs- und Arbeitswelt darstellen und beurteilen. Praxisbezogen, schriftlich, 60 Minuten. | 32 eigene Fälle: wirtschaftliche Entscheidungen und Rechnungen sowie vier eng begrenzte Rechtsfälle mit gelesenen Primärquellen. Im Modell benötigte Vertragsregeln stehen ausdrücklich in der Aufgabe. |
 | [Kundenauftrag, § 12](https://www.gesetze-im-internet.de/shkamausbv/__12.html) | Praktische Arbeitsaufgabe mit Dokumentation und situativem Fachgespräch. | Weiterhin wichtiger Teil der Prüfung. Schriftliche App-Übungen ersetzen weder praktische Arbeit noch Fachgespräch. Der spätere Werkstatt-Lernweg kann diese Zusammenhänge aufnehmen. |
 
 Die Zeitangaben sind Prüfungszeiten aus der Verordnung. Zeitvorschläge einzelner
@@ -42,7 +42,7 @@ Normative Prüfungen, Arbeits- und Tarifrecht sowie aktuelle Herstellerregeln
 brauchen jeweils konkrete Primärquellen; fehlende Belege sind keine Freigabe.
 
 Die Zuordnung älterer technischer Modellaufgaben zu Arbeitsplanung und
-Systemanalyse ist eine breite redaktionelle Lernhilfe. Die 36 neuen `exam-*`-Fälle
+Systemanalyse ist eine breite redaktionelle Lernhilfe. Die inzwischen 96 `exam-*`-Fälle
 sind gezielt einem Hauptbereich zugeordnet. Diese Zuordnung ändert keine
 Bewertung oder bisherigen Antworten.
 
@@ -54,3 +54,6 @@ sowie `exam-wiso-review.md` und `exam-wiso-law-review.md` dokumentieren den tats
 Umfang. Eine technische Prüfung durch Tests ist keine Normenfreigabe.
 Das Story-, Meilenstein- und Spielkonzept steht in `product-direction.md` und
 wird vor der Prüfung ausschließlich als Ausbauoption vorbereitet.
+
+Der [ausführliche Wissensstand](knowledge-state.md) trennt den vorhandenen
+Aufgaben-/Erklärungsumfang von persönlichem Können und offenen Quellenbelegen.
