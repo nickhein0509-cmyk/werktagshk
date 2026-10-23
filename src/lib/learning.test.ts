@@ -28,14 +28,15 @@ function withAttempts(...attempts: Attempt[]): LearningState {
 }
 
 describe('exercise catalogue', () => {
-  it('provides 27 distinct original tasks per topic with usable answer data', () => {
-    expect(exercises).toHaveLength(108);
+  it('retains 27 original tasks per topic and valid answer data for every new case', () => {
+    const original = exercises.filter((exercise) => !exercise.id.startsWith('exam-'));
+    expect(original).toHaveLength(108);
     expect(new Set(exercises.map((exercise) => exercise.id)).size).toBe(exercises.length);
     for (const topic of topics)
-      expect(exercises.filter((exercise) => exercise.topicId === topic.id)).toHaveLength(27);
+      expect(original.filter((exercise) => exercise.topicId === topic.id)).toHaveLength(27);
     for (const exercise of exercises) {
       expect(exercise.options[exercise.correctIndex]).toBeTruthy();
-      expect(exercise.sourceLabel).toContain('Eigene Modellaufgabe');
+      expect(exercise.sourceLabel).toMatch(/Eigene (Modellaufgabe|Übungsaufgabe)/);
       expect(exercise.explanation.length).toBeGreaterThan(100);
     }
   });

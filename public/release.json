@@ -1,1 +1,16 @@
-{"release":"werktag-restore-2026-10-23-1","repository":"nickhein0509-cmyk/werktagshk","features":["private-question-library","original-cloud-rounds","108-model-exercises"]}
+{
+  "release": "werktag-flow-exam-0.3.0",
+  "appVersion": "0.3.0",
+  "design": "flow",
+  "designVersion": 2,
+  "learningSchemaVersion": 1,
+  "repository": "nickhein0509-cmyk/werktagshk",
+  "features": [
+    "private-question-library",
+    "original-cloud-rounds",
+    "144-original-exercises",
+    "36-part2-practice-cases",
+    "exam-area-filters",
+    "forward-schema-protection"
+  ]
+}
