@@ -3,7 +3,7 @@ import {
   cloudTopics,
   cloudDifficultyLabels,
   cloudDemandLabels,
-  compareCloudDifficulty,
+  compareEditorialDifficulty,
   latestCatalog,
   cloudRpc,
   parseLearning,
@@ -20,25 +20,41 @@ import type {
   CloudDraft,
   JsonRecord,
   CloudDifficulty,
+  CloudEditorialReview,
+  CatalogQuestion,
 } from './lib/cloud-practice';
+import { difficultyLevels } from './lib/difficulty';
 import { CalculationWorkspace, emptyWorkpad } from './components/CalculationWorkspace';
 import type { WorkpadDraft } from './components/CalculationWorkspace';
 
 const formats = {
   choice: 'Auswahlfrage',
-  numeric: 'Rechenaufgabe',
+  numeric: 'Zahleneingabe',
   short: 'Kurzantwort',
   self: 'Selbstvergleich',
 };
 
-type DirectoryKind = 'all' | 'calculation' | 'context' | 'choice';
-function directoryKind(kind: keyof typeof formats): Exclude<DirectoryKind, 'all'> {
-  if (kind === 'numeric') return 'calculation';
-  if (kind === 'short' || kind === 'self') return 'context';
-  return 'choice';
+type DirectoryKind = 'all' | CloudEditorialReview['taskKind'] | 'unknown';
+type LevelFilter = 'all' | CloudEditorialReview['difficultyLevel'] | 'unknown';
+const taskKinds = {
+  calculation: 'Rechenaufgabe',
+  context: 'Kontextaufgabe',
+  knowledge: 'Wissensfrage',
+};
+function taskLabel(kind: keyof typeof formats, review?: CloudEditorialReview) {
+  return `${review ? taskKinds[review.taskKind] : 'Aufgabenart offen'} · ${formats[kind]}`;
 }
-function taskLabel(kind: keyof typeof formats) {
-  return kind === 'short' || kind === 'self' ? `Kontextaufgabe · ${formats[kind]}` : formats[kind];
+function levelLabel(review?: CloudEditorialReview) {
+  const level = difficultyLevels.find((entry) => entry.id === review?.difficultyLevel);
+  return level ? `Stufe ${level.id} · ${level.label}` : 'Stufe noch nicht eingestuft';
+}
+function unavailableReason(entry: CatalogQuestion) {
+  if (entry.excludedReason) return `Derzeit ausgeschlossen: ${entry.excludedReason}`;
+  if (!entry.active) return 'Diese Fassung ist nicht mehr aktiv.';
+  if (entry.editorialReview?.practiceEligible === false)
+    return 'Diese Fassung ist noch nicht zum Üben freigegeben.';
+  if (entry.reviewStatus !== 'checked') return 'Die Prüfung dieser Fassung ist noch offen.';
+  return '';
 }
 
 function SolutionText({ data }: { data: JsonRecord }) {
@@ -167,10 +183,11 @@ export function CloudPractice({ userId }: { userId: string }) {
   const [limit, setLimit] = useState(100);
   const [topic, setTopic] = useState('');
   const [kindFilter, setKindFilter] = useState<DirectoryKind>('all');
-  const [difficultyFilter, setDifficultyFilter] = useState<CloudDifficulty | 'all' | 'unknown'>(
-    'all',
-  );
-  const [difficultyOrder, setDifficultyOrder] = useState<'source' | 'asc' | 'desc'>('source');
+  const [difficultyFilter, setDifficultyFilter] = useState<LevelFilter>('all');
+  const [bankDifficultyFilter, setBankDifficultyFilter] = useState<
+    CloudDifficulty | 'all' | 'unknown'
+  >('all');
+  const [difficultyOrder, setDifficultyOrder] = useState<'source' | 'asc' | 'desc'>('asc');
   const [workpads, setWorkpads] = useState<Record<string, WorkpadDraft>>({});
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState('');
@@ -180,6 +197,7 @@ export function CloudPractice({ userId }: { userId: string }) {
   const lock = useRef(false);
   const sequence = useRef(0);
   const pending = useRef<{ key: string; operation: string } | null>(null);
+  const roundHeading = useRef<HTMLHeadingElement>(null);
 
   useEffect(() => {
     alive.current = true;
@@ -299,18 +317,19 @@ export function CloudPractice({ userId }: { userId: string }) {
     if (pending.current?.key !== key) pending.current = { key, operation: crypto.randomUUID() };
     return pending.current.operation;
   }
-  async function begin(selectedTopic: string) {
+  async function begin(selection: JsonRecord) {
     const generation = sequence.current;
     const next = parseSnapshot(
       await cloudRpc('shk_begin_learning', {
-        _selection: { mode: 'practice', ...(selectedTopic ? { topic: selectedTopic } : {}) },
-        _request: operation(`begin:${selectedTopic}`),
+        _selection: selection,
+        _request: operation(`begin:${JSON.stringify(selection)}`),
       }),
     );
     if (!alive.current || sequence.current !== generation) return;
     pending.current = null;
     accept(next);
     await refreshLearning();
+    if (alive.current && sequence.current === generation) roundHeading.current?.focus();
   }
   async function submit(unknown = false) {
     if (!snapshot) return;
@@ -385,18 +404,47 @@ export function CloudPractice({ userId }: { userId: string }) {
     await refreshLearning();
   }
   const allCatalog = learning ? latestCatalog(learning.catalog) : [];
-  const catalog = allCatalog
-    .filter(
-      (q) =>
-        (!topic || q.topic === topic) &&
-        (kindFilter === 'all' || directoryKind(q.kind) === kindFilter) &&
-        (difficultyFilter === 'all' ||
-          (difficultyFilter === 'unknown' ? !q.difficulty : q.difficulty === difficultyFilter)) &&
-        `${q.title} ${q.id}`.toLocaleLowerCase('de').includes(query.toLocaleLowerCase('de')),
+  const filteredCatalog = allCatalog.filter(
+    (q) =>
+      (!topic || q.topic === topic) &&
+      (kindFilter === 'all' ||
+        (kindFilter === 'unknown'
+          ? !q.editorialReview
+          : q.editorialReview?.taskKind === kindFilter)) &&
+      (difficultyFilter === 'all' ||
+        (difficultyFilter === 'unknown'
+          ? !q.editorialReview
+          : q.editorialReview?.difficultyLevel === difficultyFilter)) &&
+      (bankDifficultyFilter === 'all' ||
+        (bankDifficultyFilter === 'unknown'
+          ? !q.difficulty
+          : q.difficulty === bankDifficultyFilter)),
+  );
+  const catalog = filteredCatalog
+    .filter((entry) =>
+      `${entry.title} ${entry.id}`.toLocaleLowerCase('de').includes(query.toLocaleLowerCase('de')),
     )
     .sort((a, b) =>
-      difficultyOrder === 'source' ? 0 : compareCloudDifficulty(a, b, difficultyOrder),
+      difficultyOrder === 'source' ? 0 : compareEditorialDifficulty(a, b, difficultyOrder),
     );
+  const unknownSelection =
+    difficultyFilter === 'unknown' ||
+    kindFilter === 'unknown' ||
+    bankDifficultyFilter === 'unknown';
+  const roundUnavailable = unknownSelection
+    ? 'Ohne Einstufung ist nur der direkte Aufgabenstart verfügbar.'
+    : !filteredCatalog.some((entry) => !unavailableReason(entry))
+      ? 'Für diese Rundenauswahl ist aktuell keine Aufgabe zum Üben verfügbar.'
+      : '';
+  const roundSelection: JsonRecord = {
+    mode: 'practice',
+    ...(topic ? { topic } : {}),
+    ...(typeof difficultyFilter === 'number' ? { difficultyLevel: difficultyFilter } : {}),
+    ...(kindFilter !== 'all' && kindFilter !== 'unknown' ? { taskKind: kindFilter } : {}),
+    ...(bankDifficultyFilter === 'basic' || bankDifficultyFilter === 'applied'
+      ? { bankDifficulty: bankDifficultyFilter }
+      : {}),
+  };
   const difficultyCounts = {
     basic: allCatalog.filter((entry) => entry.difficulty === 'basic').length,
     applied: allCatalog.filter((entry) => entry.difficulty === 'applied').length,
@@ -414,6 +462,9 @@ export function CloudPractice({ userId }: { userId: string }) {
     : undefined;
   const questionDifficulty = q?.difficulty ?? questionCatalogEntry?.difficulty;
   const questionDemand = q?.demand ?? questionCatalogEntry?.demand;
+  const questionReview = q?.editorialReview ?? questionCatalogEntry?.editorialReview;
+  const calculationQuestion =
+    questionReview?.taskKind === 'calculation' || (!questionReview && q?.kind === 'numeric');
   const workpadKey =
     snapshot && q ? `${userId}:${snapshot.id}:${snapshot.position}:${q.id}:${q.version}` : '';
   const workpad = workpads[workpadKey] ?? emptyWorkpad();
@@ -431,18 +482,6 @@ export function CloudPractice({ userId }: { userId: string }) {
 
   return (
     <section className="cloud-practice" aria-label="Privater Fragenbestand">
-      <div className="page-heading">
-        <div>
-          <p className="eyebrow">DEIN BESTEHENDER FRAGENBESTAND</p>
-          <h1>
-            Meine Aufgaben<span>.</span>
-          </h1>
-          <p>
-            Deine bisherigen Fragen und Lernrunden bleiben im privaten Konto erhalten. Die neuen
-            Modellaufgaben findest du zusätzlich in der Lernwerkstatt.
-          </p>
-        </div>
-      </div>
       <div className="cloud-actions">
         <button
           className="button secondary"
@@ -475,13 +514,13 @@ export function CloudPractice({ userId }: { userId: string }) {
               eingestuft.
             </p>
             <p>
-              Das sind die zweistufigen Angaben aus deinem Bestand. Sie wurden nicht in die neuen
-              vier redaktionellen Härtegrade umgerechnet. Die zusätzliche Anforderungszuordnung
-              bleibt davon getrennt; beides ist keine gemessene persönliche Schwierigkeit.
+              Die vier Stufen beschreiben den redaktionell geprüften Denkweg der jeweiligen Aufgabe.
+              Die bisherigen Kategorien Basis und Anwendung bleiben zusätzlich erhalten. Keine der
+              Einstufungen misst dein persönliches Können oder deine Prüfungsreife.
             </p>
             <p>
-              Auch die Prüfmarkierungen beschreiben den gespeicherten Stand, keine neue fachliche
-              Freigabe.
+              „Beleg/Präzisierung offen“ kennzeichnet offene Punkte beim Einzelreview. Die
+              Einstufung einer Aufgabe ist keine Freigabe der gesamten Quelle.
             </p>
             <dl className="cloud-topic-counts" aria-label="Themenverteilung im geladenen Bestand">
               {topicCounts.map(([id, count]) => (
@@ -505,17 +544,25 @@ export function CloudPractice({ userId }: { userId: string }) {
               </select>
             </label>
             <label>
-              Schwierigkeit im Verzeichnis
+              Stufe
               <select
                 value={difficultyFilter}
                 onChange={(event) => {
-                  setDifficultyFilter(event.target.value as CloudDifficulty | 'all' | 'unknown');
+                  const value = event.target.value;
+                  setDifficultyFilter(
+                    value === 'all' || value === 'unknown'
+                      ? value
+                      : (Number(value) as 1 | 2 | 3 | 4),
+                  );
                   setLimit(100);
                 }}
               >
-                <option value="all">Alle Bestandseinstufungen</option>
-                <option value="basic">Basis · Bestand</option>
-                <option value="applied">Anwendung · Bestand</option>
+                <option value="all">Alle Stufen</option>
+                {difficultyLevels.map((level) => (
+                  <option key={level.id} value={level.id}>
+                    Stufe {level.id} · {level.label}
+                  </option>
+                ))}
                 <option value="unknown">Noch nicht eingestuft</option>
               </select>
             </label>
@@ -529,12 +576,12 @@ export function CloudPractice({ userId }: { userId: string }) {
                 }}
               >
                 <option value="source">Bestandsreihenfolge</option>
-                <option value="asc">Basis zuerst</option>
-                <option value="desc">Anwendung zuerst</option>
+                <option value="asc">Stufe 1 bis 4</option>
+                <option value="desc">Stufe 4 bis 1</option>
               </select>
             </label>
             <label>
-              Aufgabenart im Verzeichnis
+              Aufgabenart
               <select
                 value={kindFilter}
                 onChange={(event) => {
@@ -542,10 +589,11 @@ export function CloudPractice({ userId }: { userId: string }) {
                   setLimit(100);
                 }}
               >
-                <option value="all">Alle Antwortarten</option>
+                <option value="all">Alle Aufgabenarten</option>
                 <option value="calculation">Rechenaufgaben</option>
                 <option value="context">Kontextaufgaben</option>
-                <option value="choice">Auswahlfragen</option>
+                <option value="knowledge">Wissensfragen</option>
+                <option value="unknown">Noch nicht eingestuft</option>
               </select>
             </label>
             <label>
@@ -556,20 +604,42 @@ export function CloudPractice({ userId }: { userId: string }) {
                 onChange={(event) => setQuery(event.target.value)}
               />
             </label>
+          </div>
+          <details className="cloud-native-options">
+            <summary>Zusätzliche Bestandskategorie</summary>
+            <label>
+              Bestandseinstufung
+              <select
+                value={bankDifficultyFilter}
+                onChange={(event) => {
+                  setBankDifficultyFilter(
+                    event.target.value as CloudDifficulty | 'all' | 'unknown',
+                  );
+                  setLimit(100);
+                }}
+              >
+                <option value="all">Alle Bestandskategorien</option>
+                <option value="basic">Basis · Bestand</option>
+                <option value="applied">Anwendung · Bestand</option>
+                <option value="unknown">Noch nicht eingestuft</option>
+              </select>
+            </label>
+          </details>
+          <div className="cloud-round-start">
             <button
               className="button primary"
-              disabled={busy}
-              onClick={() => void action(() => begin(topic))}
+              disabled={busy || Boolean(roundUnavailable)}
+              aria-describedby="cloud-round-selection-note"
+              onClick={() => void action(() => begin(roundSelection))}
             >
-              {topic ? 'Themenrunde starten' : 'Gemischte Runde starten'}
+              Gefilterte Runde starten
             </button>
+            <p id="cloud-round-selection-note" className="cloud-directory-note">
+              {roundUnavailable ||
+                'Thema, Stufe, Aufgabenart und Bestandskategorie bestimmen die neue Runde. Suche und Sortierung ordnen nur das Verzeichnis.'}{' '}
+              Bis zu fünf Aufgaben je Thema oder zehn in einer gemischten Runde.
+            </p>
           </div>
-          <p>
-            Die Auswahl erfolgt aus den für dich verfügbaren Fragen: bis zu fünf je Thema oder zehn
-            in einer gemischten Runde. Ausgeschlossene Fassungen bleiben im Verzeichnis sichtbar.{' '}
-            Aufgabenart, Schwierigkeit, Sortierung und Suche gelten für das Verzeichnis; sie ändern
-            die Rundenauswahl nicht.
-          </p>
           {learning.rounds.some((round) => !round.completed) && (
             <section aria-label="Offene Lernrunden">
               <h2>Weiterlernen</h2>
@@ -594,11 +664,11 @@ export function CloudPractice({ userId }: { userId: string }) {
           )}
           {snapshot && (
             <section
-              className={`cloud-round ${q?.kind === 'numeric' ? 'cloud-round-calculation' : ''}`}
+              className={`cloud-round ${calculationQuestion ? 'cloud-round-calculation' : ''}`}
               aria-label="Laufende Lernrunde"
             >
               <div className="section-heading">
-                <h2>
+                <h2 ref={roundHeading} tabIndex={-1}>
                   {snapshot.completed
                     ? 'Runde abgeschlossen'
                     : `Aufgabe ${snapshot.position + 1} von ${snapshot.total}`}
@@ -621,17 +691,31 @@ export function CloudPractice({ userId }: { userId: string }) {
                   <>
                     <h3>{q.title}</h3>
                     <p>
-                      {taskLabel(q.kind)} · Fassung {q.version}
+                      {taskLabel(q.kind, questionReview)} · Fassung {q.version}
                     </p>
-                    <p className="cloud-difficulty-label">
-                      Bestandsschwierigkeit:{' '}
-                      {questionDifficulty
-                        ? cloudDifficultyLabels[questionDifficulty]
-                        : 'Noch nicht eingestuft'}
-                      {questionDemand && (
-                        <span> · Anforderungszuordnung: {cloudDemandLabels[questionDemand]}</span>
+                    <p className="cloud-editorial-label">
+                      {levelLabel(questionReview)}
+                      {questionReview && questionReview.status !== 'supported' && (
+                        <span> · Beleg/Präzisierung offen</span>
                       )}
                     </p>
+                    {!questionReview && (
+                      <p className="cloud-difficulty-label">
+                        Bestandsschwierigkeit:{' '}
+                        {questionDifficulty
+                          ? cloudDifficultyLabels[questionDifficulty]
+                          : 'Noch nicht eingestuft'}
+                        {questionDemand && (
+                          <span> · Anforderungszuordnung: {cloudDemandLabels[questionDemand]}</span>
+                        )}
+                      </p>
+                    )}
+                    {questionReview?.status === 'qualified' && (
+                      <p className="cloud-review-note">
+                        Einzelne Quellen- oder Bildbelege sind noch offen. Die Bewertung dieser
+                        Angaben steht unter Vorbehalt.
+                      </p>
+                    )}
                     <p className="cloud-preformatted">{q.prompt}</p>
                     <QuestionFigures
                       key={`${snapshot.id}:${snapshot.position}`}
@@ -640,7 +724,7 @@ export function CloudPractice({ userId }: { userId: string }) {
                     />
                     {workpadAllowed && (
                       <div className="cloud-workpad">
-                        {q.kind === 'numeric' ? (
+                        {calculationQuestion ? (
                           <CalculationWorkspace draft={workpad} onChange={updateWorkpad} />
                         ) : (
                           <label className="cloud-context-notes">
@@ -660,7 +744,7 @@ export function CloudPractice({ userId }: { userId: string }) {
                         </p>
                       </div>
                     )}
-                    {!workpadAllowed && q.kind === 'numeric' && (
+                    {!workpadAllowed && calculationQuestion && (
                       <p className="cloud-workpad-note">
                         Rechenblatt und eingebauter Taschenrechner sind für diese Runde gerade nicht
                         freigegeben. Nutze deinen eigenen Taschenrechner.
@@ -833,34 +917,52 @@ export function CloudPractice({ userId }: { userId: string }) {
           <section aria-label="Aufgabenverzeichnis">
             <h2>Aufgabenverzeichnis ({catalog.length})</h2>
             <p className="cloud-directory-note">
-              Aufgabenarten nach Antwortformat. Auswahlfragen können auch Rechnungen enthalten.
+              Aufgabenart und Stufe folgen dem Einzelreview. Das Antwortformat steht zusätzlich
+              dabei; auch eine Auswahlfrage kann eine Rechenaufgabe sein.
             </p>
             <div className="cloud-directory">
               {catalog.slice(0, limit).map((entry) => (
                 <article key={`${entry.id}:${entry.version}`} className="cloud-directory-entry">
                   <h3>{entry.title}</h3>
                   <p>
-                    {cloudTopics[entry.topic] ?? entry.topic} · {taskLabel(entry.kind)} · Fassung{' '}
-                    {entry.version}
+                    {cloudTopics[entry.topic] ?? entry.topic} ·{' '}
+                    {taskLabel(entry.kind, entry.editorialReview)} · Fassung {entry.version}
                   </p>
-                  <p className="cloud-difficulty-label">
-                    Bestandsschwierigkeit:{' '}
-                    {entry.difficulty
-                      ? cloudDifficultyLabels[entry.difficulty]
-                      : 'Noch nicht eingestuft'}
-                    {entry.demand && (
-                      <span> · Anforderungszuordnung: {cloudDemandLabels[entry.demand]}</span>
+                  <p className="cloud-editorial-label">
+                    {levelLabel(entry.editorialReview)}
+                    {entry.editorialReview && entry.editorialReview.status !== 'supported' && (
+                      <span> · Beleg/Präzisierung offen</span>
                     )}
                   </p>
-                  <p>
-                    {entry.excludedReason
-                      ? `Derzeit ausgeschlossen: ${entry.excludedReason}`
-                      : entry.active
-                        ? entry.reviewStatus === 'checked'
-                          ? 'Aktive geprüfte Fassung'
-                          : 'Aktive Fassung · Prüfung offen'
-                        : 'Frühere Fassung'}
-                  </p>
+                  {!entry.editorialReview && (
+                    <p className="cloud-difficulty-label">
+                      Bestandsschwierigkeit:{' '}
+                      {entry.difficulty
+                        ? cloudDifficultyLabels[entry.difficulty]
+                        : 'Noch nicht eingestuft'}
+                      {entry.demand && (
+                        <span> · Anforderungszuordnung: {cloudDemandLabels[entry.demand]}</span>
+                      )}
+                    </p>
+                  )}
+                  <p>{unavailableReason(entry) || 'Aktive Fassung'}</p>
+                  <button
+                    className="button secondary cloud-question-start"
+                    disabled={busy || Boolean(unavailableReason(entry))}
+                    aria-label={`Aufgabe üben: ${entry.title}`}
+                    onClick={() =>
+                      void action(() =>
+                        begin({
+                          mode: 'practice',
+                          questionId: entry.id,
+                          questionVersion: entry.version,
+                          topic: entry.topic,
+                        }),
+                      )
+                    }
+                  >
+                    Aufgabe üben
+                  </button>
                 </article>
               ))}
             </div>

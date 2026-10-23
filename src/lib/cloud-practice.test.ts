@@ -5,6 +5,8 @@ import {
   emptyDraft,
   latestCatalog,
   compareCloudDifficulty,
+  compareEditorialDifficulty,
+  parseEditorialReview,
   parseCloudDifficulty,
   parseLearning,
   parseSnapshot,
@@ -39,6 +41,91 @@ const snapshotData = (kind = 'choice') => ({
 });
 
 describe('private cloud content contract', () => {
+  const editorial = {
+    difficultyLevel: 3 as const,
+    taskKind: 'calculation' as const,
+    status: 'supported' as const,
+    reviewedAt: '2026-10-23',
+    rubricVersion: 'werktag-demand/1' as const,
+    practiceEligible: true,
+  };
+  it('accepts reviewed demand independently of format and strips private reviewer notes', () => {
+    expect(
+      parseEditorialReview({
+        ...editorial,
+        reason: 'Private solution reasoning',
+        checks: ['secret'],
+      }),
+    ).toEqual(editorial);
+    const base = snapshotData('choice');
+    expect(
+      parseSnapshot({ ...base, question: { ...base.question, editorialReview: editorial } })
+        .question?.editorialReview,
+    ).toEqual(editorial);
+    const catalog = parseLearning({
+      rulesVersion: 'shk-levels/2',
+      rounds: [],
+      catalog: [
+        {
+          id: 'synthetic-reviewed-choice',
+          version: 1,
+          topic: 'heizung',
+          title: 'Synthetic',
+          kind: 'choice',
+          active: true,
+          difficulty: 'basic',
+          editorialReview: editorial,
+        },
+      ],
+    });
+    expect(catalog.catalog[0].kind).toBe('choice');
+    expect(catalog.catalog[0].editorialReview?.taskKind).toBe('calculation');
+    expect(catalog.catalog[0].difficulty).toBe('basic');
+    expect(catalog.catalog[0].editorialReview?.difficultyLevel).toBe(3);
+  });
+  it('leaves incomplete or unsupported editorial reviews unknown while retaining original metadata', () => {
+    for (const value of [
+      null,
+      {},
+      { ...editorial, difficultyLevel: '3' },
+      { ...editorial, difficultyLevel: 5 },
+      { ...editorial, taskKind: 'choice' },
+      { ...editorial, rubricVersion: 'future/2' },
+      { ...editorial, reviewedAt: 'not-a-date' },
+      { ...editorial, practiceEligible: undefined },
+    ]) {
+      expect(parseEditorialReview(value)).toBeUndefined();
+      const base = snapshotData();
+      expect(
+        parseSnapshot({ ...base, question: { ...base.question, editorialReview: value } }).question
+          ?.id,
+      ).toBe(base.question.id);
+    }
+  });
+  it('preserves a blocked editorial decision and sorts four levels with unknowns always last', () => {
+    expect(
+      parseEditorialReview({ ...editorial, status: 'needs_revision', practiceEligible: false })
+        ?.practiceEligible,
+    ).toBe(false);
+    const entries = [
+      { id: 'unknown', editorialReview: undefined },
+      ...([4, 1, 3, 2] as const).map((difficultyLevel) => ({
+        id: String(difficultyLevel),
+        editorialReview: { ...editorial, difficultyLevel },
+      })),
+    ];
+    expect([...entries].sort(compareEditorialDifficulty).map((x) => x.id)).toEqual([
+      '1',
+      '2',
+      '3',
+      '4',
+      'unknown',
+    ]);
+    expect(
+      [...entries].sort((a, b) => compareEditorialDifficulty(a, b, 'desc')).map((x) => x.id),
+    ).toEqual(['4', '3', '2', '1', 'unknown']);
+    expect(entries[0].id).toBe('unknown');
+  });
   it('shows one latest active revision per task without discarding historical metadata', () => {
     const base = {
       id: 'synthetic',

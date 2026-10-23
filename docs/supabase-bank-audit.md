@@ -2,6 +2,10 @@
 
 Stand: 23.10.2026. Nur gelesen; keine Produktionsänderungen und keine Lernverlaufsdaten gelesen.
 
+Historischer Stichprobenbericht zu Version 0.6.0. Die anschließende vollständige
+Einzelprüfung aller 631 Fragen und ihre Einbindung beschreibt
+[Version 0.7.0](private-bank-release.md).
+
 ## Umfang
 
 631 neueste unterschiedliche Fragen, gespeichert in 716 Versionen. 686 Versionszeilen sind aktiv; dies darf nicht als Anzahl unterschiedlicher Fragen angezeigt werden. Alle 631 nach der Auswahl „aktiv zuerst, neueste Version“ sind aktiv. Der für einen angemeldeten Nutzer tatsächlich auswählbare Umfang kann durch Berechtigungen und Ausschlüsse abweichen und wurde nicht abgefragt.

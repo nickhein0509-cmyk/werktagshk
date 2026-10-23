@@ -1,4 +1,6 @@
 import { supabase } from './supabase';
+import type { DifficultyLevel } from './difficulty';
+import type { ExerciseKind } from './exercise-kind';
 
 export const cloudTopics: Record<string, string> = {
   trinkwasser: 'Trinkwasser',
@@ -13,6 +15,14 @@ export const cloudTopics: Record<string, string> = {
 export type QuestionKind = 'choice' | 'numeric' | 'short' | 'self';
 export type CloudDifficulty = 'basic' | 'applied';
 export type CloudDemand = 'foundation' | 'application';
+export interface CloudEditorialReview {
+  difficultyLevel: DifficultyLevel;
+  taskKind: ExerciseKind;
+  status: 'supported' | 'qualified' | 'needs_revision';
+  reviewedAt: string;
+  rubricVersion: 'werktag-demand/1';
+  practiceEligible: boolean;
+}
 export const cloudDifficultyLabels: Record<CloudDifficulty, string> = {
   basic: 'Basis',
   applied: 'Anwendung',
@@ -33,6 +43,7 @@ export interface CatalogQuestion {
   excludedReason?: string;
   difficulty?: CloudDifficulty;
   demand?: CloudDemand;
+  editorialReview?: CloudEditorialReview;
 }
 export interface CloudRound {
   id: string;
@@ -56,6 +67,7 @@ export interface CloudQuestion {
   figures: JsonRecord[];
   difficulty?: CloudDifficulty;
   demand?: CloudDemand;
+  editorialReview?: CloudEditorialReview;
 }
 export interface CloudSnapshot {
   id: string;
@@ -103,6 +115,41 @@ export function parseCloudDifficulty(value: unknown): CloudDifficulty | undefine
 
 function parseCloudDemand(value: unknown): CloudDemand | undefined {
   return value === 'foundation' || value === 'application' ? value : undefined;
+}
+
+/** Only the answer-free, version-bound projection belongs in the learner catalog. */
+export function parseEditorialReview(value: unknown): CloudEditorialReview | undefined {
+  if (
+    !record(value) ||
+    ![1, 2, 3, 4].includes(value.difficultyLevel as number) ||
+    !['calculation', 'context', 'knowledge'].includes(value.taskKind as string) ||
+    !['supported', 'qualified', 'needs_revision'].includes(value.status as string) ||
+    value.rubricVersion !== 'werktag-demand/1' ||
+    !string(value.reviewedAt) ||
+    !Number.isFinite(Date.parse(value.reviewedAt)) ||
+    typeof value.practiceEligible !== 'boolean'
+  )
+    return undefined;
+  return {
+    difficultyLevel: value.difficultyLevel as DifficultyLevel,
+    taskKind: value.taskKind as ExerciseKind,
+    status: value.status as CloudEditorialReview['status'],
+    reviewedAt: value.reviewedAt,
+    rubricVersion: value.rubricVersion,
+    practiceEligible: value.practiceEligible,
+  };
+}
+
+export function compareEditorialDifficulty(
+  a: Pick<CatalogQuestion, 'editorialReview'>,
+  b: Pick<CatalogQuestion, 'editorialReview'>,
+  direction: 'asc' | 'desc' = 'asc',
+): number {
+  const first = a.editorialReview?.difficultyLevel;
+  const second = b.editorialReview?.difficultyLevel;
+  if (first === undefined) return second === undefined ? 0 : 1;
+  if (second === undefined) return -1;
+  return direction === 'asc' ? first - second : second - first;
 }
 
 /** Unknown classifications remain last in either direction. Ties retain catalogue order. */
@@ -163,6 +210,7 @@ export function parseLearning(data: unknown): CloudLearning {
       excludedReason: string(q.excludedReason) ? q.excludedReason : undefined,
       difficulty: parseCloudDifficulty(q.difficulty),
       demand: parseCloudDemand(q.demand),
+      editorialReview: parseEditorialReview(q.editorialReview),
     };
   });
   const rounds = data.rounds.map((r): CloudRound => {
@@ -227,6 +275,7 @@ export function parseSnapshot(data: unknown): CloudSnapshot {
       figures: Array.isArray(q.figures) ? q.figures.filter(record) : [],
       difficulty: parseCloudDifficulty(q.difficulty),
       demand: parseCloudDemand(q.demand),
+      editorialReview: parseEditorialReview(q.editorialReview),
     };
   }
   return {

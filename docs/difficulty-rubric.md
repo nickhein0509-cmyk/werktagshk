@@ -54,12 +54,15 @@ Antwort vorwegzunehmen.
 
 ## Abgrenzung und Pflege
 
-Die vier Stufen gelten für diesen eigenen Katalog. Sie werden nicht auf den
-privaten Supabase-Bestand übertragen. Dessen vorhandene zweistufige Metadaten
-`basic`/`applied` und dessen separate Anforderungsangabe bleiben eigene Größen;
-eine Umrechnung in vier Stufen wäre eine zusätzliche, derzeit nicht durchgeführte
-redaktionelle Prüfung. Private Aufgaben oder Schlüssel werden hier nicht
-gespeichert.
+Die vier Stufen gelten seit Version 0.7.0 auch für die 631 aktuellen privaten
+Supabase-Aufgaben nach einer eigenständigen Einzelprüfung von Aufgabenstellung,
+Lösung und Bewertungsregel. Die Verteilung lautet dort 138 / 291 / 193 / 9 in
+Stufe 1–4. Es handelt sich um begründete Einzelzuordnungen nach derselben Rubrik,
+keine automatische Umrechnung der bisherigen Kategorien `basic`/`applied`.
+Diese zweistufigen Metadaten und die separate Anforderungsangabe bleiben erhalten.
+Private Einstufungen und Prüfnachweise liegen versioniert im geschützten Bestand;
+dieses Repository enthält weder deren Aufgabentexte noch Lösungsschlüssel.
+Die [Gesamtauswertung](private-bank-release.md) nennt offene Quellenbelege.
 
 Die persönliche Lernstufe 0–4 aus den bestehenden Lernregeln ist ebenfalls eine
 andere Größe. Diese Änderung erzeugt keine Versuche, verändert keine früheren

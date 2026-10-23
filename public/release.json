@@ -1,6 +1,6 @@
 {
-  "release": "werktag-flow-catalog-0.6.0",
-  "appVersion": "0.6.0",
+  "release": "werktag-flow-private-bank-0.7.0",
+  "appVersion": "0.7.0",
   "design": "flow",
   "designVersion": 2,
   "learningSchemaVersion": 1,
@@ -26,6 +26,12 @@
     "formula-search-and-groups",
     "editorial-four-stage-difficulty",
     "difficulty-filter-and-sort",
-    "private-native-difficulty"
+    "private-native-difficulty",
+    "631-private-question-reviews",
+    "private-four-stage-difficulty",
+    "private-semantic-task-kinds",
+    "private-targeted-practice",
+    "private-filtered-rounds",
+    "versioned-editorial-corrections"
   ]
 }

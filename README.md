@@ -20,6 +20,9 @@ Aktueller Ausbau: [21 Formeln](docs/screenshots/formula-expanded.png),
 [Handy](docs/screenshots/formula-expanded-mobile.png),
 [Schwierigkeitsauswahl](docs/screenshots/library-difficulty.png) und
 [Prüfungsvorbereitung](docs/screenshots/exam-difficulty-setup.png).
+Privates Aufgabenverzeichnis mit rein synthetischen Beispielen:
+[Desktop](docs/screenshots/private-bank-desktop-synthetic.png) und
+[Handy](docs/screenshots/private-bank-mobile-synthetic.png).
 
 ## Was funktioniert
 
@@ -32,12 +35,15 @@ Aktueller Ausbau: [21 Formeln](docs/screenshots/formula-expanded.png),
   Merkliste und vier redaktionelle Schwierigkeitsstufen lassen sich kombinieren.
   Leicht/schwer sortieren; „Weiterlernen“ folgt der gewählten Auswahl.
   Die [Einstufungsregeln](docs/difficulty-rubric.md) beschreiben die Anforderungen.
-- Privater bisheriger Fragenbestand über das vorhandene Supabase-Lernkonto:
-  Auswahl, Zahlen, Kurzantwort und Selbstvergleich, mit Bewertung auf dem Server.
-  Gespeicherte Übungsrunden lassen sich fortsetzen; Entwürfe explizit speichern.
-  Vorhandene Bestandsstufen Basis/Anwendung filtern und sortieren; Themenverteilung
-  aus den geladenen freigegebenen Daten. Die [Bestandsauswertung](docs/supabase-bank-audit.md)
-  erfasst 631 aktuelle Aufgaben; die nutzbare Auswahl hängt von der Freigabe ab.
+- 631 private aktuelle Fragen über das vorhandene Supabase-Lernkonto: alle einzeln
+  inhaltlich geprüft und nach Aufgabenart sowie vier Stufen eingeordnet. Einzelne
+  Aufgaben direkt öffnen oder nach Thema, Art und Stufe eine Runde starten.
+  Die bisherigen Kategorien Basis/Anwendung bleiben zusätzlich verfügbar.
+  Auswahl, Zahlen, Kurzantwort und Selbstvergleich werden weiter auf dem Server
+  bewertet; gespeicherte Runden und Entwürfe bleiben erhalten.
+  32 korrigierte Inhaltsfassungen erhalten die alten Versionen. 23 Fragen tragen
+  noch gezielte Quellen-/Bildvorbehalte. Die [vollständige Inhaltsauswertung](docs/private-bank-release.md)
+  beschreibt Umfang und Grenzen; Zugriff und Rechenwertebereiche bleiben geschützt.
 - Lernwerkstatt mit Suche, Themenfiltern und Merkliste.
 - Rechenaufgaben, Kontextaufgaben und Wissensfragen getrennt filtern.
   Großes Rechenblatt mit Teilschritten, eigenen Browsernotizen und Taschenrechner.

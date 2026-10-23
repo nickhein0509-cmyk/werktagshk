@@ -30,6 +30,25 @@ test.beforeEach(async ({ page }) => {
   await expect(page.getByRole('heading', { level: 1 })).toBeVisible();
 });
 
+test('the library opens the protected account catalog without starting a round for a guest', async ({
+  page,
+}) => {
+  const privateReads: string[] = [];
+  page.on('request', (request) => {
+    if (request.url().includes('/shk_learning_data')) privateReads.push(request.url());
+  });
+  await navigate(page, 'Lernwerkstatt');
+  await page
+    .getByRole('button', { name: 'Alle Fragen aus deinem Lernkonto öffnen', exact: true })
+    .click();
+  await expect(page.getByRole('heading', { level: 1 })).toContainText('Mein Fragenbestand');
+  await expect(
+    page.getByRole('region', { name: 'Privater Fragenbestand', exact: true }),
+  ).toHaveCount(0);
+  expect(privateReads).toEqual([]);
+  expect(await learningRecord(page)).toBeNull();
+});
+
 test('the library filters all editorial levels and sorts in both directions without learning events', async ({
   page,
 }) => {

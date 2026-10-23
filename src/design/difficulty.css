@@ -12,6 +12,19 @@
   line-height: 1.4;
   white-space: normal;
 }
+.library-source-entry {
+  color: var(--flow-text-muted);
+  font-size: 13px;
+  line-height: 1.7;
+  margin: -8px 0 22px;
+}
+.library-source-entry .text-button {
+  display: inline-flex;
+  flex-wrap: wrap;
+  text-align: left;
+  color: var(--flow-text);
+  font-size: inherit;
+}
 .difficulty-badge.is-unrated {
   color: #53635c;
   font-weight: 400;

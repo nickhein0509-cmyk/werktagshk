@@ -3,6 +3,9 @@
 Stand: 23. Oktober 2026. Fortsetzung auf dem bestehenden Vorschauzweig
 `feat/practice-workspace-2026-10-23`, PR #3 in `nickhein0509-cmyk/werktagshk`.
 
+Die anschließende vollständige Prüfung und Einbindung aller privaten Fragen
+steht im [Bericht zu Version 0.7.0](private-bank-release.md).
+
 Der Werkzeugkoffer wächst von acht auf 21 Formelmodelle mit 64 unterstützten
 Umstellungen. Suche und fünf Bereiche helfen bei der Auswahl. Einheitenwechsel,
 Umstellen und Filter erhalten das physikalische Beispiel und die geöffneten

@@ -338,7 +338,11 @@ function App() {
               <PageHeading
                 eyebrow="DEIN BESTEHENDER LERNBUDDY"
                 title="Mein Fragenbestand"
-                description="Deine bisherigen Fragen, Rechenaufgaben und Übungsrunden. Melde dich mit deinem vorhandenen Lernkonto an."
+                description={
+                  user
+                    ? 'Öffne eine Aufgabe direkt oder stelle dir eine Runde nach Thema, Aufgabenart und Stufe zusammen.'
+                    : 'Deine Fragen, Rechenaufgaben und Übungsrunden. Melde dich mit deinem vorhandenen Lernkonto an.'
+                }
               />
               <Suspense fallback={<p role="status">Dein Fragenbestand wird vorbereitet …</p>}>
                 <CloudAccount
@@ -376,6 +380,7 @@ function App() {
               onStart={startExercise}
               onBookmark={bookmark}
               onExam={() => navigate('exam')}
+              onPrivate={() => navigate('cloud')}
             />
           )}
           <div hidden={page !== 'exam'}>
@@ -445,7 +450,7 @@ function App() {
         <footer className="workspace-footer">
           <span>WerkTag · Mit Kopf. Mit Hand. Mit dir.</span>
           <span>
-            WerkTag Flow <span className="footer-version">/ 0.6.0</span>
+            WerkTag Flow <span className="footer-version">/ 0.7.0</span>
           </span>
         </footer>
       </div>
@@ -606,6 +611,7 @@ function Library({
   onStart,
   onBookmark,
   onExam,
+  onPrivate,
 }: {
   state: LearningState;
   mastered: string[];
@@ -616,6 +622,7 @@ function Library({
   onStart: (exercise: Exercise, queue?: Exercise[]) => void;
   onBookmark: (id: string) => void;
   onExam: () => void;
+  onPrivate: () => void;
 }) {
   const [search, setSearch] = useState('');
   const [onlySaved, setOnlySaved] = useState(false);
@@ -647,6 +654,12 @@ function Library({
         title="Was möchtest du üben?"
         description="Rechnen, Zusammenhänge verstehen oder Wissen abrufen. Wähle die Aufgabenart und deinen Schwerpunkt."
       />
+      <p className="library-source-entry">
+        Hier übst du mit den eigenen Aufgaben.{' '}
+        <button className="text-button" onClick={onPrivate}>
+          Alle Fragen aus deinem Lernkonto öffnen <ArrowRight size={16} aria-hidden="true" />
+        </button>
+      </p>
       <div className="library-exam-entry">
         <span>Eine Aufgabenrunde mit Zeitmessung bearbeiten</span>
         <button className="text-button" onClick={onExam}>

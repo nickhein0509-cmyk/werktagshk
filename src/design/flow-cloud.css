@@ -250,6 +250,52 @@
 .cloud-practice .cloud-directory-entry p:last-child {
   font-size: 12px;
 }
+.cloud-editorial-label {
+  font-weight: 600;
+  line-height: 1.65;
+}
+.cloud-editorial-label > span {
+  font-weight: 400;
+}
+.cloud-native-options {
+  max-width: 440px;
+  margin-block: 12px 20px;
+  color: var(--flow-text-muted, #b9cbc5);
+}
+.cloud-native-options summary {
+  min-height: 44px;
+  padding-block: 12px;
+  cursor: pointer;
+}
+.cloud-native-options label {
+  display: grid;
+  gap: 8px;
+  padding-block: 8px 16px;
+}
+.cloud-round-start {
+  display: grid;
+  justify-items: start;
+  gap: 10px;
+  margin-block: 16px 28px;
+}
+.cloud-round-start p {
+  margin: 0;
+}
+.cloud-round-start > .button.primary {
+  background: var(--flow-text, #f7f7f2);
+  color: var(--flow-ink, #183c3a);
+  border-color: #b7c0b8;
+}
+.cloud-round-start > .button.primary:hover:not(:disabled) {
+  background: #e2e7df;
+}
+.cloud-practice .cloud-question-start {
+  justify-self: start;
+  margin-top: 9px;
+  min-height: 44px;
+  max-width: 100%;
+  white-space: normal;
+}
 @media (max-width: 600px) {
   .cloud-practice .cloud-round {
     padding: 14px;
@@ -263,6 +309,10 @@
   .cloud-practice .cloud-actions {
     align-items: stretch;
     flex-direction: column;
+  }
+  .cloud-round-start,
+  .cloud-round-start > .button {
+    width: 100%;
   }
 }
 
