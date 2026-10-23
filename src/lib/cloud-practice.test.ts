@@ -4,6 +4,8 @@ import {
   buildAnswer,
   emptyDraft,
   latestCatalog,
+  compareCloudDifficulty,
+  parseCloudDifficulty,
   parseLearning,
   parseSnapshot,
   permitted,
@@ -71,6 +73,54 @@ describe('private cloud content contract', () => {
     expect(() =>
       parseLearning({ ...data, catalog: [{ ...data.catalog[0], version: '1' }] }),
     ).toThrow();
+  });
+  it('preserves the bank native difficulty and independent demand without remapping either', () => {
+    const entry = {
+      id: 'native',
+      version: 2,
+      title: 'Synthetic',
+      topic: 'heizung',
+      kind: 'short',
+      active: true,
+      difficulty: 'applied',
+      demand: 'foundation',
+    };
+    const parsed = parseLearning({ rulesVersion: 'shk-levels/2', catalog: [entry], rounds: [] });
+    expect(parsed.catalog[0]).toMatchObject({ difficulty: 'applied', demand: 'foundation' });
+    const base = snapshotData('short');
+    expect(
+      parseSnapshot({
+        ...base,
+        question: { ...base.question, difficulty: 'basic', demand: 'application' },
+      }).question,
+    ).toMatchObject({ difficulty: 'basic', demand: 'application' });
+  });
+  it('keeps missing and unsupported difficulty metadata unknown without discarding a question', () => {
+    for (const value of [undefined, null, 1, 4, 'hard', 'foundation', {}, ['basic']]) {
+      expect(parseCloudDifficulty(value)).toBeUndefined();
+      const base = snapshotData();
+      const question = parseSnapshot({
+        ...base,
+        question: { ...base.question, difficulty: value },
+      }).question;
+      expect(question?.id).toBe(base.question.id);
+      expect(question?.difficulty).toBeUndefined();
+    }
+  });
+  it('sorts the two stored grades without guessing unknown grades or mutating catalogue records', () => {
+    const catalogue = [
+      { id: 'unknown', difficulty: undefined },
+      { id: 'applied-a', difficulty: 'applied' as const },
+      { id: 'basic', difficulty: 'basic' as const },
+      { id: 'applied-b', difficulty: 'applied' as const },
+    ];
+    expect(
+      [...catalogue].sort((a, b) => compareCloudDifficulty(a, b)).map((entry) => entry.id),
+    ).toEqual(['basic', 'applied-a', 'applied-b', 'unknown']);
+    expect(
+      [...catalogue].sort((a, b) => compareCloudDifficulty(a, b, 'desc')).map((entry) => entry.id),
+    ).toEqual(['applied-a', 'applied-b', 'basic', 'unknown']);
+    expect(catalogue[0].id).toBe('unknown');
   });
   it('preserves option IDs and refuses forged or duplicate options', () => {
     const s = parseSnapshot(snapshotData());

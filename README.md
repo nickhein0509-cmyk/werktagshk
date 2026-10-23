@@ -16,19 +16,28 @@ Gestaltung ansehen: [Desktop](docs/screenshots/desktop.png),
 [Handy](docs/screenshots/mobile.png) und [Aufgabe](docs/screenshots/exercise.png).
 Prüfungsbereich: [Desktop](docs/screenshots/exam-mode.png) und [Handy](docs/screenshots/exam-mobile.png).
 Werkzeugkoffer: [Formelwerkstatt](docs/screenshots/formula-workbench.png) und [Handy](docs/screenshots/formula-workbench-mobile.png).
+Aktueller Ausbau: [21 Formeln](docs/screenshots/formula-expanded.png),
+[Handy](docs/screenshots/formula-expanded-mobile.png),
+[Schwierigkeitsauswahl](docs/screenshots/library-difficulty.png) und
+[Prüfungsvorbereitung](docs/screenshots/exam-difficulty-setup.png).
 
 ## Was funktioniert
 
 - Übersicht mit echten Tageszielen, bearbeiteten Aufgaben und Lerntagen.
-- 180 eigene Übungen mit Hinweisen und Erklärungen: die bisherigen 108
-  Modellaufgaben und 72 Fälle für Teil 2. Je 24 Fälle zu
+- 204 eigene Übungen mit Hinweisen und Erklärungen: die bisherigen 108
+  Modellaufgaben und 96 Fälle für Teil 2. Je 32 Fälle zu
   Arbeitsplanung, Systemanalyse/Instandhaltung und WiSo. Vier WiSo-Fälle
   beziehen sich auf konkret gelesene Primärquellen.
-- Prüfungsfälle erscheinen zuerst. Prüfungsbereich, Lernfeld, Suchbegriff und
-  Merkliste lassen sich kombinieren und gemeinsam zurücksetzen.
+- Prüfungsfälle erscheinen zuerst. Prüfungsbereich, Aufgabenart, Lernfeld, Suchbegriff,
+  Merkliste und vier redaktionelle Schwierigkeitsstufen lassen sich kombinieren.
+  Leicht/schwer sortieren; „Weiterlernen“ folgt der gewählten Auswahl.
+  Die [Einstufungsregeln](docs/difficulty-rubric.md) beschreiben die Anforderungen.
 - Privater bisheriger Fragenbestand über das vorhandene Supabase-Lernkonto:
   Auswahl, Zahlen, Kurzantwort und Selbstvergleich, mit Bewertung auf dem Server.
   Gespeicherte Übungsrunden lassen sich fortsetzen; Entwürfe explizit speichern.
+  Vorhandene Bestandsstufen Basis/Anwendung filtern und sortieren; Themenverteilung
+  aus den geladenen freigegebenen Daten. Die [Bestandsauswertung](docs/supabase-bank-audit.md)
+  erfasst 631 aktuelle Aufgaben; die nutzbare Auswahl hängt von der Freigabe ab.
 - Lernwerkstatt mit Suche, Themenfiltern und Merkliste.
 - Rechenaufgaben, Kontextaufgaben und Wissensfragen getrennt filtern.
   Großes Rechenblatt mit Teilschritten, eigenen Browsernotizen und Taschenrechner.
@@ -40,9 +49,10 @@ Werkzeugkoffer: [Formelwerkstatt](docs/screenshots/formula-workbench.png) und [H
 - Wiederholung: zuletzt falsche Antworten sofort; zuletzt richtige Antworten
   nach 72 Stunden. Das ist eine einfache Produktregel, kein validiertes Lernmodell.
 - Frei einteilbarer Lernplan und ein Tagesziel von einer bis zehn Aufgaben.
-- Formelwerkstatt mit acht wählbaren Formeln: Wärmeenergie, Wärmeleistung,
-  Volumenstrom, Luftwechsel, Gefälle, Rohrinhalt, Heizzeit und Energiewirkungsgrad.
-  Je drei gesuchte Größen, automatische Einheitenumrechnung und Rechenweg.
+- Formelwerkstatt mit 21 Formelfamilien und 64 Umstellungen, Suche und Bereichen.
+  Wärme, Strömung, Druck, Geometrie, Ausdehnung, trockene Mischung und elektrische
+  Grundmodelle: automatische Einheitenumrechnung und nachvollziehbarer Rechenweg.
+  Eine [erweiterbare Auswahl](docs/formula-expansion.md), keine vollständige Formelsammlung.
 - Validierter JSON-Export und -Import von Lernstand, Merkliste und Tagesziel.
   Ein Import ersetzt Daten erst nach ausdrücklicher Bestätigung in der App.
 - Höhere Lernstandsformate sind gegen Überschreiben geschützt, auch wenn sie

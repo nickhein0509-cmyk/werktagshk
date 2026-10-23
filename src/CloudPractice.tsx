@@ -1,6 +1,9 @@
 import { useEffect, useRef, useState } from 'react';
 import {
   cloudTopics,
+  cloudDifficultyLabels,
+  cloudDemandLabels,
+  compareCloudDifficulty,
   latestCatalog,
   cloudRpc,
   parseLearning,
@@ -11,7 +14,13 @@ import {
   draftFromSnapshot,
   record,
 } from './lib/cloud-practice';
-import type { CloudLearning, CloudSnapshot, CloudDraft, JsonRecord } from './lib/cloud-practice';
+import type {
+  CloudLearning,
+  CloudSnapshot,
+  CloudDraft,
+  JsonRecord,
+  CloudDifficulty,
+} from './lib/cloud-practice';
 import { CalculationWorkspace, emptyWorkpad } from './components/CalculationWorkspace';
 import type { WorkpadDraft } from './components/CalculationWorkspace';
 
@@ -158,6 +167,10 @@ export function CloudPractice({ userId }: { userId: string }) {
   const [limit, setLimit] = useState(100);
   const [topic, setTopic] = useState('');
   const [kindFilter, setKindFilter] = useState<DirectoryKind>('all');
+  const [difficultyFilter, setDifficultyFilter] = useState<CloudDifficulty | 'all' | 'unknown'>(
+    'all',
+  );
+  const [difficultyOrder, setDifficultyOrder] = useState<'source' | 'asc' | 'desc'>('source');
   const [workpads, setWorkpads] = useState<Record<string, WorkpadDraft>>({});
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState('');
@@ -371,14 +384,36 @@ export function CloudPractice({ userId }: { userId: string }) {
     accept(next);
     await refreshLearning();
   }
-  const catalog =
-    (learning ? latestCatalog(learning.catalog) : []).filter(
+  const allCatalog = learning ? latestCatalog(learning.catalog) : [];
+  const catalog = allCatalog
+    .filter(
       (q) =>
         (!topic || q.topic === topic) &&
         (kindFilter === 'all' || directoryKind(q.kind) === kindFilter) &&
+        (difficultyFilter === 'all' ||
+          (difficultyFilter === 'unknown' ? !q.difficulty : q.difficulty === difficultyFilter)) &&
         `${q.title} ${q.id}`.toLocaleLowerCase('de').includes(query.toLocaleLowerCase('de')),
-    ) ?? [];
+    )
+    .sort((a, b) =>
+      difficultyOrder === 'source' ? 0 : compareCloudDifficulty(a, b, difficultyOrder),
+    );
+  const difficultyCounts = {
+    basic: allCatalog.filter((entry) => entry.difficulty === 'basic').length,
+    applied: allCatalog.filter((entry) => entry.difficulty === 'applied').length,
+    unknown: allCatalog.filter((entry) => !entry.difficulty).length,
+  };
+  const topicCounts = Object.entries(
+    allCatalog.reduce<Record<string, number>>((counts, entry) => {
+      counts[entry.topic] = (counts[entry.topic] ?? 0) + 1;
+      return counts;
+    }, {}),
+  );
   const q = snapshot?.question;
+  const questionCatalogEntry = q
+    ? learning?.catalog.find((entry) => entry.id === q.id && entry.version === q.version)
+    : undefined;
+  const questionDifficulty = q?.difficulty ?? questionCatalogEntry?.difficulty;
+  const questionDemand = q?.demand ?? questionCatalogEntry?.demand;
   const workpadKey =
     snapshot && q ? `${userId}:${snapshot.id}:${snapshot.position}:${q.id}:${q.version}` : '';
   const workpad = workpads[workpadKey] ?? emptyWorkpad();
@@ -432,6 +467,31 @@ export function CloudPractice({ userId }: { userId: string }) {
             {new Set(learning.catalog.map((entry) => entry.id)).size} Aufgaben ·{' '}
             {learning.rounds.length} gespeicherte Runden
           </p>
+          <details className="cloud-catalog-summary">
+            <summary>Bestand einordnen · {allCatalog.length} aktuelle Aufgaben</summary>
+            <p className="cloud-native-scale">
+              Gespeicherte Schwierigkeit: {difficultyCounts.basic} Basis ·{' '}
+              {difficultyCounts.applied} Anwendung · {difficultyCounts.unknown} noch nicht
+              eingestuft.
+            </p>
+            <p>
+              Das sind die zweistufigen Angaben aus deinem Bestand. Sie wurden nicht in die neuen
+              vier redaktionellen Härtegrade umgerechnet. Die zusätzliche Anforderungszuordnung
+              bleibt davon getrennt; beides ist keine gemessene persönliche Schwierigkeit.
+            </p>
+            <p>
+              Auch die Prüfmarkierungen beschreiben den gespeicherten Stand, keine neue fachliche
+              Freigabe.
+            </p>
+            <dl className="cloud-topic-counts" aria-label="Themenverteilung im geladenen Bestand">
+              {topicCounts.map(([id, count]) => (
+                <div key={id}>
+                  <dt>{cloudTopics[id] ?? id}</dt>
+                  <dd>{count}</dd>
+                </div>
+              ))}
+            </dl>
+          </details>
           <div className="cloud-actions">
             <label>
               Thema
@@ -442,6 +502,35 @@ export function CloudPractice({ userId }: { userId: string }) {
                     {label}
                   </option>
                 ))}
+              </select>
+            </label>
+            <label>
+              Schwierigkeit im Verzeichnis
+              <select
+                value={difficultyFilter}
+                onChange={(event) => {
+                  setDifficultyFilter(event.target.value as CloudDifficulty | 'all' | 'unknown');
+                  setLimit(100);
+                }}
+              >
+                <option value="all">Alle Bestandseinstufungen</option>
+                <option value="basic">Basis · Bestand</option>
+                <option value="applied">Anwendung · Bestand</option>
+                <option value="unknown">Noch nicht eingestuft</option>
+              </select>
+            </label>
+            <label>
+              Verzeichnis sortieren
+              <select
+                value={difficultyOrder}
+                onChange={(event) => {
+                  setDifficultyOrder(event.target.value as 'source' | 'asc' | 'desc');
+                  setLimit(100);
+                }}
+              >
+                <option value="source">Bestandsreihenfolge</option>
+                <option value="asc">Basis zuerst</option>
+                <option value="desc">Anwendung zuerst</option>
               </select>
             </label>
             <label>
@@ -478,7 +567,8 @@ export function CloudPractice({ userId }: { userId: string }) {
           <p>
             Die Auswahl erfolgt aus den für dich verfügbaren Fragen: bis zu fünf je Thema oder zehn
             in einer gemischten Runde. Ausgeschlossene Fassungen bleiben im Verzeichnis sichtbar.{' '}
-            Aufgabenart und Suche filtern das Verzeichnis; sie ändern die Rundenauswahl nicht.
+            Aufgabenart, Schwierigkeit, Sortierung und Suche gelten für das Verzeichnis; sie ändern
+            die Rundenauswahl nicht.
           </p>
           {learning.rounds.some((round) => !round.completed) && (
             <section aria-label="Offene Lernrunden">
@@ -532,6 +622,15 @@ export function CloudPractice({ userId }: { userId: string }) {
                     <h3>{q.title}</h3>
                     <p>
                       {taskLabel(q.kind)} · Fassung {q.version}
+                    </p>
+                    <p className="cloud-difficulty-label">
+                      Bestandsschwierigkeit:{' '}
+                      {questionDifficulty
+                        ? cloudDifficultyLabels[questionDifficulty]
+                        : 'Noch nicht eingestuft'}
+                      {questionDemand && (
+                        <span> · Anforderungszuordnung: {cloudDemandLabels[questionDemand]}</span>
+                      )}
                     </p>
                     <p className="cloud-preformatted">{q.prompt}</p>
                     <QuestionFigures
@@ -743,6 +842,15 @@ export function CloudPractice({ userId }: { userId: string }) {
                   <p>
                     {cloudTopics[entry.topic] ?? entry.topic} · {taskLabel(entry.kind)} · Fassung{' '}
                     {entry.version}
+                  </p>
+                  <p className="cloud-difficulty-label">
+                    Bestandsschwierigkeit:{' '}
+                    {entry.difficulty
+                      ? cloudDifficultyLabels[entry.difficulty]
+                      : 'Noch nicht eingestuft'}
+                    {entry.demand && (
+                      <span> · Anforderungszuordnung: {cloudDemandLabels[entry.demand]}</span>
+                    )}
                   </p>
                   <p>
                     {entry.excludedReason

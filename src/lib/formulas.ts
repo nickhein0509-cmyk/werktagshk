@@ -6,7 +6,20 @@ export type FormulaId =
   | 'slope'
   | 'pipe-volume'
   | 'heating-time'
-  | 'efficiency';
+  | 'efficiency'
+  | 'flow-velocity'
+  | 'circle-area'
+  | 'room-volume'
+  | 'hydrostatic-pressure'
+  | 'hydraulic-power'
+  | 'heat-pump-cop'
+  | 'thermal-expansion'
+  | 'mixing-temperature'
+  | 'ohm'
+  | 'electric-power'
+  | 'pressure-force'
+  | 'mass-flow'
+  | 'air-power';
 
 export interface FormulaUnit {
   id: string;
@@ -253,7 +266,411 @@ export const formulaCatalog: FormulaDefinition[] = [
       'Vereinfachte Energieumwandlung mit identischer Bilanzgrenze und gleichem Zeitraum: 0 ≤ Nutzenergie ≤ zugeführte Energie. Keine Leistungszahl oder Jahresarbeitszahl einer Wärmepumpe; dort ist die Umweltenergie gesondert zu bilanzieren.',
     baseUnits: 'Beide Energien in kWh · η als Anteil 0 bis 1; für die Prozentanzeige × 100.',
   },
+
+  {
+    id: 'flow-velocity',
+    title: 'Strömungsgeschwindigkeit',
+    description: 'Volumenstrom, freien Querschnitt und mittlere Geschwindigkeit verbinden.',
+    equation: 'V̇ = A · v',
+    variables: [
+      variable(
+        'flow',
+        'Volumenstrom',
+        'V̇',
+        units(['m³/h', 1 / 3600], ['l/s', 0.001], ['m³/s', 1]),
+        '540',
+        'm³/h',
+      ),
+      variable(
+        'area',
+        'Freier Querschnitt',
+        'A',
+        units(['m²', 1], ['cm²', 0.0001], ['mm²', 0.000001]),
+        '0,06',
+        'm²',
+        { positive: true },
+      ),
+      variable('velocity', 'Mittlere Geschwindigkeit', 'v', units(['m/s', 1]), '2,5', 'm/s'),
+    ],
+    rearrangements: { flow: 'V̇ = A · v', area: 'A = V̇ / v', velocity: 'v = V̇ / A' },
+    assumptions:
+      'Kontinuitätsmodell für denselben freien Querschnitt. v ist die über die Fläche gemittelte Normalgeschwindigkeit; eine einzelne Punktmessung muss diesen Mittelwert nicht darstellen. Keine zulässige Strömungsgeschwindigkeit oder reale Rohr-/Kanaldimensionierung.',
+    baseUnits: 'A in m² · v in m/s → V̇ in m³/s; für m³/h × 3 600. 1 l = 0,001 m³.',
+  },
+  {
+    id: 'circle-area',
+    title: 'Kreisquerschnitt',
+    description: 'Kreisfläche und Durchmesser geometrisch ineinander umrechnen.',
+    equation: 'A = π · d² / 4',
+    variables: [
+      variable(
+        'area',
+        'Kreisfläche',
+        'A',
+        units(['m²', 1], ['cm²', 0.0001], ['mm²', 0.000001]),
+        '314,1592653589793',
+        'mm²',
+      ),
+      variable('diameter', 'Durchmesser', 'd', length, '20', 'mm', { positive: true }),
+    ],
+    rearrangements: { area: 'A = π · d² / 4', diameter: 'd = √(4 · A / π)' },
+    assumptions:
+      'Idealer Kreis. Für den freien Rohrquerschnitt muss der tatsächliche Innendurchmesser eingesetzt werden; eine Nennweite oder ein Außendurchmesser ist nicht automatisch dieser Wert.',
+    baseUnits: 'd in m → A in m². 1 cm² = 0,0001 m²; 1 mm² = 0,000001 m².',
+  },
+  {
+    id: 'room-volume',
+    title: 'Raumvolumen',
+    description: 'Quaderförmigen Raum oder eine seiner Innenabmessungen berechnen.',
+    equation: 'V = L · B · H',
+    variables: [
+      variable('volume', 'Raumvolumen', 'V', units(['m³', 1], ['l', 0.001]), '50', 'm³', {
+        positive: true,
+      }),
+      variable('length', 'Innenlänge', 'L', length, '5', 'm', { positive: true }),
+      variable('width', 'Innenbreite', 'B', length, '4', 'm', { positive: true }),
+      variable('height', 'Innenhöhe', 'H', length, '2,5', 'm', { positive: true }),
+    ],
+    rearrangements: {
+      volume: 'V = L · B · H',
+      length: 'L = V / (B · H)',
+      width: 'B = V / (L · H)',
+      height: 'H = V / (L · B)',
+    },
+    assumptions:
+      'Idealer Quader mit positiven Innenabmessungen. Schrägen, Einbauten und andere Raumformen sind nicht enthalten. Das Volumen allein legt keinen erforderlichen Luftvolumenstrom fest.',
+    baseUnits: 'L, B und H in m → V in m³. Vor dem Multiplizieren alle Längen in Meter umrechnen.',
+  },
+  {
+    id: 'hydrostatic-pressure',
+    title: 'Hydrostatischer Druck',
+    description: 'Druckdifferenz einer ruhenden Flüssigkeitssäule auswerten.',
+    equation: 'Δp = ρ · g · h',
+    variables: [
+      variable(
+        'pressure',
+        'Hydrostatische Druckdifferenz',
+        'Δp',
+        units(['bar', 100000], ['kPa', 1000], ['Pa', 1]),
+        '0,981',
+        'bar',
+      ),
+      variable(
+        'density',
+        'Flüssigkeitsdichte',
+        'ρ',
+        units(['kg/m³', 1], ['kg/l', 1000]),
+        '1000',
+        'kg/m³',
+        { positive: true },
+      ),
+      variable('height', 'Senkrechte Flüssigkeitshöhe', 'h', length, '10', 'm'),
+    ],
+    rearrangements: {
+      pressure: 'Δp = ρ · 9,81 · h',
+      density: 'ρ = Δp / (9,81 · h)',
+      height: 'h = Δp / (ρ · 9,81)',
+    },
+    assumptions:
+      'Ruhende Flüssigkeit mit konstanter Dichte, g = 9,81 m/s². Berechnet wird nur die Druckdifferenz zwischen zwei Höhen, kein absoluter Druck und kein erforderlicher Anlagen- oder MAG-Vordruck. Strömungsverluste bleiben unberücksichtigt.',
+    baseUnits: 'ρ in kg/m³ · g in m/s² · h in m → Δp in Pa. 1 bar = 100 000 Pa.',
+  },
+  {
+    id: 'hydraulic-power',
+    title: 'Hydraulische Leistung',
+    description: 'Druckdifferenz und Volumenstrom zur hydraulischen Leistung verbinden.',
+    equation: 'P_hyd = Δp · V̇',
+    variables: [
+      variable(
+        'power',
+        'Hydraulische Leistung',
+        'P_hyd',
+        units(['W', 1], ['kW', 1000]),
+        '100',
+        'W',
+      ),
+      variable(
+        'pressure',
+        'Druckdifferenz',
+        'Δp',
+        units(['bar', 100000], ['kPa', 1000], ['Pa', 1]),
+        '1',
+        'bar',
+      ),
+      variable(
+        'flow',
+        'Volumenstrom',
+        'V̇',
+        units(['m³/h', 1 / 3600], ['l/min', 1 / 60000], ['l/s', 0.001], ['m³/s', 1]),
+        '3,6',
+        'm³/h',
+      ),
+    ],
+    rearrangements: { power: 'P_hyd = Δp · V̇', pressure: 'Δp = P_hyd / V̇', flow: 'V̇ = P_hyd / Δp' },
+    assumptions:
+      'Stationäres Modell für ein inkompressibles Fluid mit derselben Druckdifferenz und demselben Volumenstrom. Dies ist die hydraulische Leistung am Fluid; elektrische Aufnahmeleistung und Pumpenwirkungsgrad sind nicht enthalten.',
+    baseUnits: 'Δp in Pa · V̇ in m³/s → P_hyd in W. Nicht bar direkt mit m³/h multiplizieren.',
+  },
+  {
+    id: 'heat-pump-cop',
+    title: 'Leistungszahl einer Wärmepumpe',
+    description:
+      'Heizleistung und elektrische Aufnahmeleistung am selben Betriebspunkt vergleichen.',
+    equation: 'COP = P_Heiz / P_el',
+    variables: [
+      variable('cop', 'Leistungszahl', 'COP', units(['1', 1]), '4', '1'),
+      variable('heating', 'Heizleistung', 'P_Heiz', power, '12', 'kW'),
+      variable('electric', 'Elektrische Aufnahmeleistung', 'P_el', power, '3', 'kW', {
+        positive: true,
+      }),
+    ],
+    rearrangements: {
+      cop: 'COP = P_Heiz / P_el',
+      heating: 'P_Heiz = COP · P_el',
+      electric: 'P_el = P_Heiz / COP',
+    },
+    assumptions:
+      'Leistungen mit festgelegter gemeinsamer Bilanzgrenze am selben Betriebspunkt. Die Leistungszahl darf größer als 1 sein, weil Umweltwärme aufgenommen wird. Eine Jahresarbeitszahl ist dagegen ein Energieverhältnis über den betrachteten Jahreszeitraum; sie ist nicht dieser einzelne Betriebspunkt. Keine Prognose für ein bestimmtes Gerät.',
+    baseUnits:
+      'Beide Leistungen in kW → COP dimensionslos. Keine Prozentanzeige und keine Begrenzung auf 100 %.',
+  },
+  {
+    id: 'thermal-expansion',
+    title: 'Lineare Wärmeausdehnung',
+    description: 'Längenänderung mit gegebenem konstantem Ausdehnungskoeffizienten berechnen.',
+    equation: 'ΔL = L₀ · α · ΔT',
+    variables: [
+      variable('expansion', 'Längenänderung', 'ΔL', length, '6', 'mm'),
+      variable('length', 'Ausgangslänge', 'L₀', length, '10', 'm', { positive: true }),
+      variable(
+        'alpha',
+        'Längenausdehnungskoeffizient',
+        'α',
+        units(['10⁻⁶/K', 0.000001], ['mm/(m·K)', 0.001], ['1/K', 1]),
+        '12',
+        '10⁻⁶/K',
+        { positive: true },
+      ),
+      variable('delta', 'Temperaturerhöhung', 'ΔT', units(['K', 1]), '50', 'K'),
+    ],
+    rearrangements: {
+      expansion: 'ΔL = L₀ · α · ΔT',
+      length: 'L₀ = ΔL / (α · ΔT)',
+      alpha: 'α = ΔL / (L₀ · ΔT)',
+      delta: 'ΔT = ΔL / (L₀ · α)',
+    },
+    assumptions:
+      'Lineares Modell kleiner Dehnungen mit positivem konstantem α und einer Temperaturerhöhung. Der Koeffizient wird als Aufgabenwert eingesetzt; keine pauschale Materialkennzahl. Lagerung, Spannungen, Längenausgleich und reale Kompensatorauslegung sind nicht enthalten.',
+    baseUnits: 'L₀ und ΔL in m · α in 1/K · ΔT in K. 12 × 10⁻⁶/K = 0,012 mm/(m·K) = 0,000012/K.',
+  },
+  {
+    id: 'mixing-temperature',
+    title: 'Mischtemperatur',
+    description: 'Zwei trockene Luftströme bei gleicher konstanter Wärmekapazität mischen.',
+    equation: 'T_m = (ṁ₁ · T₁ + ṁ₂ · T₂) / (ṁ₁ + ṁ₂)',
+    variables: [
+      variable('mixed', 'Mischtemperatur', 'T_m', units(['°C', 1]), '25', '°C', {
+        minimum: -273.15,
+      }),
+      variable('first', 'Temperatur Strom 1', 'T₁', units(['°C', 1]), '20', '°C', {
+        minimum: -273.15,
+      }),
+      variable('second', 'Temperatur Strom 2', 'T₂', units(['°C', 1]), '30', '°C', {
+        minimum: -273.15,
+      }),
+      variable(
+        'mass1',
+        'Massenstrom 1',
+        'ṁ₁',
+        units(['kg/s', 1], ['kg/h', 1 / 3600]),
+        '1',
+        'kg/s',
+        { positive: true },
+      ),
+      variable(
+        'mass2',
+        'Massenstrom 2',
+        'ṁ₂',
+        units(['kg/s', 1], ['kg/h', 1 / 3600]),
+        '1',
+        'kg/s',
+        { positive: true },
+      ),
+    ],
+    rearrangements: {
+      mixed: 'T_m = (ṁ₁ · T₁ + ṁ₂ · T₂) / (ṁ₁ + ṁ₂)',
+      first: 'T₁ = (T_m · (ṁ₁ + ṁ₂) − ṁ₂ · T₂) / ṁ₁',
+      second: 'T₂ = (T_m · (ṁ₁ + ṁ₂) − ṁ₁ · T₁) / ṁ₂',
+    },
+    assumptions:
+      'Stationäres adiabates Mischen zweier trockener Luftströme mit gleicher konstanter spezifischer Wärmekapazität. Positive Massenströme, keine Feuchte-, Phasen- oder Druckänderungsbilanz. Celsiuswerte dürfen hier wegen der normierten Massenstromgewichte verwendet werden. Keine Berechnung feuchter Luft über Enthalpie.',
+    baseUnits:
+      'Beide Massenströme in kg/s · alle Temperaturen in °C. Es werden die Massenströme gewichtet, nicht beliebige ungleiche Volumenströme.',
+  },
+  {
+    id: 'ohm',
+    title: 'Ohmsches Gesetz',
+    description: 'Spannung, Stromstärke und konstanten ohmschen Widerstand verbinden.',
+    equation: 'U = R · I',
+    variables: [
+      variable('voltage', 'Spannung', 'U', units(['V', 1], ['mV', 0.001], ['kV', 1000]), '12', 'V'),
+      variable('resistance', 'Ohmscher Widerstand', 'R', units(['Ω', 1], ['kΩ', 1000]), '6', 'Ω', {
+        positive: true,
+      }),
+      variable('current', 'Stromstärke', 'I', units(['A', 1], ['mA', 0.001]), '2', 'A'),
+    ],
+    rearrangements: { voltage: 'U = R · I', resistance: 'R = U / I', current: 'I = U / R' },
+    assumptions:
+      'Reine Modellrechnung an einem positiven konstanten ohmschen Widerstand. Kein temperaturabhängiges Bauteilmodell, keine komplexe Wechselstromimpedanz und keine Anleitung für Arbeiten oder Messungen an elektrischen Anlagen.',
+    baseUnits: 'R in Ω · I in A → U in V. 1 kΩ = 1 000 Ω; 1 mA = 0,001 A.',
+  },
+  {
+    id: 'electric-power',
+    title: 'Elektrische Leistung',
+    description: 'Elektrische Leistung bei Gleichstrom oder rein ohmscher Last bestimmen.',
+    equation: 'P = U · I',
+    variables: [
+      variable('power', 'Elektrische Leistung', 'P', units(['W', 1], ['kW', 1000]), '460', 'W'),
+      variable(
+        'voltage',
+        'Spannung',
+        'U',
+        units(['V', 1], ['mV', 0.001], ['kV', 1000]),
+        '230',
+        'V',
+      ),
+      variable('current', 'Stromstärke', 'I', units(['A', 1], ['mA', 0.001]), '2', 'A'),
+    ],
+    rearrangements: { power: 'P = U · I', voltage: 'U = P / I', current: 'I = P / U' },
+    assumptions:
+      'Gleichstrom oder effektive Wechselstromwerte an rein ohmscher Last mit Leistungsfaktor 1. Nicht die allgemeine Wirkleistung bei Blindanteilen oder ein Drehstrommodell. Keine Aussage zu Absicherung, Leiterquerschnitt oder Arbeiten an elektrischen Anlagen.',
+    baseUnits: 'U in V · I in A → P in W. 1 kW = 1 000 W.',
+  },
+  {
+    id: 'pressure-force',
+    title: 'Druckkraft',
+    description:
+      'Resultierende Kraft aus einer gegebenen Druckdifferenz und wirksamen Fläche berechnen.',
+    equation: 'F = Δp · A',
+    variables: [
+      variable('force', 'Druckkraft', 'F', units(['N', 1], ['kN', 1000]), '2000', 'N'),
+      variable(
+        'pressure',
+        'Druckdifferenz',
+        'Δp',
+        units(['bar', 100000], ['kPa', 1000], ['Pa', 1]),
+        '2',
+        'bar',
+      ),
+      variable(
+        'area',
+        'Wirksame Fläche',
+        'A',
+        units(['m²', 1], ['cm²', 0.0001], ['mm²', 0.000001]),
+        '100',
+        'cm²',
+        { positive: true },
+      ),
+    ],
+    rearrangements: { force: 'F = Δp · A', pressure: 'Δp = F / A', area: 'A = F / Δp' },
+    assumptions:
+      'Gleichmäßige Druckdifferenz wirkt senkrecht auf die gegebene wirksame Fläche. Reibung, Eigengewicht, Federn und dynamische Kräfte sind nicht enthalten. Keine Auslegung oder Einstellung realer Sicherheitsarmaturen.',
+    baseUnits: 'Δp in Pa · A in m² → F in N. 1 bar = 100 000 Pa.',
+  },
+  {
+    id: 'mass-flow',
+    title: 'Massenstrom',
+    description: 'Massenstrom und Volumenstrom über die gegebene Dichte umrechnen.',
+    equation: 'ṁ = ρ · V̇',
+    variables: [
+      variable('mass', 'Massenstrom', 'ṁ', units(['kg/h', 1 / 3600], ['kg/s', 1]), '720', 'kg/h'),
+      variable('density', 'Dichte', 'ρ', units(['kg/m³', 1], ['kg/l', 1000]), '1000', 'kg/m³', {
+        positive: true,
+      }),
+      variable(
+        'flow',
+        'Volumenstrom',
+        'V̇',
+        units(['m³/h', 1 / 3600], ['l/s', 0.001], ['m³/s', 1]),
+        '0,72',
+        'm³/h',
+      ),
+    ],
+    rearrangements: { mass: 'ṁ = ρ · V̇', density: 'ρ = ṁ / V̇', flow: 'V̇ = ṁ / ρ' },
+    assumptions:
+      'Dichte und Volumenstrom beziehen sich auf denselben Fluidzustand und Querschnitt. Die Dichte ist ein gegebener konstanter Modellwert, keine allgemeine Konstante für alle Wasser-, Luft- oder Gaszustände.',
+    baseUnits: 'ρ in kg/m³ · V̇ in m³/s → ṁ in kg/s. 1 kg/h = 1/3 600 kg/s.',
+  },
+  {
+    id: 'air-power',
+    title: 'Sensible Luftwärmeleistung',
+    description: 'Wärmeleistung aus Luftvolumenstrom und Temperaturhub bestimmen.',
+    equation: 'P = c′ · V̇ · ΔT',
+    variables: [
+      variable('power', 'Sensible Wärmeleistung', 'P', units(['kW', 1000], ['W', 1]), '4,08', 'kW'),
+      variable('flow', 'Luftvolumenstrom', 'V̇', units(['m³/h', 1], ['l/s', 3.6]), '600', 'm³/h'),
+      variable('delta', 'Temperaturhub', 'ΔT', units(['K', 1]), '20', 'K'),
+    ],
+    rearrangements: {
+      power: 'P = 0,34 · V̇ · ΔT',
+      flow: 'V̇ = P / (0,34 · ΔT)',
+      delta: 'ΔT = P / (0,34 · V̇)',
+    },
+    assumptions:
+      'Trockene Luft mit gegebenem konstantem volumetrischem Wärmekapazitätswert c′ = 0,34 Wh/(m³ · K). Nur sensible Erwärmung, keine Feuchte- oder Phasenänderungen und keine Wärmeverluste. Der Wert ist ein Modellwert für den angenommenen Luftzustand, keine universelle Stoffkonstante.',
+    baseUnits:
+      'V̇ in m³/h · ΔT in K · c′ in Wh/(m³ · K) → P in W; danach bei Bedarf / 1 000 für kW.',
+  },
 ];
+
+export type FormulaGroupId = 'thermal' | 'fluid' | 'air' | 'geometry' | 'electrical';
+export const formulaGroups: { id: FormulaGroupId; label: string }[] = [
+  { id: 'thermal', label: 'Wärme & Energie' },
+  { id: 'fluid', label: 'Strömung & Druck' },
+  { id: 'air', label: 'Luft & Mischen' },
+  { id: 'geometry', label: 'Geometrie' },
+  { id: 'electrical', label: 'Elektro-Grundlagen' },
+];
+const formulaGroupById: Record<FormulaId, FormulaGroupId> = {
+  heat: 'thermal',
+  power: 'thermal',
+  flow: 'fluid',
+  'air-change': 'air',
+  slope: 'geometry',
+  'pipe-volume': 'geometry',
+  'heating-time': 'thermal',
+  efficiency: 'thermal',
+  'flow-velocity': 'fluid',
+  'circle-area': 'geometry',
+  'room-volume': 'geometry',
+  'hydrostatic-pressure': 'fluid',
+  'hydraulic-power': 'fluid',
+  'heat-pump-cop': 'thermal',
+  'thermal-expansion': 'thermal',
+  'mixing-temperature': 'air',
+  ohm: 'electrical',
+  'electric-power': 'electrical',
+  'pressure-force': 'fluid',
+  'mass-flow': 'fluid',
+  'air-power': 'air',
+};
+export function getFormulaGroup(id: FormulaId): FormulaGroupId {
+  return formulaGroupById[id];
+}
+export function supportedFormulaTargets(formula: FormulaDefinition): FormulaVariable[] {
+  return formula.variables.filter((entry) => Object.hasOwn(formula.rearrangements, entry.id));
+}
+export function filterFormulas(group: FormulaGroupId | 'all', query: string): FormulaDefinition[] {
+  const words = query.trim().toLocaleLowerCase('de').split(/\s+/).filter(Boolean);
+  return formulaCatalog.filter((formula) => {
+    if (group !== 'all' && getFormulaGroup(formula.id) !== group) return false;
+    const haystack =
+      `${formula.title} ${formula.description} ${formula.equation} ${formula.variables.map((entry) => `${entry.label} ${entry.symbol}`).join(' ')}`.toLocaleLowerCase(
+        'de',
+      );
+    return words.every((word) => haystack.includes(word));
+  });
+}
 
 export function getFormula(id: FormulaId): FormulaDefinition {
   const formula = formulaCatalog.find((entry) => entry.id === id);
@@ -320,7 +737,11 @@ export function solveFormula(
 ): FormulaResult {
   const formula = getFormula(id);
   const sought = formula.variables.find((entry) => entry.id === target);
-  if (!sought || !sought.units.some((unit) => unit.id === outputUnit))
+  if (
+    !sought ||
+    !Object.hasOwn(formula.rearrangements, target) ||
+    !sought.units.some((unit) => unit.id === outputUnit)
+  )
     return {
       ok: false,
       error: 'Wähle eine unterstützte Größe und Ergebniseinheit.',
@@ -344,7 +765,7 @@ export function solveFormula(
         ok: false,
         error: legacyHeatError
           ? 'Bitte eine positive Masse und eine Temperaturdifferenz von 0 bis 100 K eingeben.'
-          : `${field.label}: Bitte ${field.positive ? 'einen positiven' : 'einen nicht negativen'} endlichen Wert${field.maximum !== undefined ? ` bis ${formatFormulaNumber(field.maximum / (unit?.factor ?? 1))} ${unit?.id ?? field.initialUnit}` : ''} eingeben.`,
+          : `${field.label}: Bitte ${field.minimum < 0 ? `einen endlichen Wert ab ${formatFormulaNumber(field.minimum)} in der Basiseinheit` : `${field.positive ? 'einen positiven' : 'einen nicht negativen'} endlichen Wert`}${field.maximum !== undefined ? ` bis ${formatFormulaNumber(field.maximum / (unit?.factor ?? 1))} ${unit?.id ?? field.initialUnit}` : ''} eingeben.`,
         invalidFields: [field.id],
       };
     }
@@ -463,6 +884,162 @@ export function solveFormula(
         } else {
           result = divide(values.useful, values.efficiency);
           substitution = `Q_zu = ${n('useful')} kWh / ${n('efficiency')}`;
+        }
+        break;
+      case 'flow-velocity':
+        if (target === 'flow') {
+          result = values.area * values.velocity;
+          substitution = `V̇ = ${n('area')} m² × ${n('velocity')} m/s`;
+        } else if (target === 'area') {
+          result = divide(values.flow, values.velocity);
+          substitution = `A = ${n('flow')} m³/s / ${n('velocity')} m/s`;
+        } else {
+          result = divide(values.flow, values.area);
+          substitution = `v = ${n('flow')} m³/s / ${n('area')} m²`;
+        }
+        break;
+      case 'circle-area':
+        if (target === 'area') {
+          result = (Math.PI * values.diameter ** 2) / 4;
+          substitution = `A = π × (${n('diameter')} m)² / 4`;
+        } else {
+          result = Math.sqrt((4 * values.area) / Math.PI);
+          substitution = `d = √(4 × ${n('area')} m² / π)`;
+        }
+        break;
+      case 'room-volume':
+        if (target === 'volume') {
+          result = values.length * values.width * values.height;
+          substitution = `V = ${n('length')} m × ${n('width')} m × ${n('height')} m`;
+        } else {
+          const sides = ['length', 'width', 'height'].filter((key) => key !== target);
+          result = divide(values.volume, values[sides[0]] * values[sides[1]]);
+          substitution = `${sought.symbol} = ${n('volume')} m³ / (${n(sides[0])} m × ${n(sides[1])} m)`;
+        }
+        break;
+      case 'hydrostatic-pressure':
+        if (target === 'pressure') {
+          result = values.density * 9.81 * values.height;
+          substitution = `Δp = ${n('density')} kg/m³ × 9,81 m/s² × ${n('height')} m`;
+        } else if (target === 'density') {
+          result = divide(values.pressure, 9.81 * values.height);
+          substitution = `ρ = ${n('pressure')} Pa / (9,81 m/s² × ${n('height')} m)`;
+        } else {
+          result = divide(values.pressure, values.density * 9.81);
+          substitution = `h = ${n('pressure')} Pa / (${n('density')} kg/m³ × 9,81 m/s²)`;
+        }
+        break;
+      case 'hydraulic-power':
+        if (target === 'power') {
+          result = values.pressure * values.flow;
+          substitution = `P_hyd = ${n('pressure')} Pa × ${n('flow')} m³/s`;
+        } else if (target === 'pressure') {
+          result = divide(values.power, values.flow);
+          substitution = `Δp = ${n('power')} W / ${n('flow')} m³/s`;
+        } else {
+          result = divide(values.power, values.pressure);
+          substitution = `V̇ = ${n('power')} W / ${n('pressure')} Pa`;
+        }
+        break;
+      case 'heat-pump-cop':
+        if (target === 'cop') {
+          result = divide(values.heating, values.electric);
+          substitution = `COP = ${n('heating')} kW / ${n('electric')} kW`;
+        } else if (target === 'heating') {
+          result = values.cop * values.electric;
+          substitution = `P_Heiz = ${n('cop')} × ${n('electric')} kW`;
+        } else {
+          result = divide(values.heating, values.cop);
+          substitution = `P_el = ${n('heating')} kW / ${n('cop')}`;
+        }
+        break;
+      case 'thermal-expansion':
+        if (target === 'expansion') {
+          result = values.length * values.alpha * values.delta;
+          substitution = `ΔL = ${n('length')} m × ${n('alpha')} 1/K × ${n('delta')} K`;
+        } else {
+          const factors = ['length', 'alpha', 'delta'].filter((key) => key !== target);
+          result = divide(values.expansion, values[factors[0]] * values[factors[1]]);
+          const factorUnits: Record<string, string> = { length: 'm', alpha: '1/K', delta: 'K' };
+          substitution = `${sought.symbol} = ${n('expansion')} m / (${n(factors[0])} ${factorUnits[factors[0]]} × ${n(factors[1])} ${factorUnits[factors[1]]})`;
+        }
+        break;
+      case 'mixing-temperature':
+        if (target === 'mixed') {
+          result = divide(
+            values.mass1 * values.first + values.mass2 * values.second,
+            values.mass1 + values.mass2,
+          );
+          substitution = `T_m = (${n('mass1')} kg/s × ${n('first')} °C + ${n('mass2')} kg/s × ${n('second')} °C) / (${n('mass1')} + ${n('mass2')}) kg/s`;
+        } else {
+          const known = target === 'first' ? 'second' : 'first';
+          const knownMass = target === 'first' ? 'mass2' : 'mass1';
+          const targetMass = target === 'first' ? 'mass1' : 'mass2';
+          result = divide(
+            values.mixed * (values.mass1 + values.mass2) - values[knownMass] * values[known],
+            values[targetMass],
+          );
+          substitution = `${sought.symbol} = (${n('mixed')} °C × (${n('mass1')} + ${n('mass2')}) kg/s − ${n(knownMass)} kg/s × ${n(known)} °C) / ${n(targetMass)} kg/s`;
+        }
+        break;
+      case 'ohm':
+        if (target === 'voltage') {
+          result = values.resistance * values.current;
+          substitution = `U = ${n('resistance')} Ω × ${n('current')} A`;
+        } else if (target === 'resistance') {
+          result = divide(values.voltage, values.current);
+          substitution = `R = ${n('voltage')} V / ${n('current')} A`;
+        } else {
+          result = divide(values.voltage, values.resistance);
+          substitution = `I = ${n('voltage')} V / ${n('resistance')} Ω`;
+        }
+        break;
+      case 'electric-power':
+        if (target === 'power') {
+          result = values.voltage * values.current;
+          substitution = `P = ${n('voltage')} V × ${n('current')} A`;
+        } else if (target === 'voltage') {
+          result = divide(values.power, values.current);
+          substitution = `U = ${n('power')} W / ${n('current')} A`;
+        } else {
+          result = divide(values.power, values.voltage);
+          substitution = `I = ${n('power')} W / ${n('voltage')} V`;
+        }
+        break;
+      case 'pressure-force':
+        if (target === 'force') {
+          result = values.pressure * values.area;
+          substitution = `F = ${n('pressure')} Pa × ${n('area')} m²`;
+        } else if (target === 'pressure') {
+          result = divide(values.force, values.area);
+          substitution = `Δp = ${n('force')} N / ${n('area')} m²`;
+        } else {
+          result = divide(values.force, values.pressure);
+          substitution = `A = ${n('force')} N / ${n('pressure')} Pa`;
+        }
+        break;
+      case 'mass-flow':
+        if (target === 'mass') {
+          result = values.density * values.flow;
+          substitution = `ṁ = ${n('density')} kg/m³ × ${n('flow')} m³/s`;
+        } else if (target === 'density') {
+          result = divide(values.mass, values.flow);
+          substitution = `ρ = ${n('mass')} kg/s / ${n('flow')} m³/s`;
+        } else {
+          result = divide(values.mass, values.density);
+          substitution = `V̇ = ${n('mass')} kg/s / ${n('density')} kg/m³`;
+        }
+        break;
+      case 'air-power':
+        if (target === 'power') {
+          result = 0.34 * values.flow * values.delta;
+          substitution = `P = 0,34 Wh/(m³ · K) × ${n('flow')} m³/h × ${n('delta')} K`;
+        } else if (target === 'flow') {
+          result = divide(values.power, 0.34 * values.delta);
+          substitution = `V̇ = ${n('power')} W / (0,34 Wh/(m³ · K) × ${n('delta')} K)`;
+        } else {
+          result = divide(values.power, 0.34 * values.flow);
+          substitution = `ΔT = ${n('power')} W / (0,34 Wh/(m³ · K) × ${n('flow')} m³/h)`;
         }
         break;
     }

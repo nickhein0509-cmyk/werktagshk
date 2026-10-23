@@ -3,17 +3,22 @@ import { BookOpen, Calculator, RefreshCw } from 'lucide-react';
 import {
   convertFormulaEntry,
   createFormulaDraft,
+  filterFormulas,
   formatFormulaNumber,
   formulaCatalog,
+  formulaGroups,
   getFormula,
   solveFormula,
+  supportedFormulaTargets,
 } from '../lib/formulas';
-import type { FormulaDraft, FormulaEntry, FormulaId } from '../lib/formulas';
+import type { FormulaDraft, FormulaEntry, FormulaGroupId, FormulaId } from '../lib/formulas';
 import '../design/formula-workbench.css';
 
 export function FormulaWorkbench() {
   const id = useId();
   const [formulaId, setFormulaId] = useState<FormulaId>('heat');
+  const [group, setGroup] = useState<FormulaGroupId | 'all'>('all');
+  const [query, setQuery] = useState('');
   const [drafts, setDrafts] = useState<Partial<Record<FormulaId, FormulaDraft>>>(() => ({
     heat: createFormulaDraft('heat'),
   }));
@@ -23,6 +28,16 @@ export function FormulaWorkbench() {
   const inputFields = formula.variables.filter((entry) => entry.id !== target.id);
   const outputUnit = draft.outputUnits[target.id];
   const result = solveFormula(formulaId, target.id, draft.entries, outputUnit);
+  const visibleFormulas = filterFormulas(group, query);
+
+  function changeFilters(nextGroup: FormulaGroupId | 'all', nextQuery: string) {
+    setGroup(nextGroup);
+    setQuery(nextQuery);
+    const matches = filterFormulas(nextGroup, nextQuery);
+    if (matches.length && !matches.some((entry) => entry.id === formulaId)) {
+      setFormulaId(matches[0].id);
+    }
+  }
 
   function update(next: FormulaDraft) {
     setDrafts((current) => ({ ...current, [formulaId]: next }));
@@ -53,14 +68,56 @@ export function FormulaWorkbench() {
           <Calculator size={22} aria-hidden="true" />
         </div>
         <p>Formel wählen, gesuchte Größe umstellen und mit deinen Werten rechnen.</p>
+        <p className="formula-scope">{formulaCatalog.length} Formeln · Auswahl zum Üben</p>
+        <div className="formula-filters">
+          <div>
+            <label htmlFor={`${id}-group`}>Formelbereich</label>
+            <select
+              id={`${id}-group`}
+              value={group}
+              onChange={(event) =>
+                changeFilters(event.target.value as FormulaGroupId | 'all', query)
+              }
+            >
+              <option value="all">Alle Bereiche</option>
+              {formulaGroups.map((entry) => (
+                <option key={entry.id} value={entry.id}>
+                  {entry.label}
+                </option>
+              ))}
+            </select>
+          </div>
+          <div>
+            <label htmlFor={`${id}-search`}>Formeln durchsuchen</label>
+            <input
+              id={`${id}-search`}
+              type="search"
+              placeholder="z. B. Druck oder COP"
+              value={query}
+              onChange={(event) => changeFilters(group, event.target.value)}
+            />
+          </div>
+        </div>
+        {(group !== 'all' || query.trim()) && (
+          <p className="formula-filter-status" role="status">
+            {visibleFormulas.length
+              ? `${visibleFormulas.length} passende Formeln`
+              : 'Keine passende Formel. Die aktuelle Rechnung bleibt geöffnet.'}{' '}
+            <button type="button" className="text-button" onClick={() => changeFilters('all', '')}>
+              Filter zurücksetzen
+            </button>
+          </p>
+        )}
         <div className="formula-selectors">
           <label htmlFor={`${id}-formula`}>Formel auswählen</label>
           <select
             id={`${id}-formula`}
             value={formulaId}
+            disabled={!visibleFormulas.length}
             onChange={(event) => setFormulaId(event.target.value as FormulaId)}
           >
-            {formulaCatalog.map((entry) => (
+            {!visibleFormulas.length && <option value={formulaId}>{formula.title}</option>}
+            {visibleFormulas.map((entry) => (
               <option key={entry.id} value={entry.id}>
                 {entry.title}
               </option>
@@ -72,7 +129,7 @@ export function FormulaWorkbench() {
             value={target.id}
             onChange={(event) => changeTarget(event.target.value)}
           >
-            {formula.variables.map((entry) => (
+            {supportedFormulaTargets(formula).map((entry) => (
               <option key={entry.id} value={entry.id}>
                 {entry.label} {entry.symbol}
               </option>
@@ -123,7 +180,9 @@ export function FormulaWorkbench() {
                     ))}
                   </select>
                 ) : (
-                  <span className="formula-unit-fixed">{entry.unit}</span>
+                  <span className="formula-unit-fixed">
+                    {entry.unit === '1' ? 'dimensionslos' : entry.unit}
+                  </span>
                 )}
               </div>
             );
@@ -139,11 +198,13 @@ export function FormulaWorkbench() {
             <>
               <span>{result.label}</span>
               <strong>
-                {formatFormulaNumber(result.value)} <small>{result.unit}</small>
+                {formatFormulaNumber(result.value)}{' '}
+                <small>{result.unit === '1' ? 'dimensionslos' : result.unit}</small>
               </strong>
               {result.alternatives.map((entry) => (
                 <span key={entry.unit}>
-                  {formatFormulaNumber(entry.value, entry.unit === 'kJ' ? 1 : 3)} {entry.unit}
+                  {formatFormulaNumber(entry.value, entry.unit === 'kJ' ? 1 : 3)}{' '}
+                  {entry.unit === '1' ? 'dimensionslos' : entry.unit}
                 </span>
               ))}
             </>

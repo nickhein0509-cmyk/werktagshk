@@ -34,6 +34,18 @@ import { supabase } from './lib/supabase';
 import { FlowDashboard } from './components/FlowDashboard';
 import { ExamPractice } from './components/ExamPractice';
 import { CalculationWorkspace } from './components/CalculationWorkspace';
+import {
+  DifficultyBadge,
+  DifficultyControls,
+  DifficultyLegend,
+  matchesDifficulty,
+} from './components/Difficulty';
+import type { DifficultyFilter, DifficultySort } from './components/Difficulty';
+import {
+  compareExerciseDifficulty,
+  difficultyLevels,
+  getExerciseDifficulty,
+} from './lib/difficulty';
 import { exerciseKindLabels, getExerciseKind } from './lib/exercise-kind';
 import type { ExerciseKind } from './lib/exercise-kind';
 import { loadWorkpad, saveWorkpad } from './lib/workpad-storage';
@@ -101,11 +113,17 @@ function App() {
   const [topicFilter, setTopicFilter] = useState<TopicId | 'all'>('all');
   const [examArea, setExamArea] = useState<ExamAreaId | 'all'>('all');
   const [activeExercise, setActiveExercise] = useState<Exercise | null>(null);
+  const exerciseQueue = useRef<Exercise[] | null>(null);
   const [toast, setToast] = useState('');
   const mainRef = useRef<HTMLElement>(null);
   const due = getDueExercises(state);
   const mastered = useMemo(() => getMasteredIds(state), [state]);
   const todayCount = getTodayCount(state);
+
+  function startExercise(exercise: Exercise, queue?: Exercise[]) {
+    exerciseQueue.current = queue ?? null;
+    setActiveExercise(exercise);
+  }
 
   function updateState(next: LearningState) {
     // An auth callback can switch accounts before an old sync promise unmounts.
@@ -344,7 +362,7 @@ function App() {
               onExam={() => navigate('exam')}
               onReview={() => navigate(due.length ? 'review' : 'library')}
               onPlan={() => navigate('plan')}
-              onStart={setActiveExercise}
+              onStart={startExercise}
             />
           )}
           {page === 'library' && (
@@ -355,7 +373,7 @@ function App() {
               onFilter={setTopicFilter}
               area={examArea}
               onArea={setExamArea}
-              onStart={setActiveExercise}
+              onStart={startExercise}
               onBookmark={bookmark}
               onExam={() => navigate('exam')}
             />
@@ -382,7 +400,7 @@ function App() {
                       exercise={exercise}
                       state={state}
                       isMastered={mastered.includes(exercise.id)}
-                      onStart={setActiveExercise}
+                      onStart={startExercise}
                       onBookmark={bookmark}
                     />
                   ))}
@@ -409,7 +427,7 @@ function App() {
               state={state}
               mastered={mastered}
               onUpdate={updateState}
-              onStart={setActiveExercise}
+              onStart={startExercise}
             />
           )}
           {page === 'tools' && (
@@ -427,7 +445,7 @@ function App() {
         <footer className="workspace-footer">
           <span>WerkTag · Mit Kopf. Mit Hand. Mit dir.</span>
           <span>
-            WerkTag Flow <span className="footer-version">/ 0.5.0</span>
+            WerkTag Flow <span className="footer-version">/ 0.6.0</span>
           </span>
         </footer>
       </div>
@@ -441,15 +459,17 @@ function App() {
           onAnswer={(selected) => answer(activeExercise, selected)}
           onClose={() => setActiveExercise(null)}
           onNext={() => {
-            const topicExercises = exercises.filter(
-              (x) =>
-                x.topicId === activeExercise.topicId &&
-                getExerciseKind(x) === getExerciseKind(activeExercise),
-            );
+            const topicExercises =
+              exerciseQueue.current ??
+              exercises.filter(
+                (x) =>
+                  x.topicId === activeExercise.topicId &&
+                  getExerciseKind(x) === getExerciseKind(activeExercise),
+              );
             const index = topicExercises.findIndex((x) => x.id === activeExercise.id);
             if (index === topicExercises.length - 1) {
               setActiveExercise(null);
-              navigate('library', activeExercise.topicId);
+              if (!exerciseQueue.current) navigate('library', activeExercise.topicId);
             } else setActiveExercise(topicExercises[index + 1]);
           }}
         />
@@ -545,7 +565,8 @@ function ExerciseCard({
         </button>
       </div>
       <span className="exercise-category">
-        {topics.find((x) => x.id === exercise.topicId)?.name} <span>·</span> {exercise.level}
+        {topics.find((x) => x.id === exercise.topicId)?.name}{' '}
+        <DifficultyBadge exercise={exercise} />
       </span>
       <span className={`exercise-kind kind-${getExerciseKind(exercise)}`}>
         {exerciseKindLabels[getExerciseKind(exercise)]}
@@ -592,13 +613,15 @@ function Library({
   onFilter: (id: TopicId | 'all') => void;
   area: ExamAreaId | 'all';
   onArea: (id: ExamAreaId | 'all') => void;
-  onStart: (exercise: Exercise) => void;
+  onStart: (exercise: Exercise, queue?: Exercise[]) => void;
   onBookmark: (id: string) => void;
   onExam: () => void;
 }) {
   const [search, setSearch] = useState('');
   const [onlySaved, setOnlySaved] = useState(false);
   const [kind, setKind] = useState<ExerciseKind | 'all'>('all');
+  const [difficulty, setDifficulty] = useState<DifficultyFilter>('all');
+  const [sort, setSort] = useState<DifficultySort>('recommended');
   const query = search.trim().toLocaleLowerCase('de');
   const filtered = exercises
     .filter(
@@ -606,12 +629,17 @@ function Library({
         (filter === 'all' || x.topicId === filter) &&
         (area === 'all' || getExamAreas(x).includes(area)) &&
         (kind === 'all' || getExerciseKind(x) === kind) &&
+        matchesDifficulty(x, difficulty) &&
         (!onlySaved || state.bookmarks.includes(x.id)) &&
         `${x.title} ${x.context} ${x.question} ${topics.find((t) => t.id === x.topicId)?.name}`
           .toLocaleLowerCase('de')
           .includes(query),
     )
-    .sort((a, b) => Number(isExamCase(b)) - Number(isExamCase(a)));
+    .sort((a, b) =>
+      sort === 'recommended'
+        ? Number(isExamCase(b)) - Number(isExamCase(a))
+        : compareExerciseDifficulty(a, b, sort),
+    );
   return (
     <section className="practice-library" aria-label="Lernwerkstatt">
       <PageHeading
@@ -698,6 +726,13 @@ function Library({
           </button>
         ))}
       </div>
+      <DifficultyControls
+        value={difficulty}
+        onChange={setDifficulty}
+        sort={sort}
+        onSort={setSort}
+      />
+      <DifficultyLegend />
       <div className="results-label">
         <span aria-live="polite" aria-atomic="true">
           {filtered.length} {filtered.length === 1 ? 'Aufgabe' : 'Aufgaben'}
@@ -712,7 +747,7 @@ function Library({
               exercise={exercise}
               state={state}
               isMastered={mastered.includes(exercise.id)}
-              onStart={onStart}
+              onStart={(selected) => onStart(selected, filtered)}
               onBookmark={onBookmark}
             />
           ))}
@@ -733,6 +768,8 @@ function Library({
               setSearch('');
               setOnlySaved(false);
               setKind('all');
+              setDifficulty('all');
+              setSort('recommended');
               onFilter('all');
               onArea('all');
             }}
@@ -792,6 +829,7 @@ function ExerciseDialog({
   const [workpad, setWorkpad] = useState(loadedWorkpad.draft);
   const [workpadWarning, setWorkpadWarning] = useState(loadedWorkpad.warning);
   const kind = getExerciseKind(exercise);
+  const difficultyAssessment = getExerciseDifficulty(exercise);
   function changeWorkpad(next: typeof workpad) {
     setWorkpad(next);
     if (!saveWorkpad(storageKey, next))
@@ -840,7 +878,7 @@ function ExerciseDialog({
         <span>
           <span className={`topic-dot ${exercise.topicId}`} />
           {topics.find((x) => x.id === exercise.topicId)?.name}{' '}
-          <span className="dialog-divider">/</span> {exercise.level}
+          <span className="dialog-divider">/</span> <DifficultyBadge exercise={exercise} />
         </span>
         <div>
           <button
@@ -859,6 +897,15 @@ function ExerciseDialog({
       <div className="dialog-body">
         <p className="eyebrow">{exerciseKindLabels[kind]} · Üben</p>
         <h2 id={titleId}>{exercise.title}</h2>
+        {difficultyAssessment && (
+          <p className="difficulty-reason">
+            Anforderung:{' '}
+            {submitted
+              ? difficultyAssessment.reason
+              : difficultyLevels.find((entry) => entry.id === difficultyAssessment.level)!
+                  .description}
+          </p>
+        )}
         <div className="practice-task-layout">
           <div className="task-question-panel">
             <p className="task-context">{exercise.context}</p>

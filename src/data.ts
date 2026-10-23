@@ -6,7 +6,9 @@ import { wisoLawExercises } from './content/exam-wiso-law';
 import { transferExercises } from './content/exam-transfer';
 import { technicalContextExercises } from './content/exam-context-technical';
 import { wisoContextExercises } from './content/exam-context-wiso';
+import { gradedExercises } from './content/exam-graded';
 import type { ExerciseKind } from './lib/exercise-kind';
+import type { DifficultyLevel } from './lib/difficulty';
 
 export type TopicId = 'heizung' | 'sanitaer' | 'klima' | 'wiso';
 
@@ -20,6 +22,8 @@ export interface Topic {
 export interface Exercise {
   id: string;
   kind?: ExerciseKind;
+  difficulty?: DifficultyLevel;
+  difficultyReason?: string;
   topicId: TopicId;
   title: string;
   context: string;
@@ -276,4 +280,5 @@ export const exercises: Exercise[] = [
   ...transferExercises,
   ...technicalContextExercises,
   ...wisoContextExercises,
+  ...gradedExercises,
 ];

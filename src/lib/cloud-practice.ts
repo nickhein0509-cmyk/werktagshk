@@ -11,6 +11,16 @@ export const cloudTopics: Record<string, string> = {
   wiso: 'Wirtschaft & Soziales',
 };
 export type QuestionKind = 'choice' | 'numeric' | 'short' | 'self';
+export type CloudDifficulty = 'basic' | 'applied';
+export type CloudDemand = 'foundation' | 'application';
+export const cloudDifficultyLabels: Record<CloudDifficulty, string> = {
+  basic: 'Basis',
+  applied: 'Anwendung',
+};
+export const cloudDemandLabels: Record<CloudDemand, string> = {
+  foundation: 'Grundlagen',
+  application: 'Anwendung',
+};
 export type JsonRecord = Record<string, unknown>;
 export interface CatalogQuestion {
   id: string;
@@ -21,6 +31,8 @@ export interface CatalogQuestion {
   active: boolean;
   reviewStatus: string;
   excludedReason?: string;
+  difficulty?: CloudDifficulty;
+  demand?: CloudDemand;
 }
 export interface CloudRound {
   id: string;
@@ -42,6 +54,8 @@ export interface CloudQuestion {
   options: { id: string; label: string }[];
   unit: string;
   figures: JsonRecord[];
+  difficulty?: CloudDifficulty;
+  demand?: CloudDemand;
 }
 export interface CloudSnapshot {
   id: string;
@@ -81,6 +95,26 @@ function integer(v: unknown): v is number {
 }
 function kind(v: unknown): v is QuestionKind {
   return ['choice', 'numeric', 'short', 'self'].includes(String(v));
+}
+/** Preserve the existing bank's two-level scale; never infer a grade from the task text. */
+export function parseCloudDifficulty(value: unknown): CloudDifficulty | undefined {
+  return value === 'basic' || value === 'applied' ? value : undefined;
+}
+
+function parseCloudDemand(value: unknown): CloudDemand | undefined {
+  return value === 'foundation' || value === 'application' ? value : undefined;
+}
+
+/** Unknown classifications remain last in either direction. Ties retain catalogue order. */
+export function compareCloudDifficulty(
+  a: Pick<CatalogQuestion, 'difficulty'>,
+  b: Pick<CatalogQuestion, 'difficulty'>,
+  direction: 'asc' | 'desc' = 'asc',
+): number {
+  if (!a.difficulty) return b.difficulty ? 1 : 0;
+  if (!b.difficulty) return -1;
+  const difference = Number(a.difficulty === 'applied') - Number(b.difficulty === 'applied');
+  return direction === 'asc' ? difference : -difference;
 }
 /** Prefer the latest active revision while preserving blocked metadata for inspection. */
 export function latestCatalog(catalog: CatalogQuestion[]): CatalogQuestion[] {
@@ -127,6 +161,8 @@ export function parseLearning(data: unknown): CloudLearning {
       active: q.active,
       reviewStatus: string(q.reviewStatus) ? q.reviewStatus : 'unbekannt',
       excludedReason: string(q.excludedReason) ? q.excludedReason : undefined,
+      difficulty: parseCloudDifficulty(q.difficulty),
+      demand: parseCloudDemand(q.demand),
     };
   });
   const rounds = data.rounds.map((r): CloudRound => {
@@ -189,6 +225,8 @@ export function parseSnapshot(data: unknown): CloudSnapshot {
       multiple: q.multiple === true,
       unit: string(q.unit) ? q.unit : '',
       figures: Array.isArray(q.figures) ? q.figures.filter(record) : [],
+      difficulty: parseCloudDifficulty(q.difficulty),
+      demand: parseCloudDemand(q.demand),
     };
   }
   return {

@@ -1,4 +1,5 @@
 import { expect, test } from '@playwright/test';
+import AxeBuilder from '@axe-core/playwright';
 import type { Page } from '@playwright/test';
 
 const userId = '11111111-1111-4111-8111-111111111111';
@@ -33,6 +34,7 @@ async function fixture(
   conflict = false,
   withFigure = false,
   allowAids = true,
+  catalogEntries?: Record<string, unknown>[],
 ) {
   let snapshot = {
     ...baseSnapshot(kind),
@@ -79,7 +81,7 @@ async function fixture(
     else if (path.endsWith('/shk_learning_data'))
       body = {
         rulesVersion: 'shk-levels/2',
-        catalog: [
+        catalog: catalogEntries ?? [
           {
             id: 'synthetic-question',
             version: 1,
@@ -307,4 +309,113 @@ test('private directory distinguishes response types without changing the open r
   await expect(page.getByLabel('Deine Erklärung', { exact: true })).toBeVisible();
   await kindFilter.selectOption('context');
   await expect(directory.getByRole('article')).toHaveCount(1);
+});
+
+test('stored difficulty filters and sorts the private directory without changing the active question', async ({
+  page,
+}) => {
+  const entry = {
+    version: 1,
+    topic: 'heizung',
+    kind: 'numeric',
+    active: true,
+    reviewStatus: 'checked',
+  };
+  await fixture(page, 'numeric', false, false, true, [
+    {
+      ...entry,
+      id: 'synthetic-question',
+      title: 'Synthetische Aufgabe',
+      difficulty: 'applied',
+      demand: 'foundation',
+    },
+    {
+      ...entry,
+      id: 'synthetic-basic',
+      title: 'Synthetische Basisfrage',
+      difficulty: 'basic',
+      demand: 'application',
+    },
+    { ...entry, id: 'synthetic-unknown', title: 'Synthetisch ohne Einstufung' },
+    { ...entry, id: 'synthetic-latest', title: 'Synthetische alte Fassung', difficulty: 'basic' },
+    {
+      ...entry,
+      id: 'synthetic-latest',
+      title: 'Synthetische aktuelle Fassung',
+      version: 2,
+      topic: 'wiso',
+      difficulty: 'applied',
+    },
+  ]);
+  const directory = page.getByRole('region', { name: 'Aufgabenverzeichnis', exact: true });
+  const round = page.getByRole('region', { name: 'Laufende Lernrunde', exact: true });
+  await expect(directory.getByRole('article')).toHaveCount(4);
+  await expect(round.locator('.cloud-difficulty-label')).toContainText(
+    'Bestandsschwierigkeit: Anwendung',
+  );
+  await expect(round.locator('.cloud-difficulty-label')).toContainText(
+    'Anforderungszuordnung: Grundlagen',
+  );
+  await page.getByText('Bestand einordnen · 4 aktuelle Aufgaben', { exact: true }).click();
+  await expect(page.locator('.cloud-native-scale')).toContainText(
+    '1 Basis · 2 Anwendung · 1 noch nicht eingestuft',
+  );
+  await expect(page.locator('.cloud-topic-counts')).toContainText('Heizung');
+  await expect(page.locator('.cloud-topic-counts')).toContainText('Wirtschaft & Soziales');
+
+  const sort = page.getByRole('combobox', { name: 'Verzeichnis sortieren', exact: true });
+  await sort.selectOption('asc');
+  await expect(directory.getByRole('article').first()).toContainText('Synthetische Basisfrage');
+  await expect(directory.getByRole('article').last()).toContainText('Synthetisch ohne Einstufung');
+  await sort.selectOption('desc');
+  await expect(directory.getByRole('article').first()).toContainText('Synthetische Aufgabe');
+  await expect(directory.getByRole('article').last()).toContainText('Synthetisch ohne Einstufung');
+  const filter = page.getByRole('combobox', { name: 'Schwierigkeit im Verzeichnis', exact: true });
+  await filter.selectOption('basic');
+  await expect(directory.getByRole('article')).toHaveCount(1);
+  await filter.selectOption('applied');
+  await expect(directory.getByRole('article')).toHaveCount(2);
+  await filter.selectOption('unknown');
+  await expect(directory.getByRole('article')).toHaveCount(1);
+  await expect(page.getByLabel('Rechenergebnis', { exact: true })).toBeVisible();
+  await expect(
+    round.getByRole('heading', { name: 'Synthetische Aufgabe', exact: true }),
+  ).toBeVisible();
+  await filter.selectOption('all');
+  await page.setViewportSize({ width: 320, height: 1000 });
+  expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth + 1)).toBe(
+    true,
+  );
+  const a11y = await new AxeBuilder({ page }).withTags(['wcag2a', 'wcag2aa']).analyze();
+  expect(a11y.violations).toEqual([]);
+});
+
+test('a private question never borrows difficulty from another content revision', async ({
+  page,
+}) => {
+  const entry = {
+    version: 1,
+    topic: 'heizung',
+    kind: 'numeric',
+    active: true,
+    reviewStatus: 'checked',
+  };
+  await fixture(page, 'numeric', false, false, true, [
+    { ...entry, id: 'synthetic-question', title: 'Synthetische Aufgabe', difficulty: 'applied' },
+  ]);
+  await page.route('**/rest/v1/rpc/shk_load_session', async (route) => {
+    const snapshot = baseSnapshot('numeric');
+    await route.fulfill({
+      json: {
+        ...snapshot,
+        question: { ...snapshot.question, version: 2 },
+        policy: { feedback: true, validUntil: new Date(Date.now() + 5000).toISOString() },
+      },
+    });
+  });
+  await page.getByRole('button', { name: 'Runde neu laden', exact: true }).click();
+  const round = page.getByRole('region', { name: 'Laufende Lernrunde', exact: true });
+  await expect(round.locator('.cloud-difficulty-label')).toHaveText(
+    'Bestandsschwierigkeit: Noch nicht eingestuft',
+  );
 });

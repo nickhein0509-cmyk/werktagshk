@@ -1,0 +1,139 @@
+{
+  "pressure_force_N": "94.247779607693790000000",
+  "linear_expansion_mm": "5.040",
+  "hydraulic_power_W": "10.00",
+  "mixture_C": "45",
+  "rent_buy_boundary_days": "13.33333333333333333333333333333333333333",
+  "rent_buy_minimum_whole_days": 14,
+  "prep_boundary_units": "11.25",
+  "prep_minimum_whole_units": 12,
+  "schedule_exhaustion": {
+    "considered": 64,
+    "earliest_finish_hour": 14,
+    "earliest_examples": [
+      {
+        "B": 9,
+        "C": 9,
+        "D": 11,
+        "E": 13,
+        "finished": 14
+      }
+    ]
+  },
+  "logic_test_options": [
+    {
+      "input": [true, false, false],
+      "desired": false,
+      "alternate": false
+    },
+    {
+      "input": [true, true, true],
+      "desired": true,
+      "alternate": true
+    },
+    {
+      "input": [false, false, true],
+      "desired": true,
+      "alternate": false
+    },
+    {
+      "input": [false, false, false],
+      "desired": false,
+      "alternate": false
+    }
+  ],
+  "hypothesis_test_pairs": {
+    "0+1": 3,
+    "0+2": 2,
+    "1+2": 2
+  },
+  "control_history": [
+    {
+      "minute": 0,
+      "temperature_C": 38,
+      "on": true,
+      "off_requested": false,
+      "started": 0
+    },
+    {
+      "minute": 5,
+      "temperature_C": 52,
+      "on": true,
+      "off_requested": true,
+      "started": 0
+    },
+    {
+      "minute": 10,
+      "temperature_C": 47,
+      "on": false,
+      "off_requested": true,
+      "started": 0
+    },
+    {
+      "minute": 12,
+      "temperature_C": 38,
+      "on": true,
+      "off_requested": false,
+      "started": 12
+    }
+  ],
+  "order_allocation_exhaustion": [
+    {
+      "orders": [],
+      "hours": 0,
+      "cash_including_final_payment": 100,
+      "contribution": 0,
+      "feasible": true
+    },
+    {
+      "orders": ["C"],
+      "hours": 3,
+      "cash_including_final_payment": 450,
+      "contribution": 260,
+      "feasible": true
+    },
+    {
+      "orders": ["B"],
+      "hours": 2,
+      "cash_including_final_payment": 300,
+      "contribution": 200,
+      "feasible": true
+    },
+    {
+      "orders": ["B", "C"],
+      "hours": 5,
+      "cash_including_final_payment": 650,
+      "contribution": 460,
+      "feasible": true
+    },
+    {
+      "orders": ["A"],
+      "hours": 4,
+      "cash_including_final_payment": 600,
+      "contribution": 300,
+      "feasible": true
+    },
+    {
+      "orders": ["A", "C"],
+      "hours": 7,
+      "cash_including_final_payment": 950,
+      "contribution": 560,
+      "feasible": false
+    },
+    {
+      "orders": ["A", "B"],
+      "hours": 6,
+      "cash_including_final_payment": 800,
+      "contribution": 500,
+      "feasible": false
+    },
+    {
+      "orders": ["A", "B", "C"],
+      "hours": 9,
+      "cash_including_final_payment": 1150,
+      "contribution": 760,
+      "feasible": false
+    }
+  ],
+  "scope": "Independent arithmetic and finite-state/allocation model verification for exact new exercise version1. No learner events."
+}

@@ -60,6 +60,53 @@
 .cloud-practice {
   min-width: 0;
 }
+.cloud-catalog-summary {
+  margin: 18px 0 24px;
+  border-block: 1px solid var(--flow-line-dark, #355052);
+  padding: 12px 0;
+  color: var(--flow-text-muted, #b9cbc5);
+  font-size: 13px;
+}
+.cloud-catalog-summary summary {
+  cursor: pointer;
+  min-height: 44px;
+  padding: 12px 0;
+  color: var(--flow-text, #f7f7f2);
+  font-weight: 600;
+}
+.cloud-catalog-summary p {
+  margin: 12px 0;
+  max-width: 82ch;
+  line-height: 1.7;
+}
+.cloud-topic-counts {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+  gap: 8px 24px;
+  margin: 20px 0 8px;
+}
+.cloud-topic-counts > div {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 8px 0;
+  border-bottom: 1px solid var(--flow-line-dark, #355052);
+}
+.cloud-topic-counts dt,
+.cloud-topic-counts dd {
+  margin: 0;
+}
+.cloud-topic-counts dd {
+  font-variant-numeric: tabular-nums;
+  color: var(--flow-text, #f7f7f2);
+}
+.cloud-practice .cloud-difficulty-label {
+  font-size: 12px;
+  font-weight: 600;
+}
+.cloud-difficulty-label > span {
+  font-weight: 400;
+}
 .cloud-practice .page-heading {
   display: none;
 }
@@ -161,6 +208,9 @@
   font-size: 13px;
   line-height: 1.65;
 }
+.cloud-practice .cloud-directory-note {
+  color: var(--flow-text-muted, #b9cbc5);
+}
 .cloud-practice .cloud-context-notes {
   display: grid;
   gap: 10px;
@@ -176,24 +226,24 @@
 .cloud-practice .cloud-directory {
   display: grid;
   margin-block: 20px;
-  border-top: 1px solid #d5dfda;
+  border-top: 1px solid var(--flow-line-dark, #355052);
 }
 .cloud-practice .cloud-directory-entry {
   display: grid;
   gap: 5px;
   padding: 20px 0;
-  border-bottom: 1px solid #d5dfda;
+  border-bottom: 1px solid var(--flow-line-dark, #355052);
 }
 .cloud-practice .cloud-directory-entry h3 {
   margin: 0;
-  color: #214a40;
+  color: var(--flow-text, #f7f7f2);
   font-size: 17px;
   line-height: 1.5;
   font-weight: 600;
 }
 .cloud-practice .cloud-directory-entry p {
   margin: 0;
-  color: #53665f;
+  color: var(--flow-text-muted, #b9cbc5);
   font-size: 13px;
   line-height: 1.65;
 }

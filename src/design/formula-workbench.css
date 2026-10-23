@@ -7,6 +7,58 @@
   color: var(--flow-ink-muted);
   font-size: 14px;
 }
+.formula-workbench > .formula-scope {
+  margin-top: 12px;
+  font-size: 12px;
+}
+.formula-filters {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  gap: 14px;
+  margin-top: 24px;
+}
+.formula-filters > div {
+  display: grid;
+  gap: 8px;
+  min-width: 0;
+}
+.formula-filters label {
+  font-size: 12px;
+  font-weight: 600;
+}
+.formula-filters input {
+  width: 100%;
+  min-width: 0;
+  min-height: 48px;
+  margin: 0;
+  padding: 11px 12px;
+  background: var(--flow-surface-raised);
+  color: var(--flow-ink);
+  border: 1px solid #a8b7ac;
+  border-radius: 10px;
+  font: inherit;
+  font-size: 14px;
+}
+.formula-filters input::placeholder {
+  color: var(--flow-ink-muted);
+  opacity: 1;
+}
+.formula-workbench .formula-filter-status {
+  margin: 10px 0 0;
+  font-size: 12px;
+  line-height: 1.7;
+}
+.formula-filter-status .text-button {
+  min-height: 44px;
+  padding: 4px 0;
+  font-size: 12px;
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+.formula-workbench select:disabled {
+  color: var(--flow-ink-muted);
+  opacity: 1;
+}
 .formula-selectors {
   display: grid;
   gap: 10px;
@@ -195,6 +247,9 @@
   }
 }
 @media (max-width: 600px) {
+  .formula-filters {
+    grid-template-columns: 1fr;
+  }
   .formula-workbench .formula.large {
     font-size: 18px;
   }

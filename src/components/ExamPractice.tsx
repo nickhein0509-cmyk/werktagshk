@@ -9,6 +9,14 @@ import type { ExerciseKind } from '../lib/exercise-kind';
 import { elapsedMilliseconds, formatElapsed, selectPracticeTasks } from '../lib/exam-session';
 import { CalculationWorkspace, emptyWorkpad } from './CalculationWorkspace';
 import type { WorkpadDraft } from './CalculationWorkspace';
+import {
+  DifficultyBadge,
+  DifficultyControls,
+  DifficultyLegend,
+  matchesDifficulty,
+} from './Difficulty';
+import type { DifficultyFilter, DifficultySort } from './Difficulty';
+import { compareExerciseDifficulty } from '../lib/difficulty';
 import '../design/exam-practice.css';
 
 interface PracticeRound {
@@ -125,6 +133,8 @@ export function ExamPractice({
   const [round, setRound] = useState<PracticeRound | null>(() => loadRound(storageKey));
   const [area, setArea] = useState<ExamAreaId>(round?.area ?? 'arbeitsplanung');
   const [kind, setKind] = useState<ExerciseKind | 'all'>('all');
+  const [difficulty, setDifficulty] = useState<DifficultyFilter>('all');
+  const [sort, setSort] = useState<DifficultySort>('recommended');
   const [examMode, setExamMode] = useState(round?.examMode ?? false);
   const [now, setNow] = useState(Date.now);
   const [storageWarning, setStorageWarning] = useState('');
@@ -136,15 +146,23 @@ export function ExamPractice({
       exercises
         .filter(
           (task) =>
-            getExamAreas(task).includes(area) && (kind === 'all' || getExerciseKind(task) === kind),
+            getExamAreas(task).includes(area) &&
+            (kind === 'all' || getExerciseKind(task) === kind) &&
+            matchesDifficulty(task, difficulty),
         )
-        .sort((a, b) => Number(isExamCase(b)) - Number(isExamCase(a))),
-    [area, kind],
+        .sort((a, b) =>
+          sort === 'recommended'
+            ? Number(isExamCase(b)) - Number(isExamCase(a))
+            : compareExerciseDifficulty(a, b, sort),
+        ),
+    [area, kind, difficulty, sort],
   );
-  const selectedTasks = useMemo(
-    () => selectPracticeTasks(candidates, selectionOffset),
-    [candidates, selectionOffset],
-  );
+  const selectedTasks = useMemo(() => {
+    const selection = selectPracticeTasks(candidates, selectionOffset);
+    return sort === 'recommended'
+      ? selection
+      : selection.sort((a, b) => compareExerciseDifficulty(a, b, sort));
+  }, [candidates, selectionOffset, sort]);
   const tasks = round?.taskIds.map((id) => knownTasks.get(id)!) ?? [];
   const task = round ? tasks[round.position] : null;
   const ended = round?.endedAt !== null && round !== null;
@@ -319,6 +337,13 @@ export function ExamPractice({
               </select>
             </label>
           </div>
+          <DifficultyControls
+            value={difficulty}
+            onChange={setDifficulty}
+            sort={sort}
+            onSort={setSort}
+          />
+          <DifficultyLegend />
           <div className="exam-start-row">
             <div>
               <h2>{selectedTasks.length} Aufgaben für diese Runde</h2>
@@ -421,7 +446,9 @@ export function ExamPractice({
                 <span>
                   Aufgabe {round.position + 1} / {tasks.length}
                 </span>
-                <span>{exerciseKindLabels[getExerciseKind(task)]}</span>
+                <span>
+                  {exerciseKindLabels[getExerciseKind(task)]} <DifficultyBadge exercise={task} />
+                </span>
               </header>
               <div className="exam-paper-body">
                 <h2 id="exam-task-title" ref={questionRef} tabIndex={-1}>

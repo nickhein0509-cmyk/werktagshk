@@ -1,6 +1,6 @@
 {
-  "release": "werktag-flow-formulas-0.5.0",
-  "appVersion": "0.5.0",
+  "release": "werktag-flow-catalog-0.6.0",
+  "appVersion": "0.6.0",
   "design": "flow",
   "designVersion": 2,
   "learningSchemaVersion": 1,
@@ -8,8 +8,6 @@
   "features": [
     "private-question-library",
     "original-cloud-rounds",
-    "180-original-exercises",
-    "72-part2-practice-cases",
     "task-kind-filters",
     "calculation-workpad",
     "practice-calculator",
@@ -20,6 +18,14 @@
     "formula-selection",
     "rearrange-formulas",
     "formula-unit-conversion",
-    "24-new-context-cases"
+    "24-new-context-cases",
+    "204-original-exercises",
+    "96-part2-practice-cases",
+    "21-formula-families",
+    "64-formula-targets",
+    "formula-search-and-groups",
+    "editorial-four-stage-difficulty",
+    "difficulty-filter-and-sort",
+    "private-native-difficulty"
   ]
 }
