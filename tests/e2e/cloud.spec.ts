@@ -27,7 +27,13 @@ const baseSnapshot = (kind: string) => ({
   answerSubmitted: false,
   solutionViewed: false,
 });
-async function fixture(page: Page, kind = 'numeric', conflict = false, withFigure = false) {
+async function fixture(
+  page: Page,
+  kind = 'numeric',
+  conflict = false,
+  withFigure = false,
+  allowAids = true,
+) {
   let snapshot = {
     ...baseSnapshot(kind),
     question: {
@@ -60,8 +66,8 @@ async function fixture(page: Page, kind = 'numeric', conflict = false, withFigur
   );
   const policy = () => ({
     validUntil: new Date(Date.now() + 5000).toISOString(),
-    hints: true,
-    earlySolution: true,
+    hints: allowAids,
+    earlySolution: allowAids,
     feedback: true,
   });
   await page.route('https://test-werktag.supabase.co/**', async (route) => {
@@ -207,4 +213,98 @@ test('reloading a question with the same raster figure keeps answer submission a
   await expect(answer).toBeEnabled();
   await page.getByRole('button', { name: 'Runde neu laden', exact: true }).click();
   await expect(answer).toBeEnabled();
+});
+
+test('private calculation work survives a round reload without being sent as an answer', async ({
+  page,
+}) => {
+  const submissions = await fixture(page);
+  const round = page.getByRole('region', { name: 'Laufende Lernrunde' });
+  await round
+    .getByRole('textbox', { name: 'Gegeben & gesucht', exact: true })
+    .fill('m = 120 kg, gesucht Q');
+  await round
+    .getByRole('textbox', { name: 'Rechenweg', exact: true })
+    .fill('Mein eigener Zwischenschritt');
+  await round.getByRole('textbox', { name: 'Notizen', exact: true }).fill('Einheiten prüfen');
+  await round.getByRole('button', { name: 'Runde neu laden', exact: true }).click();
+  await expect(round.getByRole('textbox', { name: 'Rechenweg', exact: true })).toHaveValue(
+    'Mein eigener Zwischenschritt',
+  );
+  await expect(round.getByRole('textbox', { name: 'Notizen', exact: true })).toHaveValue(
+    'Einheiten prüfen',
+  );
+  await expect(round.getByText(/nicht im Konto gespeichert/)).toBeVisible();
+  await round.getByLabel('Rechenergebnis', { exact: true }).fill('1,25');
+  await round.getByRole('button', { name: 'Antwort abgeben', exact: true }).click();
+  expect(submissions).toHaveLength(1);
+  expect(submissions[0]._answer).toEqual({ text: '1,25', unit: 'kWh' });
+  await page.setViewportSize({ width: 320, height: 844 });
+  expect(
+    await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth + 1),
+  ).toBe(true);
+});
+
+test('private rounds do not expose the workpad or calculator without the current aid permission', async ({
+  page,
+}) => {
+  await fixture(page, 'numeric', false, false, false);
+  await expect(page.getByRole('textbox', { name: 'Gegeben & gesucht', exact: true })).toHaveCount(
+    0,
+  );
+  await expect(page.locator('.calculation-workspace')).toHaveCount(0);
+  await expect(page.getByText(/Nutze deinen eigenen Taschenrechner/)).toBeVisible();
+  await page.getByLabel('Rechenergebnis', { exact: true }).fill('0,75');
+  await page.getByRole('button', { name: 'Antwort abgeben', exact: true }).click();
+  await expect(page.getByText('Vom Server bewertet.')).toBeVisible();
+});
+
+test('revoking private aid permission hides the workpad and restoring it retains local notes', async ({
+  page,
+}) => {
+  await fixture(page);
+  await page
+    .getByRole('textbox', { name: 'Notizen', exact: true })
+    .fill('Meine Notiz bleibt bei der Aufgabe.');
+  let aidsAllowed = false;
+  const currentPolicy = () => ({
+    validUntil: new Date(Date.now() + 5000).toISOString(),
+    hints: aidsAllowed,
+    earlySolution: aidsAllowed,
+    feedback: true,
+  });
+  await page.route('**/rest/v1/rpc/shk_session_policy', async (route) => {
+    await route.fulfill({ json: currentPolicy() });
+  });
+  await page.route('**/rest/v1/rpc/shk_load_session', async (route) => {
+    await route.fulfill({ json: { ...baseSnapshot('numeric'), policy: currentPolicy() } });
+  });
+  await page.getByRole('button', { name: 'Runde neu laden', exact: true }).click();
+  await expect(page.locator('.calculation-workspace')).toHaveCount(0);
+  aidsAllowed = true;
+  await page.getByRole('button', { name: 'Runde neu laden', exact: true }).click();
+  await expect(page.getByRole('textbox', { name: 'Notizen', exact: true })).toHaveValue(
+    'Meine Notiz bleibt bei der Aufgabe.',
+  );
+});
+
+test('private directory distinguishes response types without changing the open round', async ({
+  page,
+}) => {
+  await fixture(page, 'short');
+  const directory = page.getByRole('region', { name: 'Aufgabenverzeichnis', exact: true });
+  const kindFilter = page.getByRole('combobox', {
+    name: 'Aufgabenart im Verzeichnis',
+    exact: true,
+  });
+  await expect(directory.getByRole('article')).toHaveCount(1);
+  await expect(
+    directory.getByText('Heizung · Kontextaufgabe · Kurzantwort · Fassung 1'),
+  ).toBeVisible();
+  await kindFilter.selectOption('calculation');
+  await expect(directory.getByRole('article')).toHaveCount(0);
+  await expect(directory.getByText('Keine Aufgaben für diese Filter gefunden.')).toBeVisible();
+  await expect(page.getByLabel('Deine Erklärung', { exact: true })).toBeVisible();
+  await kindFilter.selectOption('context');
+  await expect(directory.getByRole('article')).toHaveCount(1);
 });

@@ -14,12 +14,13 @@ fachlichen Minispielen fest; diese Funktionen werden jetzt noch nicht gebaut.
 
 Gestaltung ansehen: [Desktop](docs/screenshots/desktop.png),
 [Handy](docs/screenshots/mobile.png) und [Aufgabe](docs/screenshots/exercise.png).
+Prüfungsbereich: [Desktop](docs/screenshots/exam-mode.png) und [Handy](docs/screenshots/exam-mobile.png).
 
 ## Was funktioniert
 
 - Übersicht mit echten Tageszielen, bearbeiteten Aufgaben und Lerntagen.
-- 144 eigene Übungen mit Hinweisen und Erklärungen: die bisherigen 108
-  Modellaufgaben und 36 neue Fälle für Teil 2. Je zwölf neue Fälle zu
+- 156 eigene Übungen mit Hinweisen und Erklärungen: die bisherigen 108
+  Modellaufgaben und 48 Fälle für Teil 2. Je 16 Fälle zu
   Arbeitsplanung, Systemanalyse/Instandhaltung und WiSo. Vier WiSo-Fälle
   beziehen sich auf konkret gelesene Primärquellen.
 - Prüfungsfälle erscheinen zuerst. Prüfungsbereich, Lernfeld, Suchbegriff und
@@ -28,6 +29,13 @@ Gestaltung ansehen: [Desktop](docs/screenshots/desktop.png),
   Auswahl, Zahlen, Kurzantwort und Selbstvergleich, mit Bewertung auf dem Server.
   Gespeicherte Übungsrunden lassen sich fortsetzen; Entwürfe explizit speichern.
 - Lernwerkstatt mit Suche, Themenfiltern und Merkliste.
+- Rechenaufgaben, Kontextaufgaben und Wissensfragen getrennt filtern.
+  Großes Rechenblatt mit Teilschritten, eigenen Browsernotizen und Taschenrechner.
+- Prüfungsbereich mit nummeriertem Arbeitsblatt nach dem Aufbau bekannter
+  Altprüfungen. Sechs eigene Aufgaben je Runde; Lernhilfen über „Prüfungsmodus“
+  ausschaltbar. Eigener Rechner und freier Rechenweg im Prüfungsmodus.
+  Die Uhr läuft vom ausdrücklichen Start bis zur Abgabe, auch bei Navigation.
+  Alle Lösungen erst nach Abgabe, keine amtlichen Punkte oder Zeitvorgaben.
 - Wiederholung: zuletzt falsche Antworten sofort; zuletzt richtige Antworten
   nach 72 Stunden. Das ist eine einfache Produktregel, kein validiertes Lernmodell.
 - Frei einteilbarer Lernplan und ein Tagesziel von einer bis zehn Aufgaben.
@@ -96,10 +104,20 @@ Wiederherstellungsschlüssel gesichert; Rohdaten lassen sich separat exportieren
 
 Die Antworten der eigenen Modellübungen liegen im ausgelieferten JavaScript.
 Private Fragen werden erst zur jeweiligen Runde geladen und serverseitig bewertet.
-Diese Wiederanbindung bietet einen Übungsablauf, keinen neuen Prüfungsmodus. Die App enthält keine private Literatur, alte
+Der Prüfungsmodus ist eine Selbstübung mit ausgeblendeten Lernhilfen; die
+eigenen Antwortschlüssel bleiben im Browsercode. Der private Fragenbestand
+verwendet weiterhin seine vorhandenen Freigaberegeln. Die App enthält keine private Literatur, alte
 Prüfungsunterlagen oder wiederhergestellte persönliche Lerngeschichte. Die
 Modellaufgaben und Formeln ersetzen keine aktuellen Normen, Herstellerunterlagen
 oder fachgerechte Anlagenplanung. Ein KI-Chat ist noch nicht angebunden.
+
+Rechenentwürfe der Modellaufgaben werden separat nach Gast/Konto und Aufgabe
+in diesem Browser gespeichert und zählen nicht als Versuch. Sie sind nicht im
+Lernstandexport oder der Cloud-Synchronisierung enthalten. Die laufende
+Prüfungsrunde samt Notizen und Zeit wird im aktuellen Browser-Tab gesichert;
+die Uhr läuft bei Neuladen weiter und eine bereits abgegebene Runde wird nicht
+erneut verbucht. Private zusätzliche Rechenblätter bleiben nur in der geöffneten
+Bestandsansicht erhalten und werden nicht an den Server gesendet.
 
 Der Code ist für Nicks Projekt gedacht. Eine öffentliche Bereitstellung, Lizenz
 oder Freigabe privater Quellen ist damit nicht festgelegt. GitHub Actions ist für

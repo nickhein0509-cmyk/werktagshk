@@ -12,6 +12,8 @@ import {
   record,
 } from './lib/cloud-practice';
 import type { CloudLearning, CloudSnapshot, CloudDraft, JsonRecord } from './lib/cloud-practice';
+import { CalculationWorkspace, emptyWorkpad } from './components/CalculationWorkspace';
+import type { WorkpadDraft } from './components/CalculationWorkspace';
 
 const formats = {
   choice: 'Auswahlfrage',
@@ -19,6 +21,16 @@ const formats = {
   short: 'Kurzantwort',
   self: 'Selbstvergleich',
 };
+
+type DirectoryKind = 'all' | 'calculation' | 'context' | 'choice';
+function directoryKind(kind: keyof typeof formats): Exclude<DirectoryKind, 'all'> {
+  if (kind === 'numeric') return 'calculation';
+  if (kind === 'short' || kind === 'self') return 'context';
+  return 'choice';
+}
+function taskLabel(kind: keyof typeof formats) {
+  return kind === 'short' || kind === 'self' ? `Kontextaufgabe · ${formats[kind]}` : formats[kind];
+}
 
 function SolutionText({ data }: { data: JsonRecord }) {
   function render(value: unknown): string {
@@ -145,6 +157,8 @@ export function CloudPractice({ userId }: { userId: string }) {
   const [query, setQuery] = useState('');
   const [limit, setLimit] = useState(100);
   const [topic, setTopic] = useState('');
+  const [kindFilter, setKindFilter] = useState<DirectoryKind>('all');
+  const [workpads, setWorkpads] = useState<Record<string, WorkpadDraft>>({});
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState('');
   const [notice, setNotice] = useState('');
@@ -160,6 +174,7 @@ export function CloudPractice({ userId }: { userId: string }) {
     setLearning(null);
     setSnapshot(null);
     setDraft(emptyDraft());
+    setWorkpads({});
     setError('');
     setBusy(true);
     lock.current = true;
@@ -360,9 +375,17 @@ export function CloudPractice({ userId }: { userId: string }) {
     (learning ? latestCatalog(learning.catalog) : []).filter(
       (q) =>
         (!topic || q.topic === topic) &&
+        (kindFilter === 'all' || directoryKind(q.kind) === kindFilter) &&
         `${q.title} ${q.id}`.toLocaleLowerCase('de').includes(query.toLocaleLowerCase('de')),
     ) ?? [];
   const q = snapshot?.question;
+  const workpadKey =
+    snapshot && q ? `${userId}:${snapshot.id}:${snapshot.position}:${q.id}:${q.version}` : '';
+  const workpad = workpads[workpadKey] ?? emptyWorkpad();
+  const workpadAllowed = snapshot && permitted(snapshot, 'hints', now);
+  function updateWorkpad(next: WorkpadDraft) {
+    setWorkpads((current) => ({ ...current, [workpadKey]: next }));
+  }
   const feedbackLabels: Record<string, string> = {
     correct: 'Richtig',
     partial: 'Teilweise richtig',
@@ -422,6 +445,21 @@ export function CloudPractice({ userId }: { userId: string }) {
               </select>
             </label>
             <label>
+              Aufgabenart im Verzeichnis
+              <select
+                value={kindFilter}
+                onChange={(event) => {
+                  setKindFilter(event.target.value as DirectoryKind);
+                  setLimit(100);
+                }}
+              >
+                <option value="all">Alle Antwortarten</option>
+                <option value="calculation">Rechenaufgaben</option>
+                <option value="context">Kontextaufgaben</option>
+                <option value="choice">Auswahlfragen</option>
+              </select>
+            </label>
+            <label>
               Fragen durchsuchen
               <input
                 type="search"
@@ -439,7 +477,8 @@ export function CloudPractice({ userId }: { userId: string }) {
           </div>
           <p>
             Die Auswahl erfolgt aus den für dich verfügbaren Fragen: bis zu fünf je Thema oder zehn
-            in einer gemischten Runde. Ausgeschlossene Fassungen bleiben im Verzeichnis sichtbar.
+            in einer gemischten Runde. Ausgeschlossene Fassungen bleiben im Verzeichnis sichtbar.{' '}
+            Aufgabenart und Suche filtern das Verzeichnis; sie ändern die Rundenauswahl nicht.
           </p>
           {learning.rounds.some((round) => !round.completed) && (
             <section aria-label="Offene Lernrunden">
@@ -464,7 +503,10 @@ export function CloudPractice({ userId }: { userId: string }) {
             </section>
           )}
           {snapshot && (
-            <section className="cloud-round" aria-label="Laufende Lernrunde">
+            <section
+              className={`cloud-round ${q?.kind === 'numeric' ? 'cloud-round-calculation' : ''}`}
+              aria-label="Laufende Lernrunde"
+            >
               <div className="section-heading">
                 <h2>
                   {snapshot.completed
@@ -489,7 +531,7 @@ export function CloudPractice({ userId }: { userId: string }) {
                   <>
                     <h3>{q.title}</h3>
                     <p>
-                      {formats[q.kind]} · Fassung {q.version}
+                      {taskLabel(q.kind)} · Fassung {q.version}
                     </p>
                     <p className="cloud-preformatted">{q.prompt}</p>
                     <QuestionFigures
@@ -497,6 +539,34 @@ export function CloudPractice({ userId }: { userId: string }) {
                       figures={q.figures}
                       onReady={setFiguresReady}
                     />
+                    {workpadAllowed && (
+                      <div className="cloud-workpad">
+                        {q.kind === 'numeric' ? (
+                          <CalculationWorkspace draft={workpad} onChange={updateWorkpad} />
+                        ) : (
+                          <label className="cloud-context-notes">
+                            Eigene Notizen
+                            <textarea
+                              value={workpad.notes}
+                              maxLength={15000}
+                              onChange={(event) =>
+                                updateWorkpad({ ...workpad, notes: event.target.value })
+                              }
+                            />
+                          </label>
+                        )}
+                        <p className="cloud-workpad-note">
+                          Rechenblatt und Notizen bleiben nur in dieser geöffneten Ansicht und
+                          werden nicht im Konto gespeichert. Trage deine Antwort unten ein.
+                        </p>
+                      </div>
+                    )}
+                    {!workpadAllowed && q.kind === 'numeric' && (
+                      <p className="cloud-workpad-note">
+                        Rechenblatt und eingebauter Taschenrechner sind für diese Runde gerade nicht
+                        freigegeben. Nutze deinen eigenen Taschenrechner.
+                      </p>
+                    )}
                     <fieldset disabled={busy || snapshot.answerSubmitted}>
                       <legend>Deine Antwort</legend>
                       {q.kind === 'choice' ? (
@@ -663,12 +733,15 @@ export function CloudPractice({ userId }: { userId: string }) {
           )}
           <section aria-label="Aufgabenverzeichnis">
             <h2>Aufgabenverzeichnis ({catalog.length})</h2>
-            <div className="exercise-grid">
+            <p className="cloud-directory-note">
+              Aufgabenarten nach Antwortformat. Auswahlfragen können auch Rechnungen enthalten.
+            </p>
+            <div className="cloud-directory">
               {catalog.slice(0, limit).map((entry) => (
-                <article key={`${entry.id}:${entry.version}`} className="exercise-card">
+                <article key={`${entry.id}:${entry.version}`} className="cloud-directory-entry">
                   <h3>{entry.title}</h3>
                   <p>
-                    {cloudTopics[entry.topic] ?? entry.topic} · {formats[entry.kind]} · Fassung{' '}
+                    {cloudTopics[entry.topic] ?? entry.topic} · {taskLabel(entry.kind)} · Fassung{' '}
                     {entry.version}
                   </p>
                   <p>
@@ -683,6 +756,7 @@ export function CloudPractice({ userId }: { userId: string }) {
                 </article>
               ))}
             </div>
+            {catalog.length === 0 && <p>Keine Aufgaben für diese Filter gefunden.</p>}
             {catalog.length > limit && (
               <button
                 className="button secondary"
