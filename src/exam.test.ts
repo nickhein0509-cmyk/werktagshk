@@ -7,7 +7,7 @@ describe('exam practice integration', () => {
   it('keeps all existing identities and new cases distinct, with no artificial progress', () => {
     const original = exercises.filter((task) => !isExamCase(task));
     expect(original).toHaveLength(108);
-    expect(exercises.filter(isExamCase)).toHaveLength(48);
+    expect(exercises.filter(isExamCase)).toHaveLength(72);
     expect(new Set(exercises.map((task) => task.id)).size).toBe(exercises.length);
     const oldTask = original[0];
     const newTask = exercises.find((task) => task.id === 'exam-si-waermeleistung')!;

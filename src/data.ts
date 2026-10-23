@@ -4,6 +4,8 @@ import { systemExercises } from './content/exam-system';
 import { wisoExercises } from './content/exam-wiso';
 import { wisoLawExercises } from './content/exam-wiso-law';
 import { transferExercises } from './content/exam-transfer';
+import { technicalContextExercises } from './content/exam-context-technical';
+import { wisoContextExercises } from './content/exam-context-wiso';
 import type { ExerciseKind } from './lib/exercise-kind';
 
 export type TopicId = 'heizung' | 'sanitaer' | 'klima' | 'wiso';
@@ -272,4 +274,6 @@ export const exercises: Exercise[] = [
   ...wisoExercises,
   ...wisoLawExercises,
   ...transferExercises,
+  ...technicalContextExercises,
+  ...wisoContextExercises,
 ];

@@ -15,12 +15,13 @@ fachlichen Minispielen fest; diese Funktionen werden jetzt noch nicht gebaut.
 Gestaltung ansehen: [Desktop](docs/screenshots/desktop.png),
 [Handy](docs/screenshots/mobile.png) und [Aufgabe](docs/screenshots/exercise.png).
 Prüfungsbereich: [Desktop](docs/screenshots/exam-mode.png) und [Handy](docs/screenshots/exam-mobile.png).
+Werkzeugkoffer: [Formelwerkstatt](docs/screenshots/formula-workbench.png) und [Handy](docs/screenshots/formula-workbench-mobile.png).
 
 ## Was funktioniert
 
 - Übersicht mit echten Tageszielen, bearbeiteten Aufgaben und Lerntagen.
-- 156 eigene Übungen mit Hinweisen und Erklärungen: die bisherigen 108
-  Modellaufgaben und 48 Fälle für Teil 2. Je 16 Fälle zu
+- 180 eigene Übungen mit Hinweisen und Erklärungen: die bisherigen 108
+  Modellaufgaben und 72 Fälle für Teil 2. Je 24 Fälle zu
   Arbeitsplanung, Systemanalyse/Instandhaltung und WiSo. Vier WiSo-Fälle
   beziehen sich auf konkret gelesene Primärquellen.
 - Prüfungsfälle erscheinen zuerst. Prüfungsbereich, Lernfeld, Suchbegriff und
@@ -39,7 +40,9 @@ Prüfungsbereich: [Desktop](docs/screenshots/exam-mode.png) und [Handy](docs/scr
 - Wiederholung: zuletzt falsche Antworten sofort; zuletzt richtige Antworten
   nach 72 Stunden. Das ist eine einfache Produktregel, kein validiertes Lernmodell.
 - Frei einteilbarer Lernplan und ein Tagesziel von einer bis zehn Aufgaben.
-- Wärmeenergie-Rechner mit Einheiten und Annahmen sowie ein kleines Formelregister.
+- Formelwerkstatt mit acht wählbaren Formeln: Wärmeenergie, Wärmeleistung,
+  Volumenstrom, Luftwechsel, Gefälle, Rohrinhalt, Heizzeit und Energiewirkungsgrad.
+  Je drei gesuchte Größen, automatische Einheitenumrechnung und Rechenweg.
 - Validierter JSON-Export und -Import von Lernstand, Merkliste und Tagesziel.
   Ein Import ersetzt Daten erst nach ausdrücklicher Bestätigung in der App.
 - Höhere Lernstandsformate sind gegen Überschreiben geschützt, auch wenn sie
@@ -85,6 +88,8 @@ beenden ihren eigenen Entwicklungsserver und verändern keine echten Lerndaten.
 - `src/content`: eigene neue Fallaufgaben und separat belegte WiSo-Rechtsfälle.
 - `src/exam.ts`: redaktionelle Schwerpunktzuordnung ohne Änderung alter Antworten.
 - `src/components/FlowDashboard.tsx` und `src/design`: Flow-Oberfläche und Tokens.
+- `src/components/FormulaWorkbench.tsx` und `src/lib/formulas.ts`: Formelwahl,
+  Umstellungen und Einheitenmodelle ohne Einfluss auf den Lernstand.
 - `src/lib/learning.ts`: versionierter Lernstand, Validierung und Wiederholung.
 - `tests/e2e`: Browserprüfungen mit isolierten Datensätzen.
 - `.agents/skills`: zwei lokale Skills für Inhalte und Produktdesign.

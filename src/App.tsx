@@ -1,4 +1,4 @@
-import { useEffect, useId, useMemo, useRef, useState } from 'react';
+import { lazy, Suspense, useEffect, useId, useMemo, useRef, useState } from 'react';
 import type { ChangeEvent, ReactNode } from 'react';
 import {
   ArrowDownToLine,
@@ -31,8 +31,6 @@ import { examAreas, getExamAreas, isExamCase } from './exam';
 import type { ExamAreaId } from './exam';
 import type { User } from '@supabase/supabase-js';
 import { supabase } from './lib/supabase';
-import { CloudAccount } from './components/CloudAccount';
-import { CloudPractice } from './CloudPractice';
 import { FlowDashboard } from './components/FlowDashboard';
 import { ExamPractice } from './components/ExamPractice';
 import { CalculationWorkspace } from './components/CalculationWorkspace';
@@ -49,6 +47,16 @@ import {
 } from './lib/learning';
 import type { LearningState } from './lib/learning';
 import { isFutureLearningRecord, futureDataWarning } from './lib/storage';
+
+const CloudAccount = lazy(() =>
+  import('./components/CloudAccount').then((module) => ({ default: module.CloudAccount })),
+);
+const CloudPractice = lazy(() =>
+  import('./CloudPractice').then((module) => ({ default: module.CloudPractice })),
+);
+const FormulaWorkbench = lazy(() =>
+  import('./components/FormulaWorkbench').then((module) => ({ default: module.FormulaWorkbench })),
+);
 
 type Page = 'dashboard' | 'cloud' | 'library' | 'exam' | 'review' | 'plan' | 'tools';
 const STORAGE_KEY = 'werktag-learning-v1';
@@ -314,13 +322,15 @@ function App() {
                 title="Mein Fragenbestand"
                 description="Deine bisherigen Fragen, Rechenaufgaben und Übungsrunden. Melde dich mit deinem vorhandenen Lernkonto an."
               />
-              <CloudAccount
-                key={`account:${user?.id ?? 'guest'}`}
-                user={user}
-                state={state}
-                onLoad={updateState}
-              />
-              {user && <CloudPractice key={`questions:${user.id}`} userId={user.id} />}
+              <Suspense fallback={<p role="status">Dein Fragenbestand wird vorbereitet …</p>}>
+                <CloudAccount
+                  key={`account:${user?.id ?? 'guest'}`}
+                  user={user}
+                  state={state}
+                  onLoad={updateState}
+                />
+                {user && <CloudPractice key={`questions:${user.id}`} userId={user.id} />}
+              </Suspense>
             </>
           )}
           {page === 'dashboard' && (
@@ -417,7 +427,7 @@ function App() {
         <footer className="workspace-footer">
           <span>WerkTag · Mit Kopf. Mit Hand. Mit dir.</span>
           <span>
-            WerkTag Flow <span className="footer-version">/ 0.4.0</span>
+            WerkTag Flow <span className="footer-version">/ 0.5.0</span>
           </span>
         </footer>
       </div>
@@ -1078,23 +1088,9 @@ function Tools({
   state: LearningState;
   onImport: (state: LearningState) => boolean;
 }) {
-  const [mass, setMass] = useState('100');
-  const [delta, setDelta] = useState('20');
   const [message, setMessage] = useState('');
   const [pending, setPending] = useState<LearningState | null>(null);
   const fileRef = useRef<HTMLInputElement>(null);
-  const m = Number(mass.replace(',', '.'));
-  const d = Number(delta.replace(',', '.'));
-  const valid =
-    mass.trim() !== '' &&
-    delta.trim() !== '' &&
-    Number.isFinite(m) &&
-    Number.isFinite(d) &&
-    m > 0 &&
-    d >= 0 &&
-    m <= 1e9 &&
-    d <= 100;
-  const energy = m * 4.18 * d;
   async function importFile(event: ChangeEvent<HTMLInputElement>) {
     setMessage('');
     setPending(null);
@@ -1138,94 +1134,9 @@ function Tools({
         description="Zusammenhänge greifbar machen. Formeln verstehen. Deinen Lernstand sichern."
       />
       <div className="tools-grid">
-        <section className="surface calculator">
-          <div className="section-heading">
-            <h2>Wärmeenergie berechnen</h2>
-            <Flame size={22} />
-          </div>
-          <p>Wie viel Energie braucht Wasser, um wärmer zu werden?</p>
-          <div className="formula large">Q = m · c · ΔT</div>
-          <div className="calculator-inputs">
-            <label>
-              Wassermasse <span>in kg</span>
-              <input
-                inputMode="decimal"
-                value={mass}
-                onChange={(e) => setMass(e.target.value)}
-                aria-describedby="calculator-assumptions"
-              />
-            </label>
-            <label>
-              Temperaturdifferenz <span>in K</span>
-              <input
-                inputMode="decimal"
-                value={delta}
-                onChange={(e) => setDelta(e.target.value)}
-                aria-describedby="calculator-assumptions"
-              />
-            </label>
-          </div>
-          <div className="calculator-result" aria-live="polite">
-            {valid ? (
-              <>
-                <span>Benötigte Wärmeenergie</span>
-                <strong>
-                  {(energy / 3600).toLocaleString('de-DE', { maximumFractionDigits: 3 })}{' '}
-                  <small>kWh</small>
-                </strong>
-                <span>{energy.toLocaleString('de-DE', { maximumFractionDigits: 1 })} kJ</span>
-              </>
-            ) : (
-              <p>
-                Bitte eine positive Masse und eine Temperaturdifferenz von 0 bis 100 K eingeben.
-              </p>
-            )}
-          </div>
-          <p className="tool-assumptions" id="calculator-assumptions">
-            Modellrechnung für flüssiges Wasser: c = 4,18 kJ/(kg · K). Ohne Wärmeverluste und
-            Phasenwechsel. 1 kWh = 3.600 kJ.
-          </p>
-        </section>
-        <section className="surface formula-reference">
-          <div className="section-heading">
-            <h2>Griffbereit: Grundformeln</h2>
-            <BookOpen size={21} />
-          </div>
-          <dl>
-            <div>
-              <dt>Wärmeenergie</dt>
-              <dd>
-                <strong>Q = m · c · ΔT</strong>
-                <span>m in kg, c in kJ/(kg · K), ΔT in K → Q in kJ</span>
-              </dd>
-            </div>
-            <div>
-              <dt>Volumenstrom</dt>
-              <dd>
-                <strong>V̇ = V / t</strong>
-                <span>V in Litern, t in Minuten → V̇ in l/min</span>
-              </dd>
-            </div>
-            <div>
-              <dt>Luftwechsel</dt>
-              <dd>
-                <strong>n = V̇ / V</strong>
-                <span>V̇ in m³/h, Raumvolumen V in m³ → n in h⁻¹</span>
-              </dd>
-            </div>
-            <div>
-              <dt>Gefälle</dt>
-              <dd>
-                <strong>i = Δh / l · 100 %</strong>
-                <span>Höhenunterschied und waagerechte Bezugslänge in gleicher Einheit</span>
-              </dd>
-            </div>
-          </dl>
-          <p className="tool-assumptions">
-            Grundlagen für Modellaufgaben. Anlagenplanung und konkrete Arbeitsausführung benötigen
-            die passenden aktuellen Fachquellen.
-          </p>
-        </section>
+        <Suspense fallback={<p role="status">Deine Formelwerkstatt wird geladen …</p>}>
+          <FormulaWorkbench />
+        </Suspense>
         <section className="surface data-tools">
           <div>
             <span className="topic-icon">
