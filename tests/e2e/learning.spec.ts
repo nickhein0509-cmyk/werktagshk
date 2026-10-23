@@ -38,7 +38,7 @@ test('a new learner sees zero progress and no invented history', async ({ page }
   await expect(page.locator('.goal-ring')).toContainText('0/3');
   await expect(page.getByText('0 Lerntage in Folge')).toBeVisible();
   await expect(page.locator('.topic-progress')).toHaveCount(4);
-  await expect(page.locator('.topic-progress').filter({ hasText: '0 von 3' })).toHaveCount(4);
+  await expect(page.locator('.topic-progress').filter({ hasText: '0 von 27' })).toHaveCount(4);
   await expect(page.locator('.week-day.done')).toHaveCount(0);
   expect(await storedState(page)).toBeNull();
   await navigate(page, 'Wiederholen');
@@ -85,10 +85,10 @@ test('an incorrect submitted answer becomes a due review immediately', async ({ 
 
 test('topic filtering, search and bookmarks select real exercises', async ({ page }) => {
   await navigate(page, 'Lernwerkstatt');
-  await expect(page.getByRole('article')).toHaveCount(12);
+  await expect(page.getByRole('article')).toHaveCount(108);
   await page.getByRole('button', { name: 'Sanitärtechnik', exact: true }).click();
-  await expect(page.getByRole('article')).toHaveCount(3);
-  await page.getByRole('textbox', { name: 'Aufgaben durchsuchen' }).fill('Rohr');
+  await expect(page.getByRole('article')).toHaveCount(27);
+  await page.getByRole('textbox', { name: 'Aufgaben durchsuchen' }).fill('Was passt in das Rohr?');
   await expect(page.getByRole('article')).toHaveCount(1);
   const card = page.getByRole('article');
   await expect(card.getByRole('heading')).toHaveText('Was passt in das Rohr?');
@@ -142,13 +142,11 @@ test('export preserves progress and import requires explicit replacement', async
   expect(exported.attempts).toHaveLength(1);
   expect(exported.attempts[0].correct).toBe(true);
   const imported = { ...exported, dailyGoal: 7 };
-  await page
-    .getByLabel('Lernstanddatei auswählen')
-    .setInputFiles({
-      name: 'sicherung.json',
-      mimeType: 'application/json',
-      buffer: Buffer.from(JSON.stringify(imported)),
-    });
+  await page.getByLabel('Lernstanddatei auswählen').setInputFiles({
+    name: 'sicherung.json',
+    mimeType: 'application/json',
+    buffer: Buffer.from(JSON.stringify(imported)),
+  });
   await expect(page.getByRole('heading', { name: 'Diese Sicherung übernehmen?' })).toBeVisible();
   expect((await storedState(page)).dailyGoal).toBe(3);
   await page.getByRole('button', { name: 'Lernstand ersetzen', exact: true }).click();
@@ -163,24 +161,20 @@ test('invalid imports leave the existing learner record untouched', async ({ pag
   await page.keyboard.press('Escape');
   await navigate(page, 'Werkzeugkoffer');
   const before = await storedState(page);
-  await page
-    .getByLabel('Lernstanddatei auswählen')
-    .setInputFiles({
-      name: 'broken.json',
-      mimeType: 'application/json',
-      buffer: Buffer.from('{broken'),
-    });
+  await page.getByLabel('Lernstanddatei auswählen').setInputFiles({
+    name: 'broken.json',
+    mimeType: 'application/json',
+    buffer: Buffer.from('{broken'),
+  });
   await expect(page.getByRole('alert')).toContainText('kein lesbares JSON');
   expect(await storedState(page)).toEqual(before);
-  await page
-    .getByLabel('Lernstanddatei auswählen')
-    .setInputFiles({
-      name: 'invalid.json',
-      mimeType: 'application/json',
-      buffer: Buffer.from(
-        JSON.stringify({ version: 1, attempts: [], bookmarks: [], dailyGoal: 999 }),
-      ),
-    });
+  await page.getByLabel('Lernstanddatei auswählen').setInputFiles({
+    name: 'invalid.json',
+    mimeType: 'application/json',
+    buffer: Buffer.from(
+      JSON.stringify({ version: 1, attempts: [], bookmarks: [], dailyGoal: 999 }),
+    ),
+  });
   await expect(page.getByRole('alert')).toContainText('keinen gültigen WerkTag-Lernstand');
   expect(await storedState(page)).toEqual(before);
   await expect(page.getByRole('button', { name: 'Lernstand ersetzen', exact: true })).toHaveCount(
@@ -252,4 +246,28 @@ test('dashboard and exercise dialog have no automated WCAG A/AA violations', asy
       targets: nodes.map((node) => node.target),
     })),
   }).toEqual({ dashboard: [], dialog: [] });
+});
+
+test('an added calculation is searchable, hides its solution and retains its answer', async ({
+  page,
+}) => {
+  const exercise = exercises.find(({ id }) => id === 'sanitaer-geschwindigkeit-v1-2')!;
+  await navigate(page, 'Lernwerkstatt');
+  await page.getByRole('textbox', { name: 'Aufgaben durchsuchen' }).fill(exercise.title);
+  const card = page.getByRole('article');
+  await expect(card).toHaveCount(1);
+  await card.getByRole('button', { name: 'Üben', exact: true }).click();
+  const dialog = page.getByRole('dialog', { name: exercise.title });
+  await expect(dialog.locator('.explanation')).toHaveCount(0);
+  await dialog.getByRole('radio').nth(exercise.correctIndex).check();
+  await dialog.getByRole('button', { name: 'Antwort prüfen' }).click();
+  await expect(dialog.locator('.explanation')).toHaveText(exercise.explanation);
+  await page.keyboard.press('Escape');
+  await page.reload();
+  expect((await storedState(page)).attempts).toMatchObject([
+    { exerciseId: exercise.id, correct: true },
+  ]);
+  await navigate(page, 'Lernwerkstatt');
+  await page.getByRole('textbox', { name: 'Aufgaben durchsuchen' }).fill(exercise.title);
+  await expect(page.getByRole('article')).toContainText('Zuletzt richtig');
 });

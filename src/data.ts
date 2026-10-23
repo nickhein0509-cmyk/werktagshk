@@ -1,3 +1,5 @@
+import { practiceExpansion } from './practice-expansion';
+
 export type TopicId = 'heizung' | 'sanitaer' | 'klima' | 'wiso';
 
 export interface Topic {
@@ -257,4 +259,5 @@ export const exercises: Exercise[] = [
     level: 'Grundlagen',
     sourceLabel,
   },
+  ...practiceExpansion,
 ];

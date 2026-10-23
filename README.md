@@ -10,8 +10,11 @@ Gestaltung ansehen: [Desktop](docs/screenshots/desktop.png),
 ## Was funktioniert
 
 - Übersicht mit echten Tageszielen, bearbeiteten Aufgaben und Lerntagen.
-- Zwölf selbst erstellte Modellaufgaben, drei je Lernfeld, mit Hinweisen und
-  Erklärungen nach der Antwort. Keine übernommenen Originalprüfungen.
+- 108 eigene Modellaufgaben, 27 je Lernfeld, mit Hinweisen und Erklärungen.
+  Darunter 72 neue Rechnungen zu 24 Modellen mit je drei Zahlenvarianten.
+- Privater bisheriger Fragenbestand über das vorhandene Supabase-Lernkonto:
+  Auswahl, Zahlen, Kurzantwort und Selbstvergleich, mit Bewertung auf dem Server.
+  Gespeicherte Übungsrunden lassen sich fortsetzen; Entwürfe explizit speichern.
 - Lernwerkstatt mit Suche, Themenfiltern und Merkliste.
 - Wiederholung: zuletzt falsche Antworten sofort; zuletzt richtige Antworten
   nach 72 Stunden. Das ist eine einfache Produktregel, kein validiertes Lernmodell.
@@ -27,8 +30,10 @@ Kalendertag. Wiederholtes Klicken erhöht es nicht künstlich.
 
 ## Lokal entwickeln
 
-Voraussetzung: Node.js 24 (siehe `.nvmrc`) und npm. Keine API-Schlüssel, Datenbank
-oder externen Dienste erforderlich.
+Voraussetzung: Node.js 24 (siehe `.nvmrc`) und npm. Die Modellübungen funktionieren
+ohne externe Dienste. Für das vorhandene Lernkonto `.env.example` nach `.env.local`
+kopieren und Supabase-URL sowie einen Publishable Key eintragen. Private Fragen
+werden ausschließlich nach Anmeldung und serverseitiger Freigabe geladen.
 
 ```sh
 npm ci
@@ -63,14 +68,18 @@ beenden ihren eigenen Entwicklungsserver und verändern keine echten Lerndaten.
 
 ## Daten und Grenzen
 
-Die Anwendung speichert ausschließlich in diesem Browser (`localStorage`), ohne
-Konto oder Cloud-Synchronisierung. Der Browser kann Speicher verweigern oder
+Die Modellübungen speichern zunächst in diesem Browser (`localStorage`). Gast-
+und Kontolernstände verwenden getrennte Schlüssel. Mit dem Lernkonto lassen sich
+diese Modellübungen über `shk_learning_progress` verlustfrei synchronisieren.
+Die bisherigen privaten Fragen und ihre Antworten verbleiben in den ursprünglichen
+Supabase-Tabellen und werden über die vorhandenen authentifizierten RPCs verwendet. Der Browser kann Speicher verweigern oder
 löschen. Exportiere wichtige Lerndaten regelmäßig. Ein erkannter beschädigter
 Datensatz wird beim nächsten ausdrücklichen Speichern zuerst unter einem
 Wiederherstellungsschlüssel gesichert; Rohdaten lassen sich separat exportieren.
 
-Die Übungsantworten liegen im ausgelieferten JavaScript. Es gibt keinen
-geschützten Prüfungsmodus. Die App enthält keine private Literatur, alte
+Die Antworten der eigenen Modellübungen liegen im ausgelieferten JavaScript.
+Private Fragen werden erst zur jeweiligen Runde geladen und serverseitig bewertet.
+Diese Wiederanbindung bietet einen Übungsablauf, keinen neuen Prüfungsmodus. Die App enthält keine private Literatur, alte
 Prüfungsunterlagen oder wiederhergestellte persönliche Lerngeschichte. Die
 Modellaufgaben und Formeln ersetzen keine aktuellen Normen, Herstellerunterlagen
 oder fachgerechte Anlagenplanung. Ein KI-Chat ist noch nicht angebunden.
@@ -78,4 +87,6 @@ oder fachgerechte Anlagenplanung. Ein KI-Chat ist noch nicht angebunden.
 Der Code ist für Nicks Projekt gedacht. Eine öffentliche Bereitstellung, Lizenz
 oder Freigabe privater Quellen ist damit nicht festgelegt. GitHub Actions ist für
 die automatischen Prüfungen vorbereitet; eine erfolgreiche Ausführung auf GitHub
-muss dort separat bestätigt werden. Es gibt keine automatische Veröffentlichung.
+muss dort separat bestätigt werden. Die Veröffentlichung erfolgt im bestehenden Vercel-Projekt. Die automatische
+Git-Verknüpfung muss nach Wiederfreigabe des GitHub-Zugriffs in Vercel verbunden
+werden; siehe [Betriebsanbindung](docs/deployment-recovery.md).

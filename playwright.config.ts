@@ -30,7 +30,11 @@ export default defineConfig({
   webServer: {
     command: 'npm run dev -- --port 4173 --strictPort',
     url: 'http://127.0.0.1:4173',
-    reuseExistingServer: !process.env.CI,
+    reuseExistingServer: false,
+    env: {
+      VITE_SUPABASE_URL: 'https://test-werktag.supabase.co',
+      VITE_SUPABASE_PUBLISHABLE_KEY: 'sb_publishable_browser_fixture',
+    },
     timeout: 30_000,
   },
 });

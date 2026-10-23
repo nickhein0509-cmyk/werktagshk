@@ -1,0 +1,802 @@
+{
+  "version": 1,
+  "date": "2026-10-23",
+  "scope": "72 original numerical model variants; arithmetic generation evidence, not independent technical approval",
+  "calculations": [
+    {
+      "id": "heizung-heizzeit-v1-1",
+      "values": [
+        3,
+        6
+      ],
+      "exactResult": 120.0,
+      "unit": "min",
+      "displayedResult": "120,00 min",
+      "derivation": "Zeit: {1} kWh / {0} kW × 60 min/h."
+    },
+    {
+      "id": "heizung-heizzeit-v1-2",
+      "values": [
+        6,
+        9
+      ],
+      "exactResult": 90.0,
+      "unit": "min",
+      "displayedResult": "90,00 min",
+      "derivation": "Zeit: {1} kWh / {0} kW × 60 min/h."
+    },
+    {
+      "id": "heizung-heizzeit-v1-3",
+      "values": [
+        4,
+        5
+      ],
+      "exactResult": 75.0,
+      "unit": "min",
+      "displayedResult": "75,00 min",
+      "derivation": "Zeit: {1} kWh / {0} kW × 60 min/h."
+    },
+    {
+      "id": "heizung-nutzwaerme-v1-1",
+      "values": [
+        50,
+        80
+      ],
+      "exactResult": 40.0,
+      "unit": "kWh",
+      "displayedResult": "40,00 kWh",
+      "derivation": "Nutzwärme: {0} kWh × {1} / 100. Der Rest ist im Modell Verlustenergie."
+    },
+    {
+      "id": "heizung-nutzwaerme-v1-2",
+      "values": [
+        80,
+        90
+      ],
+      "exactResult": 72.0,
+      "unit": "kWh",
+      "displayedResult": "72,00 kWh",
+      "derivation": "Nutzwärme: {0} kWh × {1} / 100. Der Rest ist im Modell Verlustenergie."
+    },
+    {
+      "id": "heizung-nutzwaerme-v1-3",
+      "values": [
+        120,
+        85
+      ],
+      "exactResult": 102.0,
+      "unit": "kWh",
+      "displayedResult": "102,00 kWh",
+      "derivation": "Nutzwärme: {0} kWh × {1} / 100. Der Rest ist im Modell Verlustenergie."
+    },
+    {
+      "id": "heizung-energieeinsatz-v1-1",
+      "values": [
+        40,
+        80
+      ],
+      "exactResult": 50.0,
+      "unit": "kWh",
+      "displayedResult": "50,00 kWh",
+      "derivation": "Energieeinsatz: {0} kWh / ({1} / 100)."
+    },
+    {
+      "id": "heizung-energieeinsatz-v1-2",
+      "values": [
+        72,
+        90
+      ],
+      "exactResult": 80.0,
+      "unit": "kWh",
+      "displayedResult": "80,00 kWh",
+      "derivation": "Energieeinsatz: {0} kWh / ({1} / 100)."
+    },
+    {
+      "id": "heizung-energieeinsatz-v1-3",
+      "values": [
+        51,
+        85
+      ],
+      "exactResult": 60.0,
+      "unit": "kWh",
+      "displayedResult": "60,00 kWh",
+      "derivation": "Energieeinsatz: {0} kWh / ({1} / 100)."
+    },
+    {
+      "id": "heizung-spreizung-v1-1",
+      "values": [
+        8.4,
+        0.2
+      ],
+      "exactResult": 10.0,
+      "unit": "K",
+      "displayedResult": "10,00 K",
+      "derivation": "Spreizung: {0} kJ/s / ({1} kg/s × 4,2 kJ/(kg · K))."
+    },
+    {
+      "id": "heizung-spreizung-v1-2",
+      "values": [
+        12.6,
+        0.3
+      ],
+      "exactResult": 10.0,
+      "unit": "K",
+      "displayedResult": "10,00 K",
+      "derivation": "Spreizung: {0} kJ/s / ({1} kg/s × 4,2 kJ/(kg · K))."
+    },
+    {
+      "id": "heizung-spreizung-v1-3",
+      "values": [
+        6.3,
+        0.1
+      ],
+      "exactResult": 14.999999999999998,
+      "unit": "K",
+      "displayedResult": "15,00 K",
+      "derivation": "Spreizung: {0} kJ/s / ({1} kg/s × 4,2 kJ/(kg · K))."
+    },
+    {
+      "id": "heizung-waermeleistung-v1-1",
+      "values": [
+        0.2,
+        15
+      ],
+      "exactResult": 12.600000000000001,
+      "unit": "kW",
+      "displayedResult": "12,60 kW",
+      "derivation": "Leistung: {0} kg/s × 4,2 kJ/(kg · K) × {1} K."
+    },
+    {
+      "id": "heizung-waermeleistung-v1-2",
+      "values": [
+        0.3,
+        20
+      ],
+      "exactResult": 25.2,
+      "unit": "kW",
+      "displayedResult": "25,20 kW",
+      "derivation": "Leistung: {0} kg/s × 4,2 kJ/(kg · K) × {1} K."
+    },
+    {
+      "id": "heizung-waermeleistung-v1-3",
+      "values": [
+        0.1,
+        25
+      ],
+      "exactResult": 10.500000000000002,
+      "unit": "kW",
+      "displayedResult": "10,50 kW",
+      "derivation": "Leistung: {0} kg/s × 4,2 kJ/(kg · K) × {1} K."
+    },
+    {
+      "id": "heizung-ausdehnung-v1-1",
+      "values": [
+        10,
+        40
+      ],
+      "exactResult": 6.800000000000001,
+      "unit": "mm",
+      "displayedResult": "6,80 mm",
+      "derivation": "Längenänderung: 0,017 mm/(m · K) × {0} m × {1} K. Keine Aussage über eine reale Befestigung oder Kompensation."
+    },
+    {
+      "id": "heizung-ausdehnung-v1-2",
+      "values": [
+        12,
+        50
+      ],
+      "exactResult": 10.200000000000001,
+      "unit": "mm",
+      "displayedResult": "10,20 mm",
+      "derivation": "Längenänderung: 0,017 mm/(m · K) × {0} m × {1} K. Keine Aussage über eine reale Befestigung oder Kompensation."
+    },
+    {
+      "id": "heizung-ausdehnung-v1-3",
+      "values": [
+        8,
+        30
+      ],
+      "exactResult": 4.08,
+      "unit": "mm",
+      "displayedResult": "4,08 mm",
+      "derivation": "Längenänderung: 0,017 mm/(m · K) × {0} m × {1} K. Keine Aussage über eine reale Befestigung oder Kompensation."
+    },
+    {
+      "id": "sanitaer-fuellzeit-v1-1",
+      "values": [
+        180,
+        12
+      ],
+      "exactResult": 15.0,
+      "unit": "min",
+      "displayedResult": "15,00 min",
+      "derivation": "Füllzeit: {0} l / {1} l/min."
+    },
+    {
+      "id": "sanitaer-fuellzeit-v1-2",
+      "values": [
+        240,
+        16
+      ],
+      "exactResult": 15.0,
+      "unit": "min",
+      "displayedResult": "15,00 min",
+      "derivation": "Füllzeit: {0} l / {1} l/min."
+    },
+    {
+      "id": "sanitaer-fuellzeit-v1-3",
+      "values": [
+        150,
+        10
+      ],
+      "exactResult": 15.0,
+      "unit": "min",
+      "displayedResult": "15,00 min",
+      "derivation": "Füllzeit: {0} l / {1} l/min."
+    },
+    {
+      "id": "sanitaer-geschwindigkeit-v1-1",
+      "values": [
+        20,
+        0.3
+      ],
+      "exactResult": 0.954929658551372,
+      "unit": "m/s",
+      "displayedResult": "0,95 m/s",
+      "derivation": "Querschnitt: π × ({0} / 1000)² / 4 in m². Volumenstrom: {1} / 1000 in m³/s. Geschwindigkeit = Volumenstrom / Querschnitt."
+    },
+    {
+      "id": "sanitaer-geschwindigkeit-v1-2",
+      "values": [
+        25,
+        0.5
+      ],
+      "exactResult": 1.0185916357881302,
+      "unit": "m/s",
+      "displayedResult": "1,02 m/s",
+      "derivation": "Querschnitt: π × ({0} / 1000)² / 4 in m². Volumenstrom: {1} / 1000 in m³/s. Geschwindigkeit = Volumenstrom / Querschnitt."
+    },
+    {
+      "id": "sanitaer-geschwindigkeit-v1-3",
+      "values": [
+        32,
+        0.8
+      ],
+      "exactResult": 0.9947183943243461,
+      "unit": "m/s",
+      "displayedResult": "0,99 m/s",
+      "derivation": "Querschnitt: π × ({0} / 1000)² / 4 in m². Volumenstrom: {1} / 1000 in m³/s. Geschwindigkeit = Volumenstrom / Querschnitt."
+    },
+    {
+      "id": "sanitaer-druckhoehe-v1-1",
+      "values": [
+        5
+      ],
+      "exactResult": 0.4905,
+      "unit": "bar",
+      "displayedResult": "0,49 bar",
+      "derivation": "Überdruck: 1000 kg/m³ × 9,81 m/s² × {0} m / 100000 Pa/bar. Nicht der absolute Druck."
+    },
+    {
+      "id": "sanitaer-druckhoehe-v1-2",
+      "values": [
+        12
+      ],
+      "exactResult": 1.1772,
+      "unit": "bar",
+      "displayedResult": "1,18 bar",
+      "derivation": "Überdruck: 1000 kg/m³ × 9,81 m/s² × {0} m / 100000 Pa/bar. Nicht der absolute Druck."
+    },
+    {
+      "id": "sanitaer-druckhoehe-v1-3",
+      "values": [
+        20
+      ],
+      "exactResult": 1.962,
+      "unit": "bar",
+      "displayedResult": "1,96 bar",
+      "derivation": "Überdruck: 1000 kg/m³ × 9,81 m/s² × {0} m / 100000 Pa/bar. Nicht der absolute Druck."
+    },
+    {
+      "id": "sanitaer-mischwasser-v1-1",
+      "values": [
+        10,
+        30
+      ],
+      "exactResult": 30.0,
+      "unit": "°C",
+      "displayedResult": "30,00 °C",
+      "derivation": "Gewichteter Mittelwert: ({0} × 60 + {1} × 20) / ({0} + {1}). Das Ergebnis muss zwischen 20 und 60 °C liegen."
+    },
+    {
+      "id": "sanitaer-mischwasser-v1-2",
+      "values": [
+        20,
+        20
+      ],
+      "exactResult": 40.0,
+      "unit": "°C",
+      "displayedResult": "40,00 °C",
+      "derivation": "Gewichteter Mittelwert: ({0} × 60 + {1} × 20) / ({0} + {1}). Das Ergebnis muss zwischen 20 und 60 °C liegen."
+    },
+    {
+      "id": "sanitaer-mischwasser-v1-3",
+      "values": [
+        30,
+        10
+      ],
+      "exactResult": 50.0,
+      "unit": "°C",
+      "displayedResult": "50,00 °C",
+      "derivation": "Gewichteter Mittelwert: ({0} × 60 + {1} × 20) / ({0} + {1}). Das Ergebnis muss zwischen 20 und 60 °C liegen."
+    },
+    {
+      "id": "sanitaer-gefaelle-rueckwaerts-v1-1",
+      "values": [
+        6,
+        12
+      ],
+      "exactResult": 2.0,
+      "unit": "%",
+      "displayedResult": "2,00 %",
+      "derivation": "Höhe in Metern: {1} / 100. Gefälle: ({1} / 100) / {0} × 100 %."
+    },
+    {
+      "id": "sanitaer-gefaelle-rueckwaerts-v1-2",
+      "values": [
+        8,
+        12
+      ],
+      "exactResult": 1.5,
+      "unit": "%",
+      "displayedResult": "1,50 %",
+      "derivation": "Höhe in Metern: {1} / 100. Gefälle: ({1} / 100) / {0} × 100 %."
+    },
+    {
+      "id": "sanitaer-gefaelle-rueckwaerts-v1-3",
+      "values": [
+        10,
+        25
+      ],
+      "exactResult": 2.5,
+      "unit": "%",
+      "displayedResult": "2,50 %",
+      "derivation": "Höhe in Metern: {1} / 100. Gefälle: ({1} / 100) / {0} × 100 %."
+    },
+    {
+      "id": "sanitaer-verbrauch-v1-1",
+      "values": [
+        3,
+        6,
+        4
+      ],
+      "exactResult": 72,
+      "unit": "l",
+      "displayedResult": "72,00 l",
+      "derivation": "Volumen je Nutzung: {0} min × {1} l/min. Tagesmenge: dieses Volumen × {2}."
+    },
+    {
+      "id": "sanitaer-verbrauch-v1-2",
+      "values": [
+        2,
+        8,
+        5
+      ],
+      "exactResult": 80,
+      "unit": "l",
+      "displayedResult": "80,00 l",
+      "derivation": "Volumen je Nutzung: {0} min × {1} l/min. Tagesmenge: dieses Volumen × {2}."
+    },
+    {
+      "id": "sanitaer-verbrauch-v1-3",
+      "values": [
+        4,
+        5,
+        3
+      ],
+      "exactResult": 60,
+      "unit": "l",
+      "displayedResult": "60,00 l",
+      "derivation": "Volumen je Nutzung: {0} min × {1} l/min. Tagesmenge: dieses Volumen × {2}."
+    },
+    {
+      "id": "klima-luftbedarf-v1-1",
+      "values": [
+        60,
+        3
+      ],
+      "exactResult": 180,
+      "unit": "m³/h",
+      "displayedResult": "180,00 m³/h",
+      "derivation": "Volumenstrom: {0} m³ × {1} h⁻¹. Die Rechnung bewertet keine Luftqualität."
+    },
+    {
+      "id": "klima-luftbedarf-v1-2",
+      "values": [
+        90,
+        2
+      ],
+      "exactResult": 180,
+      "unit": "m³/h",
+      "displayedResult": "180,00 m³/h",
+      "derivation": "Volumenstrom: {0} m³ × {1} h⁻¹. Die Rechnung bewertet keine Luftqualität."
+    },
+    {
+      "id": "klima-luftbedarf-v1-3",
+      "values": [
+        120,
+        2.5
+      ],
+      "exactResult": 300.0,
+      "unit": "m³/h",
+      "displayedResult": "300,00 m³/h",
+      "derivation": "Volumenstrom: {0} m³ × {1} h⁻¹. Die Rechnung bewertet keine Luftqualität."
+    },
+    {
+      "id": "klima-kanalquerschnitt-v1-1",
+      "values": [
+        400,
+        200
+      ],
+      "exactResult": 0.08,
+      "unit": "m²",
+      "displayedResult": "0,08 m²",
+      "derivation": "Breite: {0} / 1000 m. Höhe: {1} / 1000 m. Fläche = Breite × Höhe; mm² werden durch 1000000 in m² umgerechnet."
+    },
+    {
+      "id": "klima-kanalquerschnitt-v1-2",
+      "values": [
+        500,
+        300
+      ],
+      "exactResult": 0.15,
+      "unit": "m²",
+      "displayedResult": "0,15 m²",
+      "derivation": "Breite: {0} / 1000 m. Höhe: {1} / 1000 m. Fläche = Breite × Höhe; mm² werden durch 1000000 in m² umgerechnet."
+    },
+    {
+      "id": "klima-kanalquerschnitt-v1-3",
+      "values": [
+        600,
+        250
+      ],
+      "exactResult": 0.15,
+      "unit": "m²",
+      "displayedResult": "0,15 m²",
+      "derivation": "Breite: {0} / 1000 m. Höhe: {1} / 1000 m. Fläche = Breite × Höhe; mm² werden durch 1000000 in m² umgerechnet."
+    },
+    {
+      "id": "klima-kanalstrom-v1-1",
+      "values": [
+        3,
+        0.08
+      ],
+      "exactResult": 864.0,
+      "unit": "m³/h",
+      "displayedResult": "864,00 m³/h",
+      "derivation": "Volumenstrom: {0} m/s × {1} m² × 3600 s/h."
+    },
+    {
+      "id": "klima-kanalstrom-v1-2",
+      "values": [
+        4,
+        0.12
+      ],
+      "exactResult": 1728.0,
+      "unit": "m³/h",
+      "displayedResult": "1728,00 m³/h",
+      "derivation": "Volumenstrom: {0} m/s × {1} m² × 3600 s/h."
+    },
+    {
+      "id": "klima-kanalstrom-v1-3",
+      "values": [
+        2.5,
+        0.16
+      ],
+      "exactResult": 1440.0,
+      "unit": "m³/h",
+      "displayedResult": "1440,00 m³/h",
+      "derivation": "Volumenstrom: {0} m/s × {1} m² × 3600 s/h."
+    },
+    {
+      "id": "klima-luftwaerme-v1-1",
+      "values": [
+        0.5,
+        20
+      ],
+      "exactResult": 10.0,
+      "unit": "kW",
+      "displayedResult": "10,00 kW",
+      "derivation": "Heizleistung: {0} kg/s × 1,0 kJ/(kg · K) × {1} K. Ergebnis in kJ/s = kW."
+    },
+    {
+      "id": "klima-luftwaerme-v1-2",
+      "values": [
+        0.8,
+        15
+      ],
+      "exactResult": 12.0,
+      "unit": "kW",
+      "displayedResult": "12,00 kW",
+      "derivation": "Heizleistung: {0} kg/s × 1,0 kJ/(kg · K) × {1} K. Ergebnis in kJ/s = kW."
+    },
+    {
+      "id": "klima-luftwaerme-v1-3",
+      "values": [
+        1.2,
+        10
+      ],
+      "exactResult": 12.0,
+      "unit": "kW",
+      "displayedResult": "12,00 kW",
+      "derivation": "Heizleistung: {0} kg/s × 1,0 kJ/(kg · K) × {1} K. Ergebnis in kJ/s = kW."
+    },
+    {
+      "id": "klima-rueckwaermzahl-v1-1",
+      "values": [
+        2,
+        75
+      ],
+      "exactResult": 17.0,
+      "unit": "°C",
+      "displayedResult": "17,00 °C",
+      "derivation": "Zulufttemperatur: {0} + ({1} / 100) × (22 − ({0})). Die Temperatur liegt zwischen Außenluft und Abluft."
+    },
+    {
+      "id": "klima-rueckwaermzahl-v1-2",
+      "values": [
+        -2,
+        80
+      ],
+      "exactResult": 17.200000000000003,
+      "unit": "°C",
+      "displayedResult": "17,20 °C",
+      "derivation": "Zulufttemperatur: {0} + ({1} / 100) × (22 − ({0})). Die Temperatur liegt zwischen Außenluft und Abluft."
+    },
+    {
+      "id": "klima-rueckwaermzahl-v1-3",
+      "values": [
+        6,
+        50
+      ],
+      "exactResult": 14.0,
+      "unit": "°C",
+      "displayedResult": "14,00 °C",
+      "derivation": "Zulufttemperatur: {0} + ({1} / 100) × (22 − ({0})). Die Temperatur liegt zwischen Außenluft und Abluft."
+    },
+    {
+      "id": "klima-luftenergie-v1-1",
+      "values": [
+        80,
+        10
+      ],
+      "exactResult": 0.8,
+      "unit": "kWh",
+      "displayedResult": "0,80 kWh",
+      "derivation": "Energie: ({0} W / 1000) × {1} h. Leistung und Energie sind unterschiedliche Größen."
+    },
+    {
+      "id": "klima-luftenergie-v1-2",
+      "values": [
+        120,
+        8
+      ],
+      "exactResult": 0.96,
+      "unit": "kWh",
+      "displayedResult": "0,96 kWh",
+      "derivation": "Energie: ({0} W / 1000) × {1} h. Leistung und Energie sind unterschiedliche Größen."
+    },
+    {
+      "id": "klima-luftenergie-v1-3",
+      "values": [
+        150,
+        6
+      ],
+      "exactResult": 0.8999999999999999,
+      "unit": "kWh",
+      "displayedResult": "0,90 kWh",
+      "derivation": "Energie: ({0} W / 1000) × {1} h. Leistung und Energie sind unterschiedliche Größen."
+    },
+    {
+      "id": "wiso-stundenkosten-v1-1",
+      "values": [
+        58,
+        3.5
+      ],
+      "exactResult": 203.0,
+      "unit": "€",
+      "displayedResult": "203,00 €",
+      "derivation": "Arbeitskosten: {0} €/h × {1} h. Der Verrechnungssatz ist keine Aussage zum persönlichen Stundenlohn."
+    },
+    {
+      "id": "wiso-stundenkosten-v1-2",
+      "values": [
+        64,
+        2.25
+      ],
+      "exactResult": 144.0,
+      "unit": "€",
+      "displayedResult": "144,00 €",
+      "derivation": "Arbeitskosten: {0} €/h × {1} h. Der Verrechnungssatz ist keine Aussage zum persönlichen Stundenlohn."
+    },
+    {
+      "id": "wiso-stundenkosten-v1-3",
+      "values": [
+        72,
+        4.5
+      ],
+      "exactResult": 324.0,
+      "unit": "€",
+      "displayedResult": "324,00 €",
+      "derivation": "Arbeitskosten: {0} €/h × {1} h. Der Verrechnungssatz ist keine Aussage zum persönlichen Stundenlohn."
+    },
+    {
+      "id": "wiso-materialzuschlag-v1-1",
+      "values": [
+        160,
+        25
+      ],
+      "exactResult": 200.0,
+      "unit": "€",
+      "displayedResult": "200,00 €",
+      "derivation": "Nettoverkaufspreis: {0} € × (1 + {1} / 100). Ein Zuschlag auf den Einkaufspreis ist nicht derselbe Prozentsatz wie eine Marge vom Verkaufspreis."
+    },
+    {
+      "id": "wiso-materialzuschlag-v1-2",
+      "values": [
+        240,
+        20
+      ],
+      "exactResult": 288.0,
+      "unit": "€",
+      "displayedResult": "288,00 €",
+      "derivation": "Nettoverkaufspreis: {0} € × (1 + {1} / 100). Ein Zuschlag auf den Einkaufspreis ist nicht derselbe Prozentsatz wie eine Marge vom Verkaufspreis."
+    },
+    {
+      "id": "wiso-materialzuschlag-v1-3",
+      "values": [
+        320,
+        15
+      ],
+      "exactResult": 368.0,
+      "unit": "€",
+      "displayedResult": "368,00 €",
+      "derivation": "Nettoverkaufspreis: {0} € × (1 + {1} / 100). Ein Zuschlag auf den Einkaufspreis ist nicht derselbe Prozentsatz wie eine Marge vom Verkaufspreis."
+    },
+    {
+      "id": "wiso-skonto-v1-1",
+      "values": [
+        500,
+        2
+      ],
+      "exactResult": 490.0,
+      "unit": "€",
+      "displayedResult": "490,00 €",
+      "derivation": "Zahlung: {0} € × (1 − {1} / 100). Die Konditionen sind reine Aufgabenannahmen, keine allgemeinen Zahlungsansprüche."
+    },
+    {
+      "id": "wiso-skonto-v1-2",
+      "values": [
+        750,
+        3
+      ],
+      "exactResult": 727.5,
+      "unit": "€",
+      "displayedResult": "727,50 €",
+      "derivation": "Zahlung: {0} € × (1 − {1} / 100). Die Konditionen sind reine Aufgabenannahmen, keine allgemeinen Zahlungsansprüche."
+    },
+    {
+      "id": "wiso-skonto-v1-3",
+      "values": [
+        1200,
+        2
+      ],
+      "exactResult": 1176.0,
+      "unit": "€",
+      "displayedResult": "1176,00 €",
+      "derivation": "Zahlung: {0} € × (1 − {1} / 100). Die Konditionen sind reine Aufgabenannahmen, keine allgemeinen Zahlungsansprüche."
+    },
+    {
+      "id": "wiso-kostendeckung-v1-1",
+      "values": [
+        1500,
+        30
+      ],
+      "exactResult": 50.0,
+      "unit": "Stück",
+      "displayedResult": "50,00 Stück",
+      "derivation": "Kostendeckende Menge: {0} € / {1} €/Stück. An diesem Punkt ist im vereinfachten Modell der Gewinn null."
+    },
+    {
+      "id": "wiso-kostendeckung-v1-2",
+      "values": [
+        2400,
+        40
+      ],
+      "exactResult": 60.0,
+      "unit": "Stück",
+      "displayedResult": "60,00 Stück",
+      "derivation": "Kostendeckende Menge: {0} € / {1} €/Stück. An diesem Punkt ist im vereinfachten Modell der Gewinn null."
+    },
+    {
+      "id": "wiso-kostendeckung-v1-3",
+      "values": [
+        3600,
+        60
+      ],
+      "exactResult": 60.0,
+      "unit": "Stück",
+      "displayedResult": "60,00 Stück",
+      "derivation": "Kostendeckende Menge: {0} € / {1} €/Stück. An diesem Punkt ist im vereinfachten Modell der Gewinn null."
+    },
+    {
+      "id": "wiso-preissteigerung-v1-1",
+      "values": [
+        80,
+        92
+      ],
+      "exactResult": 15.0,
+      "unit": "%",
+      "displayedResult": "15,00 %",
+      "derivation": "Änderung: {1} − {0} €. Prozentuale Steigerung: ({1} − {0}) / {0} × 100 %."
+    },
+    {
+      "id": "wiso-preissteigerung-v1-2",
+      "values": [
+        120,
+        144
+      ],
+      "exactResult": 20.0,
+      "unit": "%",
+      "displayedResult": "20,00 %",
+      "derivation": "Änderung: {1} − {0} €. Prozentuale Steigerung: ({1} − {0}) / {0} × 100 %."
+    },
+    {
+      "id": "wiso-preissteigerung-v1-3",
+      "values": [
+        200,
+        210
+      ],
+      "exactResult": 5.0,
+      "unit": "%",
+      "displayedResult": "5,00 %",
+      "derivation": "Änderung: {1} − {0} €. Prozentuale Steigerung: ({1} − {0}) / {0} × 100 %."
+    },
+    {
+      "id": "wiso-energiekosten-v1-1",
+      "values": [
+        2,
+        5,
+        0.3
+      ],
+      "exactResult": 3.0,
+      "unit": "€",
+      "displayedResult": "3,00 €",
+      "derivation": "Energie: {0} kW × {1} h. Kosten: diese Energie × {2} €/kWh. Der Tarif ist fiktiv."
+    },
+    {
+      "id": "wiso-energiekosten-v1-2",
+      "values": [
+        1.5,
+        8,
+        0.4
+      ],
+      "exactResult": 4.800000000000001,
+      "unit": "€",
+      "displayedResult": "4,80 €",
+      "derivation": "Energie: {0} kW × {1} h. Kosten: diese Energie × {2} €/kWh. Der Tarif ist fiktiv."
+    },
+    {
+      "id": "wiso-energiekosten-v1-3",
+      "values": [
+        3,
+        4,
+        0.25
+      ],
+      "exactResult": 3.0,
+      "unit": "€",
+      "displayedResult": "3,00 €",
+      "derivation": "Energie: {0} kW × {1} h. Kosten: diese Energie × {2} €/kWh. Der Tarif ist fiktiv."
+    }
+  ]
+}
