@@ -47,3 +47,42 @@ Die Inhalte sind eigene Modellaufgaben und keine Originalprüfungen. Antwortschl
 Der Lernstand enthält derzeit stabile Aufgaben-IDs, jedoch keine gesonderte Inhaltsrevision pro Antwort. Werden Aufgabenmodell, Optionen oder Antwortschlüssel später fachlich geändert, braucht das eine bewusste Versionierungs- und Migrationsentscheidung; alte Antworten dürfen nicht stillschweigend als Antworten auf eine andere Aufgabe umgedeutet werden.
 
 Eine spätere Einbindung von Originalmaterial, Normenaussagen, Herstellerangaben oder bestehenden Lernakten benötigt einen eigenen begrenzten Quellen- und Versionsabgleich. Diese Prüfung deckt ausschließlich die hier aufgelisteten expliziten Modelle in Version 0.1 ab.
+
+## Erweiterung vom 23. Oktober 2026 – Inhaltsversion 1
+
+96 eigene Übungsaufgaben in `src/practice-expansion.ts`: 72 Rechenaufgaben
+(24 Modelle mit jeweils drei ausdrücklich gekennzeichneten Zahlenvarianten)
+und 24 Verständnisfragen. Der Gesamtbestand beträgt 108 Aufgaben, 27 je Lernfeld.
+Zahlenvarianten sind keine 72 unterschiedlichen Lösungsprinzipien.
+
+Heizung: Heizzeit, Nutzungsgrad vorwärts/rückwärts, Spreizung, Wärmeleistung,
+Längenausdehnung. Sanitär: Füllzeit, mittlere Geschwindigkeit, hydrostatischer
+Überdruck, Wasser mischen, geometrisches Gefälle, Tagesverbrauch. Lüftung:
+Volumenstrom, Kanalquerschnitt, Kanalgeschwindigkeit, Luft erwärmen, trockener
+Wärmetauscher, Ventilatorenergie. WiSo: Arbeitskosten, Materialzuschlag, Skonto,
+Kostendeckung, Preisänderung, Energiekosten. Dazu je sechs Verständnisfragen.
+
+Die angegebenen Werte und Modellgrenzen sind Aufgabenannahmen. Es wurden keine
+externen Normen, rechtlichen Primärquellen, privaten Bücher oder Originalprüfungen
+verwendet. Die Fragen treffen keine Aussage über zulässige reale Anlagen oder
+rechtlich verbindliche Konditionen. Alle neuen Inhalte sind redaktionelle eigene
+Übungen; keine externe fachliche Freigabe. Geschlossene Auswahlbewertung: genau
+die hinterlegte Option zählt als richtig, keine Teilpunkte oder Bewertung eines
+eigenen Rechenwegs. Gleichwertige freie Rechenwege sind fachlich möglich, werden
+aber von diesem Auswahlformat nicht erfasst.
+
+Rechenprüfung dieser exakten Version: Alle 72 Schlüssel werden gegen unabhängig
+berechnete Referenzwerte in `src/practice-expansion.test.ts` geprüft. Die tatsächlich
+mit Python erzeugten Rechenwerte und Eingaben stehen in
+`docs/calculation-evidence.json`. Das Generatorskript liegt in
+`scripts/build-practice-expansion.py`; Generator und Strukturprüfung allein sind
+keine unabhängige Fachprüfung. Zwischenwerte werden nicht gerundet, Endwerte auf
+zwei Dezimalstellen angezeigt. Die Antwortpositionen wechseln. Die Hinweise
+enthalten Vorgehenshilfen, die Ergebnisse stehen getrennt in Erklärungen und
+Antwortschlüsseln. Auch diese Schlüssel werden als Teil der Übungs-App an den
+Client ausgeliefert.
+
+Die ursprünglichen zwölf Aufgaben einschließlich IDs, Optionen und Schlüsseln
+bleiben unverändert. Keine Änderung des Lernstandschemas, keine Migration und
+keine erzeugten Lernereignisse. Neue Aufgaben beginnen ohne gespeicherte Antwort.
+Zwei beziehungsweise vier Minuten sind nur redaktionelle Zeitvorschläge.

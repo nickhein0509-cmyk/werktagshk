@@ -27,6 +27,10 @@ import {
   X,
 } from 'lucide-react';
 import { exercises, topics } from './data';
+import type { User } from '@supabase/supabase-js';
+import { supabase } from './lib/supabase';
+import { CloudAccount } from './components/CloudAccount';
+import { CloudPractice } from './CloudPractice';
 import type { Exercise, TopicId } from './data';
 import {
   createInitialState,
@@ -38,20 +42,21 @@ import {
 } from './lib/learning';
 import type { LearningState } from './lib/learning';
 
-type Page = 'dashboard' | 'library' | 'review' | 'plan' | 'tools';
+type Page = 'dashboard' | 'cloud' | 'library' | 'review' | 'plan' | 'tools';
 const STORAGE_KEY = 'werktag-learning-v1';
 const topicIcons = { heizung: Flame, sanitaer: Droplets, klima: Wind, wiso: BriefcaseBusiness };
 const navItems: { id: Page; label: string; icon: typeof Flame }[] = [
   { id: 'dashboard', label: 'Übersicht', icon: LayoutGrid },
+  { id: 'cloud', label: 'Mein Fragenbestand', icon: ShieldCheck },
   { id: 'library', label: 'Lernwerkstatt', icon: BookOpen },
   { id: 'review', label: 'Wiederholen', icon: RotateCcw },
   { id: 'plan', label: 'Mein Lernplan', icon: CalendarDays },
   { id: 'tools', label: 'Werkzeugkoffer', icon: Wrench },
 ];
 
-function loadState(): { state: LearningState; warning: string } {
+function loadState(storageKey = STORAGE_KEY): { state: LearningState; warning: string } {
   try {
-    const raw = localStorage.getItem(STORAGE_KEY);
+    const raw = localStorage.getItem(storageKey);
     if (!raw) return { state: createInitialState(), warning: '' };
     const validated = validateState(JSON.parse(raw));
     if (validated) return { state: validated, warning: '' };
@@ -66,7 +71,11 @@ function loadState(): { state: LearningState; warning: string } {
 }
 
 function App() {
-  const [loaded] = useState(loadState);
+  const [loaded, setLoaded] = useState(() => loadState());
+  const [user, setUser] = useState<User | null>(null);
+  const [authReady, setAuthReady] = useState(!supabase);
+  const accountId = useRef<string | null | undefined>(undefined);
+  const storageKey = user ? `${STORAGE_KEY}:${user.id}` : STORAGE_KEY;
   const [state, setState] = useState(loaded.state);
   const [warning, setWarning] = useState(loaded.warning);
   const [page, setPage] = useState<Page>('dashboard');
@@ -79,16 +88,18 @@ function App() {
   const todayCount = getTodayCount(state);
 
   function updateState(next: LearningState) {
+    // An auth callback can switch accounts before an old sync promise unmounts.
+    if (accountId.current !== undefined && accountId.current !== (user?.id ?? null)) return;
     setState(next);
     try {
       if (
         loaded.warning &&
-        localStorage.getItem(STORAGE_KEY) &&
-        !localStorage.getItem(`${STORAGE_KEY}-recovery`)
+        localStorage.getItem(storageKey) &&
+        !localStorage.getItem(`${storageKey}-recovery`)
       ) {
-        localStorage.setItem(`${STORAGE_KEY}-recovery`, localStorage.getItem(STORAGE_KEY)!);
+        localStorage.setItem(`${storageKey}-recovery`, localStorage.getItem(storageKey)!);
       }
-      localStorage.setItem(STORAGE_KEY, JSON.stringify(next));
+      localStorage.setItem(storageKey, JSON.stringify(next));
       setWarning('');
     } catch {
       setWarning(
@@ -130,6 +141,28 @@ function App() {
   }
 
   useEffect(() => {
+    if (!supabase) return;
+    const {
+      data: { subscription },
+    } = supabase.auth.onAuthStateChange((_event, session) => {
+      const nextUser = session?.user ?? null;
+      if (accountId.current !== (nextUser?.id ?? null)) {
+        accountId.current = nextUser?.id ?? null;
+        const next = loadState(nextUser ? `${STORAGE_KEY}:${nextUser.id}` : STORAGE_KEY);
+        setUser(nextUser);
+        setLoaded(next);
+        setState(next.state);
+        setWarning(next.warning);
+        setActiveExercise(null);
+        setPage((current) => (current === 'cloud' ? 'cloud' : 'dashboard'));
+        setToast('');
+      }
+      setAuthReady(true);
+    });
+    return () => subscription.unsubscribe();
+  }, []);
+
+  useEffect(() => {
     document.title = `${navItems.find((x) => x.id === page)?.label} · WerkTag SHK`;
   }, [page]);
   useEffect(() => {
@@ -137,6 +170,13 @@ function App() {
     const timer = window.setTimeout(() => setToast(''), 5000);
     return () => window.clearTimeout(timer);
   }, [toast]);
+
+  if (!authReady)
+    return (
+      <main className="main-content">
+        <p role="status">Dein Lernkonto wird geladen …</p>
+      </main>
+    );
 
   return (
     <div className="app-shell">
@@ -210,7 +250,8 @@ function App() {
           </div>
           <div className="topbar-right">
             <span className="storage-label">
-              <HardDrive size={14} /> Fortschritt auf diesem Gerät
+              <HardDrive size={14} />{' '}
+              {page === 'cloud' ? 'Privater Fragenbestand' : 'Übungen auf diesem Gerät'}
             </span>
             <span className="avatar" aria-label="Dein persönlicher Lernbereich">
               N
@@ -223,6 +264,22 @@ function App() {
               <CircleHelp size={20} />
               <span>{warning}</span>
             </div>
+          )}
+          {page === 'cloud' && (
+            <>
+              <PageHeading
+                eyebrow="DEIN BESTEHENDER LERNBUDDY"
+                title="Mein Fragenbestand"
+                description="Deine bisherigen Fragen, Rechenaufgaben und Übungsrunden. Melde dich mit deinem vorhandenen Lernkonto an."
+              />
+              <CloudAccount
+                key={`account:${user?.id ?? 'guest'}`}
+                user={user}
+                state={state}
+                onLoad={updateState}
+              />
+              {user && <CloudPractice key={`questions:${user.id}`} userId={user.id} />}
+            </>
           )}
           {page === 'dashboard' && (
             <>
@@ -244,6 +301,19 @@ function App() {
                   <ArrowUpRight size={17} />
                 </span>
               </div>
+              <section className="notice cloud-entry" aria-label="Bisheriger Fragenbestand">
+                <BookOpen size={24} aria-hidden="true" />
+                <div>
+                  <strong>Deine bisherigen Aufgaben sind wieder angebunden.</strong>
+                  <p>
+                    Öffne deinen privaten Fragenbestand und setze deine gespeicherten Übungsrunden
+                    fort.
+                  </p>
+                </div>
+                <button className="button primary" onClick={() => navigate('cloud')}>
+                  Zum Fragenbestand <ArrowRight size={17} />
+                </button>
+              </section>
               <div className="dashboard-grid">
                 <div className="dashboard-main">
                   <section className="focus-card" aria-labelledby="focus-title">
@@ -274,7 +344,8 @@ function App() {
                         Lerneinheit starten <ArrowUpRight size={19} />
                       </button>
                       <span className="hero-meta">
-                        3 Aufgaben <span>·</span> In deinem Tempo
+                        {exercises.filter((x) => x.topicId === 'heizung').length} Aufgaben{' '}
+                        <span>·</span> In deinem Tempo
                       </span>
                     </div>
                     <HeatingDiagram />
@@ -362,14 +433,14 @@ function App() {
                     </div>
                   </section>
                   <div className="content-footnote">
-                    <span className="status-dot" /> Eigene Übungsaufgaben für deinen Neustart. Dein
-                    Fortschritt beginnt bei dir.
+                    <span className="status-dot" /> Eigene Modellübungen. Deinen bisherigen privaten
+                    Bestand findest du unter „Mein Fragenbestand“.
                   </div>
                 </div>
                 <aside className="dashboard-rail" aria-label="Lernübersicht">
                   <section className="goal-card">
                     <div className="rail-label">
-                      <span>DEIN LERNRHYTHMUS</span>
+                      <span>DEINE MODELLÜBUNGEN</span>
                       <Target size={17} />
                     </div>
                     <div className="goal-ring">
@@ -501,6 +572,7 @@ function App() {
           )}
           {page === 'tools' && (
             <Tools
+              storageKey={storageKey}
               state={state}
               onImport={(next) => {
                 updateState(next);
@@ -1115,9 +1187,11 @@ function download(content: string, filename: string) {
 }
 
 function Tools({
+  storageKey,
   state,
   onImport,
 }: {
+  storageKey: string;
   state: LearningState;
   onImport: (state: LearningState) => void;
 }) {
@@ -1166,7 +1240,7 @@ function Tools({
   function exportRaw() {
     try {
       const raw =
-        localStorage.getItem(`${STORAGE_KEY}-recovery`) ?? localStorage.getItem(STORAGE_KEY);
+        localStorage.getItem(`${storageKey}-recovery`) ?? localStorage.getItem(storageKey);
       if (raw) download(raw, 'werktag-rohdatensicherung.json');
       else setMessage('Noch keine gespeicherten Rohdaten vorhanden.');
     } catch {

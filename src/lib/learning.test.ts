@@ -28,11 +28,11 @@ function withAttempts(...attempts: Attempt[]): LearningState {
 }
 
 describe('exercise catalogue', () => {
-  it('provides three distinct original tasks per topic with usable answer data', () => {
-    expect(exercises).toHaveLength(12);
+  it('provides 27 distinct original tasks per topic with usable answer data', () => {
+    expect(exercises).toHaveLength(108);
     expect(new Set(exercises.map((exercise) => exercise.id)).size).toBe(exercises.length);
     for (const topic of topics)
-      expect(exercises.filter((exercise) => exercise.topicId === topic.id)).toHaveLength(3);
+      expect(exercises.filter((exercise) => exercise.topicId === topic.id)).toHaveLength(27);
     for (const exercise of exercises) {
       expect(exercise.options[exercise.correctIndex]).toBeTruthy();
       expect(exercise.sourceLabel).toContain('Eigene Modellaufgabe');

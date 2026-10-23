@@ -23,7 +23,10 @@ storage. Do not commit browser data, private books/exams, keys, or personal hist
 Learning state is versioned browser-local JSON. Validate imports before replacing
 data; never silently drop existing learner records when content or schema changes.
 Original practice answers are shipped to the client; this is a practice app,
-not a protected exam system. No external AI or backend is currently connected.
+not a protected exam system. Existing private content uses Supabase Auth and
+authenticated RPCs; never copy its question payloads or keys into this public repo.
+The original content/history and the newer model-practice sync are separate.
+No external AI is connected.
 
 Before publishing or deploying, preserve the app's private intended use. A Git
 push does not imply deployment approval or an external service is configured.
