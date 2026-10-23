@@ -86,3 +86,39 @@ Die ursprünglichen zwölf Aufgaben einschließlich IDs, Optionen und Schlüssel
 bleiben unverändert. Keine Änderung des Lernstandschemas, keine Migration und
 keine erzeugten Lernereignisse. Neue Aufgaben beginnen ohne gespeicherte Antwort.
 Zwei beziehungsweise vier Minuten sind nur redaktionelle Zeitvorschläge.
+
+
+## Erweiterung Flow 0.3.0 · 23. Oktober 2026
+
+Die 108 bisherigen Modellaufgaben bleiben fachlich und mit ihren IDs unverändert.
+Hinzu kommen 36 eigene Fallaufgaben: zwölf Arbeitsplanung, zwölf Systemanalyse/
+Instandhaltung, acht wirtschaftliche WiSo-Modelle und vier belegte WiSo-Rechtsfälle.
+Die Fälle sind keine Vorhersage der tatsächlichen Prüfung. Der Abgleich mit der
+SHK-Ausbildungsordnung ist in `exam-blueprint.md` abgegrenzt.
+
+Die drei Autorengruppen führten getrennte Python-/Decimal-Rechnungen aus. Danach
+prüfte ein anderer Agent die zwölf Planungsaufgaben sowie die 20 Systemanalyse-
+und WiSo-Modellfälle unabhängig; die Gegenprüfung enthielt 24 zusätzliche
+Decimal-Assertions für die zweite Gruppe. Es wurden keine falschen Schlüssel
+gefunden. Vor Veröffentlichung wurden zwei Formulierungen präzisiert:
+Sensorkennlinie mit ΔT in Kelvin gegenüber 0 °C; Luftbedarf als Mindestanforderung.
+Alle Quellen- und Modellprüfungen sind auf genau diese erste Inhaltsfassung
+begrenzt, keine allgemeine Fach- oder Normenfreigabe.
+
+Die vier zusätzlichen WiSo-Fälle wurden nach der Formulierung durch Root mit den
+zuvor tatsächlich gelesenen Primärpassagen verglichen: BBiG § 14 Abs. 1 Nr. 3,
+BBiG § 15 Abs. 1 Satz 2 Nr. 1, TVG § 2 Abs. 1 und SGB VI § 1 Satz 1 Nr. 1.
+Die engen Standardfälle und Antwortschlüssel stimmen mit diesen Passagen überein.
+Beitragssätze, Sonderkonstellationen, ganztägige Freistellungsgrenzen und konkrete
+Vertragsgeltung werden nicht bewertet. Status: `reviewed_for_stated_use` für
+Inhaltsversion 1 als begrenzte eigene Übung; kein umfassender Rechtsrat.
+
+Die Veröffentlichung ändert keine privaten Supabase-Fragen, Antwortschlüssel,
+Runden, Antworten, Datenbankregeln oder Freigaben. Eine reine Katalogzählung am
+23.10.2026 bestätigte 631 aktuelle Aufgaben aus 716 Versionsdatensätzen, darunter
+84 zu WiSo. Die erfassten Themen sind Trinkwasser113, Entwässerung53, Heizung87,
+Wärmeerzeuger95, Regelung68, Systemanalyse95, Fachrechnen36 und WiSo84. Nach der
+bestehenden Formatauswertung entfallen171 auf Auswahl,58 auf Zahl,390 auf
+Selbstvergleich und12 auf Kurztext. Das ist kein individuell auswählbarer Bestand:
+persönliche Sperren und Variantenverfügbarkeit wurden nicht gelesen. Der Status
+`checked` ist ein gespeichertes Merkmal und keine hier durchgeführte Inhaltsprüfung.

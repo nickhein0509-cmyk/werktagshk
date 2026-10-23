@@ -1,4 +1,4 @@
-import { useEffect, useId, useRef, useState } from 'react';
+import { useEffect, useId, useMemo, useRef, useState } from 'react';
 import type { ChangeEvent, ReactNode } from 'react';
 import {
   ArrowDownToLine,
@@ -18,7 +18,6 @@ import {
   Lightbulb,
   RotateCcw,
   Search,
-  Settings2,
   ShieldCheck,
   Target,
   Upload,
@@ -27,20 +26,23 @@ import {
   X,
 } from 'lucide-react';
 import { exercises, topics } from './data';
+import { examAreas, getExamAreas, isExamCase } from './exam';
+import type { ExamAreaId } from './exam';
 import type { User } from '@supabase/supabase-js';
 import { supabase } from './lib/supabase';
 import { CloudAccount } from './components/CloudAccount';
 import { CloudPractice } from './CloudPractice';
+import { FlowDashboard } from './components/FlowDashboard';
 import type { Exercise, TopicId } from './data';
 import {
   createInitialState,
   getDueExercises,
   getMasteredIds,
-  getStreak,
   getTodayCount,
   validateState,
 } from './lib/learning';
 import type { LearningState } from './lib/learning';
+import { isFutureLearningRecord, futureDataWarning } from './lib/storage';
 
 type Page = 'dashboard' | 'cloud' | 'library' | 'review' | 'plan' | 'tools';
 const STORAGE_KEY = 'werktag-learning-v1';
@@ -58,6 +60,8 @@ function loadState(storageKey = STORAGE_KEY): { state: LearningState; warning: s
   try {
     const raw = localStorage.getItem(storageKey);
     if (!raw) return { state: createInitialState(), warning: '' };
+    if (isFutureLearningRecord(raw))
+      return { state: createInitialState(), warning: futureDataWarning };
     const validated = validateState(JSON.parse(raw));
     if (validated) return { state: validated, warning: '' };
   } catch {
@@ -80,16 +84,25 @@ function App() {
   const [warning, setWarning] = useState(loaded.warning);
   const [page, setPage] = useState<Page>('dashboard');
   const [topicFilter, setTopicFilter] = useState<TopicId | 'all'>('all');
+  const [examArea, setExamArea] = useState<ExamAreaId | 'all'>('all');
   const [activeExercise, setActiveExercise] = useState<Exercise | null>(null);
   const [toast, setToast] = useState('');
   const mainRef = useRef<HTMLElement>(null);
   const due = getDueExercises(state);
-  const mastered = getMasteredIds(state);
+  const mastered = useMemo(() => getMasteredIds(state), [state]);
   const todayCount = getTodayCount(state);
 
   function updateState(next: LearningState) {
     // An auth callback can switch accounts before an old sync promise unmounts.
-    if (accountId.current !== undefined && accountId.current !== (user?.id ?? null)) return;
+    if (accountId.current !== undefined && accountId.current !== (user?.id ?? null)) return false;
+    try {
+      if (isFutureLearningRecord(localStorage.getItem(storageKey))) {
+        setWarning(futureDataWarning);
+        return false;
+      }
+    } catch {
+      /* Unavailable storage is handled below; keep session practice usable. */
+    }
     setState(next);
     try {
       if (
@@ -106,13 +119,15 @@ function App() {
         'Dein Browser erlaubt gerade keine lokale Speicherung. Dein Fortschritt bleibt für diese Sitzung erhalten. Exportiere ihn im Werkzeugkoffer.',
       );
     }
+    return true;
   }
 
-  function navigate(next: Page, topic: TopicId | 'all' = 'all') {
+  function navigate(next: Page, topic: TopicId | 'all' = 'all', area: ExamAreaId | 'all' = 'all') {
     setPage(next);
     setTopicFilter(topic);
+    setExamArea(area);
     window.scrollTo({ top: 0, behavior: 'instant' });
-    requestAnimationFrame(() => mainRef.current?.focus());
+    requestAnimationFrame(() => mainRef.current?.focus({ preventScroll: true }));
   }
 
   function bookmark(id: string) {
@@ -173,13 +188,13 @@ function App() {
 
   if (!authReady)
     return (
-      <main className="main-content">
+      <main className={`main-content ${page === 'dashboard' ? 'main-content-dashboard' : ''}`}>
         <p role="status">Dein Lernkonto wird geladen …</p>
       </main>
     );
 
   return (
-    <div className="app-shell">
+    <div className="app-shell" data-design="flow" data-design-version="2">
       <a className="skip-link" href="#main">
         Zum Inhalt springen
       </a>
@@ -205,7 +220,6 @@ function App() {
             <small>DEIN SHK LERNBUDDY</small>
           </span>
         </a>
-        <p className="nav-caption">DEINE WERKSTATT</p>
         <nav className="main-nav" aria-label="Hauptnavigation">
           {navItems.map(({ id, label, icon: Icon }) => (
             <button
@@ -215,27 +229,23 @@ function App() {
               aria-current={page === id ? 'page' : undefined}
             >
               <Icon size={19} strokeWidth={1.7} />
-              <span>{label}</span>
+              <span className="nav-label">{label}</span>
+              <span className="nav-label-short" aria-hidden="true">
+                {
+                  {
+                    dashboard: 'Start',
+                    cloud: 'Bestand',
+                    library: 'Üben',
+                    review: 'Nochmal',
+                    plan: 'Plan',
+                    tools: 'Tools',
+                  }[id]
+                }
+              </span>
               {id === 'review' && due.length > 0 && <span className="nav-badge">{due.length}</span>}
             </button>
           ))}
         </nav>
-        <div className="sidebar-note">
-          <span className="note-icon">
-            <Wrench size={22} />
-          </span>
-          <strong>
-            Können kommt
-            <br />
-            vom Machen.
-          </strong>
-          <p>
-            Ein bisschen lernen.
-            <br />
-            Jeden Tag weiterkommen.
-          </p>
-          <span className="note-rule" />
-        </div>
         <div className="sidebar-footer">
           <ShieldCheck size={16} />
           <span>Dein Wissen. Dein Tempo.</span>
@@ -244,21 +254,38 @@ function App() {
 
       <div className="workspace">
         <header className="topbar">
-          <div className="breadcrumb">
-            Deine Werkstatt <span>/</span>{' '}
-            <strong>{navItems.find((x) => x.id === page)?.label}</strong>
-          </div>
-          <div className="topbar-right">
-            <span className="storage-label">
-              <HardDrive size={14} />{' '}
-              {page === 'cloud' ? 'Privater Fragenbestand' : 'Übungen auf diesem Gerät'}
+          <button
+            className="mobile-brand"
+            onClick={() => navigate('dashboard')}
+            aria-label="WerkTag Startseite"
+          >
+            WerkTag<span>.</span>
+          </button>
+          <div className="breadcrumb">{navItems.find((x) => x.id === page)?.label}</div>
+          <button
+            className="daily-progress"
+            onClick={() => navigate('plan')}
+            aria-label="Tagesziel im Lernplan ändern"
+          >
+            <span>
+              <strong>
+                {todayCount}/{state.dailyGoal}
+              </strong>{' '}
+              Aufgaben<span className="daily-progress-suffix"> heute</span>
             </span>
-            <span className="avatar" aria-label="Dein persönlicher Lernbereich">
-              N
-            </span>
-          </div>
+            <progress
+              value={Math.min(todayCount, state.dailyGoal)}
+              max={state.dailyGoal}
+              aria-label="Tagesziel"
+            />
+          </button>
         </header>
-        <main id="main" ref={mainRef} tabIndex={-1} className="main-content">
+        <main
+          id="main"
+          ref={mainRef}
+          tabIndex={-1}
+          className={`main-content ${page === 'dashboard' ? 'main-content-dashboard' : ''}`}
+        >
           {warning && (
             <div className="notice warning" role="status">
               <CircleHelp size={20} />
@@ -282,251 +309,26 @@ function App() {
             </>
           )}
           {page === 'dashboard' && (
-            <>
-              <div className="page-heading">
-                <div>
-                  <p className="eyebrow">WILLKOMMEN IN DEINER LERNWERKSTATT</p>
-                  <h1>
-                    Dein Handwerk.
-                    <br className="mobile-break" /> Dein nächster Schritt<span>.</span>
-                  </h1>
-                  <p>Verstehen. Anwenden. Mit einem guten Gefühl in die Praxis.</p>
-                </div>
-                <span className="heading-stamp">
-                  SANITÄR
-                  <br />
-                  HEIZUNG
-                  <br />
-                  KLIMA
-                  <ArrowUpRight size={17} />
-                </span>
-              </div>
-              <section className="notice cloud-entry" aria-label="Bisheriger Fragenbestand">
-                <BookOpen size={24} aria-hidden="true" />
-                <div>
-                  <strong>Deine bisherigen Aufgaben sind wieder angebunden.</strong>
-                  <p>
-                    Öffne deinen privaten Fragenbestand und setze deine gespeicherten Übungsrunden
-                    fort.
-                  </p>
-                </div>
-                <button className="button primary" onClick={() => navigate('cloud')}>
-                  Zum Fragenbestand <ArrowRight size={17} />
-                </button>
-              </section>
-              <div className="dashboard-grid">
-                <div className="dashboard-main">
-                  <section className="focus-card" aria-labelledby="focus-title">
-                    <div className="hero-copy">
-                      <span className="hero-label">
-                        <span className="tiny-square" /> DEIN HEUTIGER FOKUS
-                      </span>
-                      <h2 id="focus-title">
-                        Wärme verstehen.
-                        <br />
-                        Sauber anwenden.
-                      </h2>
-                      <p>
-                        Vom Wärmekreislauf bis zur Berechnung.
-                        <br />
-                        Bring dein Heizungswissen auf Temperatur.
-                      </p>
-                      <button
-                        className="button lime"
-                        onClick={() =>
-                          setActiveExercise(
-                            exercises.find(
-                              (x) => x.topicId === 'heizung' && !mastered.includes(x.id),
-                            ) ?? exercises[0],
-                          )
-                        }
-                      >
-                        Lerneinheit starten <ArrowUpRight size={19} />
-                      </button>
-                      <span className="hero-meta">
-                        {exercises.filter((x) => x.topicId === 'heizung').length} Aufgaben{' '}
-                        <span>·</span> In deinem Tempo
-                      </span>
-                    </div>
-                    <HeatingDiagram />
-                  </section>
-                  <section className="topics-section" aria-labelledby="topics-title">
-                    <div className="section-heading">
-                      <h2 id="topics-title">Deine Lernfelder</h2>
-                      <button className="text-button" onClick={() => navigate('library')}>
-                        Alle entdecken <ArrowRight size={15} />
-                      </button>
-                    </div>
-                    <div className="topic-grid">
-                      {topics.map((topic) => {
-                        const Icon = topicIcons[topic.id];
-                        const total = exercises.filter((x) => x.topicId === topic.id).length;
-                        const done = exercises.filter(
-                          (x) => x.topicId === topic.id && mastered.includes(x.id),
-                        ).length;
-                        return (
-                          <button
-                            className={`topic-card ${topic.id}`}
-                            key={topic.id}
-                            onClick={() => navigate('library', topic.id)}
-                          >
-                            <div className="topic-top">
-                              <span className="topic-icon">
-                                <Icon size={23} strokeWidth={1.6} />
-                              </span>
-                              <ArrowUpRight size={17} className="card-arrow" />
-                            </div>
-                            <h3>{topic.name}</h3>
-                            <p>{topic.subtitle}</p>
-                            <div className="topic-progress">
-                              <span>
-                                {done} von {total} zuletzt richtig
-                              </span>
-                              <div className="progress-track">
-                                <span style={{ width: `${(done / total) * 100}%` }} />
-                              </div>
-                            </div>
-                          </button>
-                        );
-                      })}
-                    </div>
-                  </section>
-                  <section className="next-section">
-                    <div className="section-heading">
-                      <h2>Für deinen nächsten Aha-Moment</h2>
-                      <span className="quiet">WISSEN WIRD KÖNNEN</span>
-                    </div>
-                    <div className="bottom-grid">
-                      <button
-                        className="action-card"
-                        onClick={() =>
-                          setActiveExercise(
-                            exercises.find((x) => !mastered.includes(x.id)) ?? exercises[0],
-                          )
-                        }
-                      >
-                        <span className="action-icon">
-                          <Lightbulb size={25} strokeWidth={1.5} />
-                        </span>
-                        <div>
-                          <small>KLEINER IMPULS, GROSSE WIRKUNG</small>
-                          <h3>Eine Frage. Ein Stück weiter.</h3>
-                          <p>Teste dein Verständnis mit einer Praxisaufgabe.</p>
-                          <span className="inline-link">
-                            Aufgabe öffnen <ArrowRight size={16} />
-                          </span>
-                        </div>
-                      </button>
-                      <button className="action-card tool-card" onClick={() => navigate('tools')}>
-                        <span className="action-icon">
-                          <Wrench size={25} strokeWidth={1.5} />
-                        </span>
-                        <div>
-                          <small>GUT AUSGERÜSTET</small>
-                          <h3>Dein digitaler Werkzeugkoffer</h3>
-                          <p>Formeln nachschlagen. Zusammenhänge berechnen.</p>
-                          <span className="inline-link">
-                            Werkzeuge ansehen <ArrowRight size={16} />
-                          </span>
-                        </div>
-                      </button>
-                    </div>
-                  </section>
-                  <div className="content-footnote">
-                    <span className="status-dot" /> Eigene Modellübungen. Deinen bisherigen privaten
-                    Bestand findest du unter „Mein Fragenbestand“.
-                  </div>
-                </div>
-                <aside className="dashboard-rail" aria-label="Lernübersicht">
-                  <section className="goal-card">
-                    <div className="rail-label">
-                      <span>DEINE MODELLÜBUNGEN</span>
-                      <Target size={17} />
-                    </div>
-                    <div className="goal-ring">
-                      <svg viewBox="0 0 150 150" aria-hidden="true">
-                        <circle cx="75" cy="75" r="62" />
-                        <circle
-                          className="ring-fill"
-                          cx="75"
-                          cy="75"
-                          r="62"
-                          strokeDasharray={`${Math.min(todayCount / state.dailyGoal, 1) * 390} 390`}
-                        />
-                      </svg>
-                      <div>
-                        <strong>
-                          {todayCount}
-                          <span>/{state.dailyGoal}</span>
-                        </strong>
-                        <small>AUFGABEN HEUTE</small>
-                      </div>
-                    </div>
-                    <h2>
-                      Kleine Schritte.
-                      <br />
-                      Großer Unterschied.
-                    </h2>
-                    <p>
-                      {todayCount >= state.dailyGoal
-                        ? 'Tagesziel geschafft. Gut gemacht!'
-                        : `${Math.max(state.dailyGoal - todayCount, 0)} ${state.dailyGoal - todayCount === 1 ? 'Aufgabe fehlt' : 'Aufgaben fehlen'} noch zu deinem Tagesziel.`}
-                    </p>
-                    <WeekDots state={state} />
-                    <div className="goal-footer">
-                      <span>
-                        <Flame size={15} /> {getStreak(state)}{' '}
-                        {getStreak(state) === 1 ? 'Lerntag' : 'Lerntage'} in Folge
-                      </span>
-                      <button
-                        className="icon-button"
-                        aria-label="Tagesziel im Lernplan ändern"
-                        onClick={() => navigate('plan')}
-                      >
-                        <Settings2 size={17} />
-                      </button>
-                    </div>
-                  </section>
-                  <section className="review-card">
-                    <div className="review-symbol">
-                      <RotateCcw size={25} strokeWidth={1.5} />
-                      <span>{due.length}</span>
-                    </div>
-                    <h2>
-                      Damit Wissen
-                      <br />
-                      hängen bleibt.
-                    </h2>
-                    <p>
-                      {due.length > 0
-                        ? `${due.length} ${due.length === 1 ? 'Aufgabe wartet' : 'Aufgaben warten'} auf eine Wiederholung.`
-                        : 'Was du heute übst, vertiefst du später. Dein Kopf wird’s dir danken.'}
-                    </p>
-                    <button
-                      className="text-button"
-                      onClick={() => navigate(due.length ? 'review' : 'library')}
-                    >
-                      {due.length ? 'Jetzt wiederholen' : 'Erste Aufgabe entdecken'}{' '}
-                      <ArrowRight size={16} />
-                    </button>
-                  </section>
-                  <div className="rail-note">
-                    <span className="small-grid-mark">✳</span>
-                    <p>
-                      Für die Prüfung lernen.
-                      <br />
-                      <strong>Fürs Handwerk verstehen.</strong>
-                    </p>
-                  </div>
-                </aside>
-              </div>
-            </>
+            <FlowDashboard
+              state={state}
+              dueCount={due.length}
+              weekDots={<WeekDots state={state} />}
+              onLibrary={(topic = 'all') => navigate('library', topic)}
+              onArea={(area) => navigate('library', 'all', area)}
+              onCloud={() => navigate('cloud')}
+              onReview={() => navigate(due.length ? 'review' : 'library')}
+              onPlan={() => navigate('plan')}
+              onStart={setActiveExercise}
+            />
           )}
           {page === 'library' && (
             <Library
               state={state}
+              mastered={mastered}
               filter={topicFilter}
               onFilter={setTopicFilter}
+              area={examArea}
+              onArea={setExamArea}
               onStart={setActiveExercise}
               onBookmark={bookmark}
             />
@@ -545,6 +347,7 @@ function App() {
                       key={exercise.id}
                       exercise={exercise}
                       state={state}
+                      isMastered={mastered.includes(exercise.id)}
                       onStart={setActiveExercise}
                       onBookmark={bookmark}
                     />
@@ -568,15 +371,21 @@ function App() {
             </>
           )}
           {page === 'plan' && (
-            <Plan state={state} onUpdate={updateState} onStart={setActiveExercise} />
+            <Plan
+              state={state}
+              mastered={mastered}
+              onUpdate={updateState}
+              onStart={setActiveExercise}
+            />
           )}
           {page === 'tools' && (
             <Tools
               storageKey={storageKey}
               state={state}
               onImport={(next) => {
-                updateState(next);
-                setToast('Dein Lernstand wurde importiert.');
+                const saved = updateState(next);
+                if (saved) setToast('Dein Lernstand wurde importiert.');
+                return saved;
               }}
             />
           )}
@@ -584,7 +393,7 @@ function App() {
         <footer className="workspace-footer">
           <span>WerkTag · Mit Kopf. Mit Hand. Mit dir.</span>
           <span>
-            SHK LERNBUDDY <span className="footer-version">/ 01</span>
+            WerkTag Flow <span className="footer-version">/ 0.3.0</span>
           </span>
         </footer>
       </div>
@@ -636,76 +445,6 @@ function PageHeading({
   );
 }
 
-function HeatingDiagram() {
-  return (
-    <div className="heating-diagram">
-      <svg viewBox="0 0 365 290" role="img" aria-labelledby="diagram-title">
-        <title id="diagram-title">
-          Prinzipzeichnung eines geschlossenen Heizkreislaufs mit Wärmeerzeuger und Heizkörper
-        </title>
-        <defs>
-          <pattern id="dot-grid" width="16" height="16" patternUnits="userSpaceOnUse">
-            <circle cx="1" cy="1" r=".7" fill="#c4ddd0" opacity=".22" />
-          </pattern>
-          <linearGradient id="unit-gradient" x1="0" y1="0" x2="1" y2="1">
-            <stop stopColor="#377369" />
-            <stop offset="1" stopColor="#174b44" />
-          </linearGradient>
-        </defs>
-        <rect width="365" height="290" fill="url(#dot-grid)" />
-        <path
-          className="pipe-shadow"
-          d="M104 116V62q0-12 12-12h158q14 0 14 14v48M104 184v40q0 12 12 12h158q14 0 14-14v-46"
-        />
-        <path className="hot-pipe" d="M104 116V62q0-12 12-12h158q14 0 14 14v48" />
-        <path className="cold-pipe" d="M104 184v40q0 12 12 12h158q14 0 14-14v-46" />
-        <path d="m190 45 7 5-7 5" className="flow-arrow" />
-        <path d="m203 231-7 5 7 5" className="flow-arrow" />
-        <rect className="heat-unit" x="55" y="103" width="99" height="91" rx="10" />
-        <rect className="unit-panel" x="65" y="114" width="79" height="45" rx="5" />
-        <circle cx="104" cy="136" r="16" className="fan-circle" />
-        <path
-          d="M104 122c11 9 2 16 0 14m14 3c-13 7-15-4-14-3m-7 10c0-15 10-10 7-10"
-          className="fan-blades"
-        />
-        <circle cx="104" cy="136" r="3" fill="#cfdfc1" />
-        <path d="M69 172h43m-43 6h43" stroke="#6e9e8e" strokeWidth="2" />
-        <circle cx="134" cy="176" r="3" fill="#e5efa8" />
-        <g className="radiator">
-          <rect x="244" y="109" width="83" height="73" rx="6" />
-          {[255, 268, 281, 294, 307].map((x) => (
-            <path key={x} d={`M${x} 117v56`} />
-          ))}
-        </g>
-        <circle cx="288" cy="89" r="7" className="valve" />
-        <path d="m284 85 8 8m0-8-8 8" stroke="#f9b088" strokeWidth="1.5" />
-        <text x="144" y="35" className="diagram-label">
-          VORLAUF
-        </text>
-        <text x="143" y="263" className="diagram-label">
-          RÜCKLAUF
-        </text>
-        <text x="61" y="217" className="diagram-small">
-          WÄRMEERZEUGER
-        </text>
-        <text x="245" y="204" className="diagram-small">
-          HEIZKÖRPER
-        </text>
-        <g transform="translate(174,126)">
-          <circle r="20" fill="#244e44" stroke="#5b7d63" strokeDasharray="3 4" />
-          <text className="delta-label" textAnchor="middle" y="5">
-            ΔT
-          </text>
-        </g>
-      </svg>
-      <div className="diagram-caption">
-        <span>PRINZIPSKIZZE</span>
-        <strong>Q = m · c · ΔT</strong>
-      </div>
-    </div>
-  );
-}
-
 function WeekDots({ state }: { state: LearningState }) {
   const now = new Date();
   const monday = new Date(
@@ -740,16 +479,17 @@ function WeekDots({ state }: { state: LearningState }) {
 function ExerciseCard({
   exercise,
   state,
+  isMastered,
   onStart,
   onBookmark,
 }: {
   exercise: Exercise;
   state: LearningState;
+  isMastered: boolean;
   onStart: (exercise: Exercise) => void;
   onBookmark: (id: string) => void;
 }) {
   const Icon = topicIcons[exercise.topicId];
-  const isMastered = getMasteredIds(state).includes(exercise.id);
   return (
     <article className={`exercise-card ${exercise.topicId}`}>
       <div className="exercise-card-top">
@@ -768,6 +508,7 @@ function ExerciseCard({
       <span className="exercise-category">
         {topics.find((x) => x.id === exercise.topicId)?.name} <span>·</span> {exercise.level}
       </span>
+      {isExamCase(exercise) && <span className="exam-case-label">Prüfungsfall · eigene Übung</span>}
       <h2>{exercise.title}</h2>
       <p>{exercise.context}</p>
       <div className="exercise-card-bottom">
@@ -780,7 +521,11 @@ function ExerciseCard({
             `ca. ${exercise.estimatedMinutes} Min · Zeitvorschlag`
           )}
         </span>
-        <button className="text-button" onClick={() => onStart(exercise)}>
+        <button
+          className="text-button"
+          aria-label={`${exercise.title} üben`}
+          onClick={() => onStart(exercise)}
+        >
           Üben <ArrowRight size={16} />
         </button>
       </div>
@@ -790,33 +535,43 @@ function ExerciseCard({
 
 function Library({
   state,
+  mastered,
   filter,
   onFilter,
+  area,
+  onArea,
   onStart,
   onBookmark,
 }: {
   state: LearningState;
+  mastered: string[];
   filter: TopicId | 'all';
   onFilter: (id: TopicId | 'all') => void;
+  area: ExamAreaId | 'all';
+  onArea: (id: ExamAreaId | 'all') => void;
   onStart: (exercise: Exercise) => void;
   onBookmark: (id: string) => void;
 }) {
   const [search, setSearch] = useState('');
   const [onlySaved, setOnlySaved] = useState(false);
-  const filtered = exercises.filter(
-    (x) =>
-      (filter === 'all' || x.topicId === filter) &&
-      (!onlySaved || state.bookmarks.includes(x.id)) &&
-      `${x.title} ${x.context} ${x.question} ${topics.find((t) => t.id === x.topicId)?.name}`
-        .toLocaleLowerCase('de')
-        .includes(search.toLocaleLowerCase('de')),
-  );
+  const query = search.trim().toLocaleLowerCase('de');
+  const filtered = exercises
+    .filter(
+      (x) =>
+        (filter === 'all' || x.topicId === filter) &&
+        (area === 'all' || getExamAreas(x).includes(area)) &&
+        (!onlySaved || state.bookmarks.includes(x.id)) &&
+        `${x.title} ${x.context} ${x.question} ${topics.find((t) => t.id === x.topicId)?.name}`
+          .toLocaleLowerCase('de')
+          .includes(query),
+    )
+    .sort((a, b) => Number(isExamCase(b)) - Number(isExamCase(a)));
   return (
     <>
       <PageHeading
-        eyebrow="DEINE LERNWERKSTATT"
-        title="Wissen, das in der Praxis sitzt."
-        description="Wähle dein Lernfeld. Denk selbst nach. Verstehe den Lösungsweg."
+        eyebrow="DEINE VORBEREITUNG AUF TEIL 2"
+        title="Wissen, das in der Prüfung sitzt."
+        description="Wähle deinen Prüfungsbereich oder ein Lernfeld. Rechne, entscheide und verstehe den Lösungsweg."
       />
       <div className="library-toolbar">
         <div className="search-field">
@@ -841,7 +596,26 @@ function Library({
           <Bookmark size={17} /> Gemerkt <span>{state.bookmarks.length}</span>
         </button>
       </div>
-      <div className="filter-row" aria-label="Lernfeld filtern">
+      <div className="filter-row exam-filter-row" role="group" aria-label="Prüfungsbereich filtern">
+        <button
+          className={`filter-chip ${area === 'all' ? 'selected' : ''}`}
+          aria-pressed={area === 'all'}
+          onClick={() => onArea('all')}
+        >
+          Alle Prüfungsbereiche
+        </button>
+        {examAreas.map((exam) => (
+          <button
+            key={exam.id}
+            className={`filter-chip ${area === exam.id ? 'selected' : ''}`}
+            aria-pressed={area === exam.id}
+            onClick={() => onArea(exam.id)}
+          >
+            {exam.title}
+          </button>
+        ))}
+      </div>
+      <div className="filter-row" role="group" aria-label="Lernfeld filtern">
         <button
           className={`filter-chip ${filter === 'all' ? 'selected' : ''}`}
           aria-pressed={filter === 'all'}
@@ -861,7 +635,7 @@ function Library({
         ))}
       </div>
       <div className="results-label">
-        <span>
+        <span aria-live="polite" aria-atomic="true">
           {filtered.length} {filtered.length === 1 ? 'Aufgabe' : 'Aufgaben'}
         </span>
         <span>Eigene Übungsaufgaben · keine offiziellen Prüfungen</span>
@@ -873,6 +647,7 @@ function Library({
               key={exercise.id}
               exercise={exercise}
               state={state}
+              isMastered={mastered.includes(exercise.id)}
               onStart={onStart}
               onBookmark={onBookmark}
             />
@@ -887,7 +662,19 @@ function Library({
               ? 'Du hast noch keine passende Aufgabe gemerkt. Speichere Aufgaben über das Lesezeichen.'
               : 'Unter diesem Suchbegriff wurde keine Aufgabe gefunden. Versuche einen anderen Begriff.'
           }
-        />
+        >
+          <button
+            className="button primary"
+            onClick={() => {
+              setSearch('');
+              setOnlySaved(false);
+              onFilter('all');
+              onArea('all');
+            }}
+          >
+            Filter zurücksetzen <RotateCcw size={16} />
+          </button>
+        </EmptyState>
       )}
     </>
   );
@@ -942,7 +729,7 @@ function ExerciseDialog({
     dialog?.showModal();
     return () => {
       dialog?.close();
-      opener?.focus();
+      opener?.focus({ preventScroll: true });
     };
   }, []);
   function submit() {
@@ -1071,14 +858,15 @@ function ExerciseDialog({
 
 function Plan({
   state,
+  mastered,
   onUpdate,
   onStart,
 }: {
   state: LearningState;
+  mastered: string[];
   onUpdate: (state: LearningState) => void;
   onStart: (exercise: Exercise) => void;
 }) {
-  const mastered = getMasteredIds(state);
   const [saved, setSaved] = useState(false);
   return (
     <>
@@ -1193,7 +981,7 @@ function Tools({
 }: {
   storageKey: string;
   state: LearningState;
-  onImport: (state: LearningState) => void;
+  onImport: (state: LearningState) => boolean;
 }) {
   const [mass, setMass] = useState('100');
   const [delta, setDelta] = useState('20');
@@ -1398,8 +1186,7 @@ function Tools({
               <button
                 className="button primary"
                 onClick={() => {
-                  onImport(pending);
-                  setPending(null);
+                  if (onImport(pending)) setPending(null);
                 }}
               >
                 Lernstand ersetzen

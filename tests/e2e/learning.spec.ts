@@ -2,7 +2,7 @@ import { readFile } from 'node:fs/promises';
 import { expect, test } from '@playwright/test';
 import type { Page } from '@playwright/test';
 import AxeBuilder from '@axe-core/playwright';
-import { exercises } from '../../src/data';
+import { exercises, topics } from '../../src/data';
 
 const storageKey = 'werktag-learning-v1';
 const firstExercise = exercises[0];
@@ -38,7 +38,13 @@ test('a new learner sees zero progress and no invented history', async ({ page }
   await expect(page.locator('.goal-ring')).toContainText('0/3');
   await expect(page.getByText('0 Lerntage in Folge')).toBeVisible();
   await expect(page.locator('.topic-progress')).toHaveCount(4);
-  await expect(page.locator('.topic-progress').filter({ hasText: '0 von 27' })).toHaveCount(4);
+  for (const topic of topics) {
+    const total = exercises.filter((exercise) => exercise.topicId === topic.id).length;
+    const card = page.getByRole('button').filter({
+      has: page.getByRole('heading', { name: topic.name, exact: true }),
+    });
+    await expect(card.locator('.topic-progress')).toContainText(`0 von ${total} zuletzt richtig`);
+  }
   await expect(page.locator('.week-day.done')).toHaveCount(0);
   expect(await storedState(page)).toBeNull();
   await navigate(page, 'Wiederholen');
@@ -85,9 +91,11 @@ test('an incorrect submitted answer becomes a due review immediately', async ({ 
 
 test('topic filtering, search and bookmarks select real exercises', async ({ page }) => {
   await navigate(page, 'Lernwerkstatt');
-  await expect(page.getByRole('article')).toHaveCount(108);
+  await expect(page.getByRole('article')).toHaveCount(exercises.length);
   await page.getByRole('button', { name: 'Sanitärtechnik', exact: true }).click();
-  await expect(page.getByRole('article')).toHaveCount(27);
+  await expect(page.getByRole('article')).toHaveCount(
+    exercises.filter((exercise) => exercise.topicId === 'sanitaer').length,
+  );
   await page.getByRole('textbox', { name: 'Aufgaben durchsuchen' }).fill('Was passt in das Rohr?');
   await expect(page.getByRole('article')).toHaveCount(1);
   const card = page.getByRole('article');
@@ -235,33 +243,58 @@ for (const width of [390, 320]) {
         .evaluate((element) => element.scrollWidth <= element.clientWidth + 1),
     ).toBe(true);
     await page.keyboard.press('Escape');
-    for (const label of ['Lernwerkstatt', 'Wiederholen', 'Mein Lernplan', 'Werkzeugkoffer']) {
+    for (const label of [
+      'Mein Fragenbestand',
+      'Lernwerkstatt',
+      'Wiederholen',
+      'Mein Lernplan',
+      'Werkzeugkoffer',
+    ]) {
       await navigate(page, label);
       await noOverflow();
     }
   });
 }
 
-test('dashboard and exercise dialog have no automated WCAG A/AA violations', async ({ page }) => {
-  const dashboard = await new AxeBuilder({ page })
-    .withTags(['wcag2a', 'wcag2aa', 'wcag21aa'])
-    .analyze();
-  await page.getByRole('button', { name: 'Lerneinheit starten' }).click();
-  await expect(page.getByRole('dialog')).toBeVisible();
-  const dialog = await new AxeBuilder({ page })
-    .include('dialog')
-    .withTags(['wcag2a', 'wcag2aa', 'wcag21aa'])
-    .analyze();
-  expect({
-    dashboard: dashboard.violations.map(({ id, nodes }) => ({
-      id,
-      targets: nodes.map((node) => node.target),
-    })),
-    dialog: dialog.violations.map(({ id, nodes }) => ({
-      id,
-      targets: nodes.map((node) => node.target),
-    })),
-  }).toEqual({ dashboard: [], dialog: [] });
+test('all guest views and the exercise dialog have no automated WCAG A/AA violations', async ({
+  page,
+}) => {
+  test.setTimeout(90_000);
+  const findings: { viewport: number; view: string; id: string; targets: unknown[] }[] = [];
+  async function check(viewport: number, view: string, dialogOnly = false) {
+    let builder = new AxeBuilder({ page }).withTags(['wcag2a', 'wcag2aa', 'wcag21aa']);
+    if (dialogOnly) builder = builder.include('dialog');
+    const report = await builder.analyze();
+    for (const { id, nodes } of report.violations) {
+      findings.push({ viewport, view, id, targets: nodes.map((node) => node.target) });
+    }
+  }
+  for (const width of [1440, 320]) {
+    await page.setViewportSize({ width, height: 1000 });
+    await navigate(page, 'Übersicht');
+    await check(width, 'Übersicht');
+    await page.getByRole('button', { name: 'Lerneinheit starten', exact: true }).click();
+    await expect(page.getByRole('dialog')).toBeVisible();
+    await check(width, 'Aufgabe', true);
+    await page.keyboard.press('Escape');
+    for (const label of [
+      'Mein Fragenbestand',
+      'Lernwerkstatt',
+      'Wiederholen',
+      'Mein Lernplan',
+      'Werkzeugkoffer',
+    ]) {
+      const button = page
+        .getByRole('navigation', { name: 'Hauptnavigation' })
+        .getByRole('button', { name: label, exact: true });
+      await button.focus();
+      await page.keyboard.press('Enter');
+      await expect(button).toHaveAttribute('aria-current', 'page');
+      await expect(page.locator('#main')).toBeFocused();
+      await check(width, label);
+    }
+  }
+  expect(findings).toEqual([]);
 });
 
 test('an added calculation is searchable, hides its solution and retains its answer', async ({
@@ -272,7 +305,7 @@ test('an added calculation is searchable, hides its solution and retains its ans
   await page.getByRole('textbox', { name: 'Aufgaben durchsuchen' }).fill(exercise.title);
   const card = page.getByRole('article');
   await expect(card).toHaveCount(1);
-  await card.getByRole('button', { name: 'Üben', exact: true }).click();
+  await card.getByRole('button', { name: `${exercise.title} üben`, exact: true }).click();
   const dialog = page.getByRole('dialog', { name: exercise.title });
   await expect(dialog.locator('.explanation')).toHaveCount(0);
   await dialog.getByRole('radio').nth(exercise.correctIndex).check();

@@ -1,4 +1,8 @@
 import { practiceExpansion } from './practice-expansion';
+import { planningExercises } from './content/exam-planning';
+import { systemExercises } from './content/exam-system';
+import { wisoExercises } from './content/exam-wiso';
+import { wisoLawExercises } from './content/exam-wiso-law';
 
 export type TopicId = 'heizung' | 'sanitaer' | 'klima' | 'wiso';
 
@@ -260,4 +264,8 @@ export const exercises: Exercise[] = [
     sourceLabel,
   },
   ...practiceExpansion,
+  ...planningExercises,
+  ...systemExercises,
+  ...wisoExercises,
+  ...wisoLawExercises,
 ];

@@ -1,0 +1,22 @@
+/* Flow 0.2.0: dark petrol frame, light work surfaces, white primary action. */
+:root {
+  --flow-canvas: #0d2427;
+  --flow-text: #f7f7f2;
+  --flow-text-muted: #b9cbc5;
+  --flow-surface: #eeeee6;
+  --flow-surface-raised: #fffefa;
+  --flow-ink: #143236;
+  --flow-ink-muted: #53635c;
+  --flow-copper: #e0a37d;
+  --flow-copper-ink: #8b4927;
+  --flow-line: #cbd2c7;
+  --flow-line-dark: #355052;
+  --flow-success: #2b674b;
+  --flow-success-bg: #e4eee1;
+  --flow-error: #8b432b;
+  --flow-error-bg: #f7e9dd;
+  --flow-duration: 160ms;
+  --flow-radius-panel: 26px;
+  --flow-radius-pill: 999px;
+  --flow-sidebar-width: 218px;
+}

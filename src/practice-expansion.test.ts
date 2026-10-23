@@ -49,7 +49,7 @@ describe('practice expansion v1', () => {
   it('has unique options, stable identities and explicit variant labels', () => {
     expect(practiceExpansion).toHaveLength(96);
     expect(practiceExpansion.filter(({ formula }) => formula)).toHaveLength(72);
-    expect(new Set(exercises.map(({ id }) => id)).size).toBe(108);
+    expect(new Set(exercises.map(({ id }) => id)).size).toBe(exercises.length);
     for (const task of practiceExpansion) {
       expect(new Set(task.options).size).toBe(4);
       expect(task.sourceLabel).toContain('Eigene Übungsaufgabe');

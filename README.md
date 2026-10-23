@@ -4,14 +4,26 @@ Ein neuer Lernbuddy für Sanitär, Heizung, Klima/Lüftung und WiSo. Die respons
 Web-App verbindet eine technische Werkstattgestaltung mit kurzen Übungsaufgaben,
 nachvollziehbaren Lösungswegen und einem persönlichen Lernrhythmus.
 
+**Aktueller Fokus:** Nicks Gesellenprüfung Teil 2 am 7. Dezember 2026.
+Die Oberfläche baut auf dem gewählten Flow-Design auf. Direkte Einstiege nach
+Arbeitsplanung, Systemanalyse/Instandhaltung und WiSo führen zu den Übungen.
+Der [Prüfungsrahmen](docs/exam-blueprint.md) beschreibt die fachliche Zuordnung
+und die Grenzen. Die [Produktanweisung](docs/product-direction.md) hält die
+spätere erwachsene Lernreise mit Werkstattgeschichte, Meilensteinen, Stufen und
+fachlichen Minispielen fest; diese Funktionen werden jetzt noch nicht gebaut.
+
 Gestaltung ansehen: [Desktop](docs/screenshots/desktop.png),
 [Handy](docs/screenshots/mobile.png) und [Aufgabe](docs/screenshots/exercise.png).
 
 ## Was funktioniert
 
 - Übersicht mit echten Tageszielen, bearbeiteten Aufgaben und Lerntagen.
-- 108 eigene Modellaufgaben, 27 je Lernfeld, mit Hinweisen und Erklärungen.
-  Darunter 72 neue Rechnungen zu 24 Modellen mit je drei Zahlenvarianten.
+- 144 eigene Übungen mit Hinweisen und Erklärungen: die bisherigen 108
+  Modellaufgaben und 36 neue Fälle für Teil 2. Je zwölf neue Fälle zu
+  Arbeitsplanung, Systemanalyse/Instandhaltung und WiSo. Vier WiSo-Fälle
+  beziehen sich auf konkret gelesene Primärquellen.
+- Prüfungsfälle erscheinen zuerst. Prüfungsbereich, Lernfeld, Suchbegriff und
+  Merkliste lassen sich kombinieren und gemeinsam zurücksetzen.
 - Privater bisheriger Fragenbestand über das vorhandene Supabase-Lernkonto:
   Auswahl, Zahlen, Kurzantwort und Selbstvergleich, mit Bewertung auf dem Server.
   Gespeicherte Übungsrunden lassen sich fortsetzen; Entwürfe explizit speichern.
@@ -22,6 +34,8 @@ Gestaltung ansehen: [Desktop](docs/screenshots/desktop.png),
 - Wärmeenergie-Rechner mit Einheiten und Annahmen sowie ein kleines Formelregister.
 - Validierter JSON-Export und -Import von Lernstand, Merkliste und Tagesziel.
   Ein Import ersetzt Daten erst nach ausdrücklicher Bestätigung in der App.
+- Höhere Lernstandsformate sind gegen Überschreiben geschützt, auch wenn sie
+  während einer offenen Aufgabe eintreffen. Unveränderte Rohdaten bleiben exportierbar.
 
 Der Fortschritt startet bei null. Als „zuletzt richtig“ zählt die letzte
 abgegebene Antwort auf eine Aufgabe, nicht nachgewiesene berufliche Kompetenz.
@@ -60,6 +74,9 @@ beenden ihren eigenen Entwicklungsserver und verändern keine echten Lerndaten.
 - `src/App.tsx`: Navigation, Übersicht, Aufgaben, Plan und Werkzeuge.
 - `src/styles.css`: responsives Gestaltungssystem und zugängliche UI-Zustände.
 - `src/data.ts`: eigene Aufgaben mit getrennten Hinweisen und Lösungswegen.
+- `src/content`: eigene neue Fallaufgaben und separat belegte WiSo-Rechtsfälle.
+- `src/exam.ts`: redaktionelle Schwerpunktzuordnung ohne Änderung alter Antworten.
+- `src/components/FlowDashboard.tsx` und `src/design`: Flow-Oberfläche und Tokens.
 - `src/lib/learning.ts`: versionierter Lernstand, Validierung und Wiederholung.
 - `tests/e2e`: Browserprüfungen mit isolierten Datensätzen.
 - `.agents/skills`: zwei lokale Skills für Inhalte und Produktdesign.
