@@ -204,6 +204,10 @@ for (const width of [390, 320]) {
     page,
   }) => {
     await page.setViewportSize({ width, height: 844 });
+    // Wider Linux fallback fonts must not push long German task titles out of cards.
+    await page.addStyleTag({
+      content: '.exercise-card h2 { font-family: "DejaVu Sans", sans-serif; }',
+    });
     async function noOverflow() {
       const layout = await page.evaluate(() => ({
         width: window.innerWidth,
