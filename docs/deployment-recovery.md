@@ -42,16 +42,16 @@ Dateideployments müssen mit dem exakten geprüften Commit in ihren Metadaten
 gekennzeichnet werden. `public/release.json` dient zur Kontrolle des ausgelieferten
 Releases; ein erfolgreicher Push allein belegt keine Veröffentlichung.
 
-Zum Zeitpunkt der Prüfung war `werktag-app` ohne Git-Verknüpfung. Vercels Zugriff
-auf die GitHub-Verzeichnisse antwortete mit HTTP 403 `github_response_error`.
-Der verfügbare Vercel-Connector kann ein vorhandenes unverbundenes Projekt nicht
-wieder mit Git verbinden. Nach erneuter Freigabe der GitHub-Installation:
+Die GitHub-Verbindung wurde am 23. Oktober 2026 wieder freigegeben und das
+bestehende Projekt `werktag-app` mit `nickhein0509-cmyk/werktagshk` verbunden.
+Der Verbindungsstatus wurde über Vercel bestätigt. Veröffentlichungen sollen durch
+Pushes auf `main` erfolgen; das tatsächlich gestartete Deployment und dessen
+Commit müssen anschließend auf Vercel kontrolliert werden.
 
-1. Im bestehenden Projekt unter
-   <https://vercel.com/werktag/werktag-app/settings/git> GitHub verbinden.
-2. `nickhein0509-cmyk/werktagshk` auswählen, Produktionsbranch `main`.
-3. Vite, Node 24, `npm ci`, `npm run build`, Ausgabeverzeichnis `dist` verwenden.
-4. Bestehende Supabase-Variablen beibehalten und das nächste Deployment prüfen.
+Projektverwaltung: <https://vercel.com/werktag/werktag-app/settings/git>.
+Vite, Node 24, `npm ci`, `npm run build` und das Ausgabeverzeichnis `dist` stehen
+in der versionierten Konfiguration. Die vorhandenen Supabase-Variablen bleiben
+bestehen. Die frühere 403-Blockade und die fehlende Projektverknüpfung sind behoben.
 
 Die enthaltene SQL-Migration ist ausschließlich eine additive Schnittstelle zum
 bereits existierenden Backend, kein vollständiger Datenbankstand. Keine

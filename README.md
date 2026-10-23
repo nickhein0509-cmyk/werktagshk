@@ -87,6 +87,6 @@ oder fachgerechte Anlagenplanung. Ein KI-Chat ist noch nicht angebunden.
 Der Code ist für Nicks Projekt gedacht. Eine öffentliche Bereitstellung, Lizenz
 oder Freigabe privater Quellen ist damit nicht festgelegt. GitHub Actions ist für
 die automatischen Prüfungen vorbereitet; eine erfolgreiche Ausführung auf GitHub
-muss dort separat bestätigt werden. Die Veröffentlichung erfolgt im bestehenden Vercel-Projekt. Die automatische
-Git-Verknüpfung muss nach Wiederfreigabe des GitHub-Zugriffs in Vercel verbunden
-werden; siehe [Betriebsanbindung](docs/deployment-recovery.md).
+muss dort separat bestätigt werden. Die Veröffentlichung erfolgt im bestehenden Vercel-Projekt. Das Projekt ist mit diesem Repository verbunden; Pushes auf `main` sind der
+vorgesehene Veröffentlichungsweg. Den tatsächlichen Deploymentstatus separat
+prüfen; siehe [Betriebsanbindung](docs/deployment-recovery.md).
