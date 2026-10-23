@@ -1,4 +1,4 @@
-import { useEffect, useId, useMemo, useRef, useState } from 'react';
+import { lazy, Suspense, useEffect, useId, useMemo, useRef, useState } from 'react';
 import type { ChangeEvent, ReactNode } from 'react';
 import {
   ArrowDownToLine,
@@ -8,6 +8,7 @@ import {
   Bookmark,
   BriefcaseBusiness,
   CalendarDays,
+  ClipboardList,
   Check,
   CheckCircle2,
   CircleHelp,
@@ -30,9 +31,24 @@ import { examAreas, getExamAreas, isExamCase } from './exam';
 import type { ExamAreaId } from './exam';
 import type { User } from '@supabase/supabase-js';
 import { supabase } from './lib/supabase';
-import { CloudAccount } from './components/CloudAccount';
-import { CloudPractice } from './CloudPractice';
 import { FlowDashboard } from './components/FlowDashboard';
+import { ExamPractice } from './components/ExamPractice';
+import { CalculationWorkspace } from './components/CalculationWorkspace';
+import {
+  DifficultyBadge,
+  DifficultyControls,
+  DifficultyLegend,
+  matchesDifficulty,
+} from './components/Difficulty';
+import type { DifficultyFilter, DifficultySort } from './components/Difficulty';
+import {
+  compareExerciseDifficulty,
+  difficultyLevels,
+  getExerciseDifficulty,
+} from './lib/difficulty';
+import { exerciseKindLabels, getExerciseKind } from './lib/exercise-kind';
+import type { ExerciseKind } from './lib/exercise-kind';
+import { loadWorkpad, saveWorkpad } from './lib/workpad-storage';
 import type { Exercise, TopicId } from './data';
 import {
   createInitialState,
@@ -44,13 +60,27 @@ import {
 import type { LearningState } from './lib/learning';
 import { isFutureLearningRecord, futureDataWarning } from './lib/storage';
 
-type Page = 'dashboard' | 'cloud' | 'library' | 'review' | 'plan' | 'tools';
+const CloudAccount = lazy(() =>
+  import('./components/CloudAccount').then((module) => ({ default: module.CloudAccount })),
+);
+const CloudPractice = lazy(() =>
+  import('./CloudPractice').then((module) => ({ default: module.CloudPractice })),
+);
+const CloudKnowledge = lazy(() =>
+  import('./components/CloudKnowledge').then((module) => ({ default: module.CloudKnowledge })),
+);
+const FormulaWorkbench = lazy(() =>
+  import('./components/FormulaWorkbench').then((module) => ({ default: module.FormulaWorkbench })),
+);
+
+type Page = 'dashboard' | 'cloud' | 'library' | 'exam' | 'review' | 'plan' | 'tools';
 const STORAGE_KEY = 'werktag-learning-v1';
 const topicIcons = { heizung: Flame, sanitaer: Droplets, klima: Wind, wiso: BriefcaseBusiness };
 const navItems: { id: Page; label: string; icon: typeof Flame }[] = [
   { id: 'dashboard', label: 'Übersicht', icon: LayoutGrid },
   { id: 'cloud', label: 'Mein Fragenbestand', icon: ShieldCheck },
   { id: 'library', label: 'Lernwerkstatt', icon: BookOpen },
+  { id: 'exam', label: 'Prüfungsbereich', icon: ClipboardList },
   { id: 'review', label: 'Wiederholen', icon: RotateCcw },
   { id: 'plan', label: 'Mein Lernplan', icon: CalendarDays },
   { id: 'tools', label: 'Werkzeugkoffer', icon: Wrench },
@@ -83,14 +113,23 @@ function App() {
   const [state, setState] = useState(loaded.state);
   const [warning, setWarning] = useState(loaded.warning);
   const [page, setPage] = useState<Page>('dashboard');
+  const [cloudSection, setCloudSection] = useState<'questions' | 'knowledge'>('questions');
+  const [knowledgeVisited, setKnowledgeVisited] = useState(false);
+  const [knowledgeLookups, setKnowledgeLookups] = useState(0);
   const [topicFilter, setTopicFilter] = useState<TopicId | 'all'>('all');
   const [examArea, setExamArea] = useState<ExamAreaId | 'all'>('all');
   const [activeExercise, setActiveExercise] = useState<Exercise | null>(null);
+  const exerciseQueue = useRef<Exercise[] | null>(null);
   const [toast, setToast] = useState('');
   const mainRef = useRef<HTMLElement>(null);
   const due = getDueExercises(state);
   const mastered = useMemo(() => getMasteredIds(state), [state]);
   const todayCount = getTodayCount(state);
+
+  function startExercise(exercise: Exercise, queue?: Exercise[]) {
+    exerciseQueue.current = queue ?? null;
+    setActiveExercise(exercise);
+  }
 
   function updateState(next: LearningState) {
     // An auth callback can switch accounts before an old sync promise unmounts.
@@ -130,6 +169,12 @@ function App() {
     requestAnimationFrame(() => mainRef.current?.focus({ preventScroll: true }));
   }
 
+  function openCloud(section: 'questions' | 'knowledge' = 'questions') {
+    setCloudSection(section);
+    if (section === 'knowledge') setKnowledgeVisited(true);
+    navigate('cloud');
+  }
+
   function bookmark(id: string) {
     updateState({
       ...state,
@@ -140,17 +185,24 @@ function App() {
   }
 
   function answer(exercise: Exercise, selected: number) {
-    updateState({
+    return answerBatch([{ exercise, selected }]);
+  }
+
+  function answerBatch(answers: { exercise: Exercise; selected: number; attemptId?: string }[]) {
+    const knownIds = new Set(state.attempts.map((attempt) => attempt.id));
+    const pending = answers.filter((entry) => !entry.attemptId || !knownIds.has(entry.attemptId));
+    if (!pending.length) return true;
+    return updateState({
       ...state,
       attempts: [
         ...state.attempts,
-        {
-          id: crypto.randomUUID(),
+        ...pending.map(({ exercise, selected, attemptId }) => ({
+          id: attemptId ?? crypto.randomUUID(),
           exerciseId: exercise.id,
           answer: selected,
           correct: selected === exercise.correctIndex,
           answeredAt: new Date().toISOString(),
-        },
+        })),
       ],
     });
   }
@@ -162,6 +214,7 @@ function App() {
     } = supabase.auth.onAuthStateChange((_event, session) => {
       const nextUser = session?.user ?? null;
       if (accountId.current !== (nextUser?.id ?? null)) {
+        const changingAccount = typeof accountId.current === 'string';
         accountId.current = nextUser?.id ?? null;
         const next = loadState(nextUser ? `${STORAGE_KEY}:${nextUser.id}` : STORAGE_KEY);
         setUser(nextUser);
@@ -171,6 +224,11 @@ function App() {
         setActiveExercise(null);
         setPage((current) => (current === 'cloud' ? 'cloud' : 'dashboard'));
         setToast('');
+        if (changingAccount || !nextUser) {
+          setCloudSection('questions');
+          setKnowledgeVisited(false);
+          setKnowledgeLookups(0);
+        }
       }
       setAuthReady(true);
     });
@@ -225,7 +283,7 @@ function App() {
             <button
               key={id}
               className={`nav-item ${page === id ? 'active' : ''}`}
-              onClick={() => navigate(id)}
+              onClick={() => (id === 'cloud' ? openCloud() : navigate(id))}
               aria-current={page === id ? 'page' : undefined}
             >
               <Icon size={19} strokeWidth={1.7} />
@@ -236,6 +294,7 @@ function App() {
                     dashboard: 'Start',
                     cloud: 'Bestand',
                     library: 'Üben',
+                    exam: 'Prüfung',
                     review: 'Nochmal',
                     plan: 'Plan',
                     tools: 'Tools',
@@ -296,16 +355,62 @@ function App() {
             <>
               <PageHeading
                 eyebrow="DEIN BESTEHENDER LERNBUDDY"
-                title="Mein Fragenbestand"
-                description="Deine bisherigen Fragen, Rechenaufgaben und Übungsrunden. Melde dich mit deinem vorhandenen Lernkonto an."
+                title={cloudSection === 'knowledge' ? 'Fachwissen' : 'Mein Fragenbestand'}
+                description={
+                  user
+                    ? cloudSection === 'knowledge'
+                      ? 'Fachartikel, Begriffe und Beispiele aus deinem Lernkonto. Suche nach Thema oder Lernfeld.'
+                      : 'Öffne eine Aufgabe direkt oder stelle dir eine Runde nach Thema, Aufgabenart und Stufe zusammen.'
+                    : 'Deine Fragen, Rechenaufgaben und Übungsrunden. Melde dich mit deinem vorhandenen Lernkonto an.'
+                }
               />
-              <CloudAccount
-                key={`account:${user?.id ?? 'guest'}`}
-                user={user}
-                state={state}
-                onLoad={updateState}
-              />
-              {user && <CloudPractice key={`questions:${user.id}`} userId={user.id} />}
+              <Suspense fallback={<p role="status">Dein Fragenbestand wird vorbereitet …</p>}>
+                <CloudAccount
+                  key={`account:${user?.id ?? 'guest'}`}
+                  user={user}
+                  state={state}
+                  onLoad={updateState}
+                />
+                {user && (
+                  <>
+                    <div
+                      className="cloud-section-switch"
+                      role="group"
+                      aria-label="Bereich im Lernkonto"
+                    >
+                      <button
+                        className={`filter-chip ${cloudSection === 'questions' ? 'selected' : ''}`}
+                        aria-pressed={cloudSection === 'questions'}
+                        onClick={() => setCloudSection('questions')}
+                      >
+                        Fragen üben
+                      </button>
+                      <button
+                        className={`filter-chip ${cloudSection === 'knowledge' ? 'selected' : ''}`}
+                        aria-pressed={cloudSection === 'knowledge'}
+                        onClick={() => {
+                          setKnowledgeVisited(true);
+                          setCloudSection('knowledge');
+                        }}
+                      >
+                        Fachwissen nachschlagen
+                      </button>
+                    </div>
+                    <div hidden={cloudSection !== 'questions'}>
+                      <CloudPractice key={`questions:${user.id}`} userId={user.id} />
+                    </div>
+                    {knowledgeVisited && (
+                      <CloudKnowledge
+                        key={`knowledge:${user.id}`}
+                        userId={user.id}
+                        active={cloudSection === 'knowledge'}
+                        onQuestions={() => setCloudSection('questions')}
+                        onRead={() => setKnowledgeLookups((value) => value + 1)}
+                      />
+                    )}
+                  </>
+                )}
+              </Suspense>
             </>
           )}
           {page === 'dashboard' && (
@@ -315,10 +420,11 @@ function App() {
               weekDots={<WeekDots state={state} />}
               onLibrary={(topic = 'all') => navigate('library', topic)}
               onArea={(area) => navigate('library', 'all', area)}
-              onCloud={() => navigate('cloud')}
+              onCloud={() => openCloud()}
+              onExam={() => navigate('exam')}
               onReview={() => navigate(due.length ? 'review' : 'library')}
               onPlan={() => navigate('plan')}
-              onStart={setActiveExercise}
+              onStart={startExercise}
             />
           )}
           {page === 'library' && (
@@ -329,10 +435,21 @@ function App() {
               onFilter={setTopicFilter}
               area={examArea}
               onArea={setExamArea}
-              onStart={setActiveExercise}
+              onStart={startExercise}
               onBookmark={bookmark}
+              onExam={() => navigate('exam')}
+              onPrivate={() => openCloud()}
+              onKnowledge={() => openCloud('knowledge')}
             />
           )}
+          <div hidden={page !== 'exam'}>
+            <ExamPractice
+              key={`exam:${user?.id ?? 'guest'}`}
+              storageScope={user?.id ?? 'guest'}
+              onSubmit={answerBatch}
+              externalHelpSignal={knowledgeLookups}
+            />
+          </div>
           {page === 'review' && (
             <>
               <PageHeading
@@ -348,7 +465,7 @@ function App() {
                       exercise={exercise}
                       state={state}
                       isMastered={mastered.includes(exercise.id)}
-                      onStart={setActiveExercise}
+                      onStart={startExercise}
                       onBookmark={bookmark}
                     />
                   ))}
@@ -375,7 +492,7 @@ function App() {
               state={state}
               mastered={mastered}
               onUpdate={updateState}
-              onStart={setActiveExercise}
+              onStart={startExercise}
             />
           )}
           {page === 'tools' && (
@@ -393,7 +510,7 @@ function App() {
         <footer className="workspace-footer">
           <span>WerkTag · Mit Kopf. Mit Hand. Mit dir.</span>
           <span>
-            WerkTag Flow <span className="footer-version">/ 0.3.0</span>
+            WerkTag Flow <span className="footer-version">/ 0.8.0</span>
           </span>
         </footer>
       </div>
@@ -401,16 +518,23 @@ function App() {
         <ExerciseDialog
           key={activeExercise.id}
           exercise={activeExercise}
+          storageKey={`${storageKey}:workpad:${activeExercise.id}`}
           bookmarked={state.bookmarks.includes(activeExercise.id)}
           onBookmark={() => bookmark(activeExercise.id)}
           onAnswer={(selected) => answer(activeExercise, selected)}
           onClose={() => setActiveExercise(null)}
           onNext={() => {
-            const topicExercises = exercises.filter((x) => x.topicId === activeExercise.topicId);
+            const topicExercises =
+              exerciseQueue.current ??
+              exercises.filter(
+                (x) =>
+                  x.topicId === activeExercise.topicId &&
+                  getExerciseKind(x) === getExerciseKind(activeExercise),
+              );
             const index = topicExercises.findIndex((x) => x.id === activeExercise.id);
             if (index === topicExercises.length - 1) {
               setActiveExercise(null);
-              navigate('library', activeExercise.topicId);
+              if (!exerciseQueue.current) navigate('library', activeExercise.topicId);
             } else setActiveExercise(topicExercises[index + 1]);
           }}
         />
@@ -506,9 +630,13 @@ function ExerciseCard({
         </button>
       </div>
       <span className="exercise-category">
-        {topics.find((x) => x.id === exercise.topicId)?.name} <span>·</span> {exercise.level}
+        {topics.find((x) => x.id === exercise.topicId)?.name}{' '}
+        <DifficultyBadge exercise={exercise} />
       </span>
-      {isExamCase(exercise) && <span className="exam-case-label">Prüfungsfall · eigene Übung</span>}
+      <span className={`exercise-kind kind-${getExerciseKind(exercise)}`}>
+        {exerciseKindLabels[getExerciseKind(exercise)]}
+        {isExamCase(exercise) && <span> · Prüfungsfall</span>}
+      </span>
       <h2>{exercise.title}</h2>
       <p>{exercise.context}</p>
       <div className="exercise-card-bottom">
@@ -542,6 +670,9 @@ function Library({
   onArea,
   onStart,
   onBookmark,
+  onExam,
+  onPrivate,
+  onKnowledge,
 }: {
   state: LearningState;
   mastered: string[];
@@ -549,30 +680,60 @@ function Library({
   onFilter: (id: TopicId | 'all') => void;
   area: ExamAreaId | 'all';
   onArea: (id: ExamAreaId | 'all') => void;
-  onStart: (exercise: Exercise) => void;
+  onStart: (exercise: Exercise, queue?: Exercise[]) => void;
   onBookmark: (id: string) => void;
+  onExam: () => void;
+  onPrivate: () => void;
+  onKnowledge: () => void;
 }) {
   const [search, setSearch] = useState('');
   const [onlySaved, setOnlySaved] = useState(false);
+  const [kind, setKind] = useState<ExerciseKind | 'all'>('all');
+  const [difficulty, setDifficulty] = useState<DifficultyFilter>('all');
+  const [sort, setSort] = useState<DifficultySort>('recommended');
   const query = search.trim().toLocaleLowerCase('de');
   const filtered = exercises
     .filter(
       (x) =>
         (filter === 'all' || x.topicId === filter) &&
         (area === 'all' || getExamAreas(x).includes(area)) &&
+        (kind === 'all' || getExerciseKind(x) === kind) &&
+        matchesDifficulty(x, difficulty) &&
         (!onlySaved || state.bookmarks.includes(x.id)) &&
         `${x.title} ${x.context} ${x.question} ${topics.find((t) => t.id === x.topicId)?.name}`
           .toLocaleLowerCase('de')
           .includes(query),
     )
-    .sort((a, b) => Number(isExamCase(b)) - Number(isExamCase(a)));
+    .sort((a, b) =>
+      sort === 'recommended'
+        ? Number(isExamCase(b)) - Number(isExamCase(a))
+        : compareExerciseDifficulty(a, b, sort),
+    );
   return (
-    <>
+    <section className="practice-library" aria-label="Lernwerkstatt">
       <PageHeading
         eyebrow="DEINE VORBEREITUNG AUF TEIL 2"
-        title="Wissen, das in der Prüfung sitzt."
-        description="Wähle deinen Prüfungsbereich oder ein Lernfeld. Rechne, entscheide und verstehe den Lösungsweg."
+        title="Was möchtest du üben?"
+        description="Rechnen, Zusammenhänge verstehen oder Wissen abrufen. Wähle die Aufgabenart und deinen Schwerpunkt."
       />
+      <p className="library-source-entry">
+        Hier übst du mit den eigenen Aufgaben.{' '}
+        <button className="text-button" onClick={onPrivate}>
+          Alle Fragen aus deinem Lernkonto öffnen <ArrowRight size={16} aria-hidden="true" />
+        </button>
+      </p>
+      <p className="library-source-entry">
+        Einen Zusammenhang erst verstehen?{' '}
+        <button className="text-button" onClick={onKnowledge}>
+          Fachwissen im Lernkonto nachschlagen <ArrowRight size={16} aria-hidden="true" />
+        </button>
+      </p>
+      <div className="library-exam-entry">
+        <span>Eine Aufgabenrunde mit Zeitmessung bearbeiten</span>
+        <button className="text-button" onClick={onExam}>
+          Zum Prüfungsbereich <ArrowRight size={17} />
+        </button>
+      </div>
       <div className="library-toolbar">
         <div className="search-field">
           <Search size={19} />
@@ -595,6 +756,18 @@ function Library({
         >
           <Bookmark size={17} /> Gemerkt <span>{state.bookmarks.length}</span>
         </button>
+      </div>
+      <div className="filter-row kind-filter-row" role="group" aria-label="Aufgabenart filtern">
+        {(['all', 'calculation', 'context', 'knowledge'] as const).map((value) => (
+          <button
+            key={value}
+            className={`filter-chip ${kind === value ? 'selected' : ''}`}
+            aria-pressed={kind === value}
+            onClick={() => setKind(value)}
+          >
+            {value === 'all' ? 'Alle Aufgabenarten' : exerciseKindLabels[value] + 'n'}
+          </button>
+        ))}
       </div>
       <div className="filter-row exam-filter-row" role="group" aria-label="Prüfungsbereich filtern">
         <button
@@ -634,6 +807,13 @@ function Library({
           </button>
         ))}
       </div>
+      <DifficultyControls
+        value={difficulty}
+        onChange={setDifficulty}
+        sort={sort}
+        onSort={setSort}
+      />
+      <DifficultyLegend />
       <div className="results-label">
         <span aria-live="polite" aria-atomic="true">
           {filtered.length} {filtered.length === 1 ? 'Aufgabe' : 'Aufgaben'}
@@ -648,7 +828,7 @@ function Library({
               exercise={exercise}
               state={state}
               isMastered={mastered.includes(exercise.id)}
-              onStart={onStart}
+              onStart={(selected) => onStart(selected, filtered)}
               onBookmark={onBookmark}
             />
           ))}
@@ -668,6 +848,9 @@ function Library({
             onClick={() => {
               setSearch('');
               setOnlySaved(false);
+              setKind('all');
+              setDifficulty('all');
+              setSort('recommended');
               onFilter('all');
               onArea('all');
             }}
@@ -676,7 +859,7 @@ function Library({
           </button>
         </EmptyState>
       )}
-    </>
+    </section>
   );
 }
 
@@ -703,6 +886,7 @@ function EmptyState({
 
 function ExerciseDialog({
   exercise,
+  storageKey,
   bookmarked,
   onBookmark,
   onAnswer,
@@ -710,6 +894,7 @@ function ExerciseDialog({
   onNext,
 }: {
   exercise: Exercise;
+  storageKey: string;
   bookmarked: boolean;
   onBookmark: () => void;
   onAnswer: (selected: number) => void;
@@ -721,6 +906,18 @@ function ExerciseDialog({
   const [submitted, setSubmitted] = useState(false);
   const submittedRef = useRef(false);
   const [hintVisible, setHintVisible] = useState(false);
+  const [loadedWorkpad] = useState(() => loadWorkpad(storageKey));
+  const [workpad, setWorkpad] = useState(loadedWorkpad.draft);
+  const [workpadWarning, setWorkpadWarning] = useState(loadedWorkpad.warning);
+  const kind = getExerciseKind(exercise);
+  const difficultyAssessment = getExerciseDifficulty(exercise);
+  function changeWorkpad(next: typeof workpad) {
+    setWorkpad(next);
+    if (!saveWorkpad(storageKey, next))
+      setWorkpadWarning(
+        'Deine Notizen bleiben in dieser geöffneten Aufgabe. Der Browserentwurf konnte nicht gespeichert werden; vorhandene Daten bleiben erhalten.',
+      );
+  }
   const titleId = useId();
   const radioName = useId();
   useEffect(() => {
@@ -742,7 +939,7 @@ function ExerciseDialog({
   return (
     <dialog
       ref={ref}
-      className="exercise-dialog"
+      className={`exercise-dialog ${kind === 'calculation' ? 'calculation-dialog' : ''}`}
       aria-labelledby={titleId}
       onCancel={onClose}
       onClick={(e) => {
@@ -762,7 +959,7 @@ function ExerciseDialog({
         <span>
           <span className={`topic-dot ${exercise.topicId}`} />
           {topics.find((x) => x.id === exercise.topicId)?.name}{' '}
-          <span className="dialog-divider">/</span> {exercise.level}
+          <span className="dialog-divider">/</span> <DifficultyBadge exercise={exercise} />
         </span>
         <div>
           <button
@@ -779,74 +976,110 @@ function ExerciseDialog({
         </div>
       </div>
       <div className="dialog-body">
-        <p className="eyebrow">DEIN WISSEN IST GEFRAGT</p>
+        <p className="eyebrow">{exerciseKindLabels[kind]} · Üben</p>
         <h2 id={titleId}>{exercise.title}</h2>
-        <p className="task-context">{exercise.context}</p>
-        <form
-          onSubmit={(e) => {
-            e.preventDefault();
-            submit();
-          }}
-        >
-          <fieldset disabled={submitted}>
-            <legend>{exercise.question}</legend>
-            <div className="answer-options">
-              {exercise.options.map((option, index) => (
-                <label
-                  className={`answer-option ${selection === index ? 'chosen' : ''} ${submitted && index === exercise.correctIndex ? 'correct' : ''} ${submitted && selection === index && !correct ? 'incorrect' : ''}`}
-                  key={index}
-                >
-                  <input
-                    type="radio"
-                    name={radioName}
-                    value={index}
-                    checked={selection === index}
-                    onChange={() => setSelection(index)}
-                  />
-                  <span className="option-letter">{String.fromCharCode(65 + index)}</span>
-                  <span>{option}</span>
-                  {submitted && index === exercise.correctIndex && <CheckCircle2 size={19} />}
-                </label>
-              ))}
-            </div>
-          </fieldset>
-          {!submitted && (
-            <div className="exercise-controls">
-              <button
-                type="button"
-                className="text-button"
-                onClick={() => setHintVisible(!hintVisible)}
-                aria-expanded={hintVisible}
-              >
-                <Lightbulb size={17} /> {hintVisible ? 'Hinweis ausblenden' : 'Kleiner Denkanstoß'}
-              </button>
-              <button className="button primary" type="submit" disabled={selection === null}>
-                Antwort prüfen <ArrowRight size={17} />
-              </button>
-            </div>
-          )}
-        </form>
-        {hintVisible && !submitted && (
-          <div className="hint">
-            <Lightbulb size={18} />
-            <p>{exercise.hint}</p>
-          </div>
+        {difficultyAssessment && (
+          <p className="difficulty-reason">
+            Anforderung:{' '}
+            {submitted
+              ? difficultyAssessment.reason
+              : difficultyLevels.find((entry) => entry.id === difficultyAssessment.level)!
+                  .description}
+          </p>
         )}
-        {submitted && (
-          <div className={`answer-feedback ${correct ? 'success' : 'try-again'}`} role="status">
-            <div className="feedback-title">
-              {correct ? <CheckCircle2 size={23} /> : <Lightbulb size={23} />}
-              <h3>
-                {correct ? 'Richtig. Das sitzt!' : 'Noch nicht ganz. Hier kommt der Zusammenhang.'}
-              </h3>
-            </div>
-            {exercise.formula && <div className="formula">{exercise.formula}</div>}
-            <p className="explanation">{exercise.explanation}</p>
-            <button className="button primary" onClick={onNext}>
-              Weiterlernen <ArrowRight size={17} />
-            </button>
+        <div className="practice-task-layout">
+          <div className="task-question-panel">
+            <p className="task-context">{exercise.context}</p>
+            <form
+              onSubmit={(e) => {
+                e.preventDefault();
+                submit();
+              }}
+            >
+              <fieldset disabled={submitted}>
+                <legend>{exercise.question}</legend>
+                <div className="answer-options">
+                  {exercise.options.map((option, index) => (
+                    <label
+                      className={`answer-option ${selection === index ? 'chosen' : ''} ${submitted && index === exercise.correctIndex ? 'correct' : ''} ${submitted && selection === index && !correct ? 'incorrect' : ''}`}
+                      key={index}
+                    >
+                      <input
+                        type="radio"
+                        name={radioName}
+                        value={index}
+                        checked={selection === index}
+                        onChange={() => setSelection(index)}
+                      />
+                      <span className="option-letter">{String.fromCharCode(65 + index)}</span>
+                      <span>{option}</span>
+                      {submitted && index === exercise.correctIndex && <CheckCircle2 size={19} />}
+                    </label>
+                  ))}
+                </div>
+              </fieldset>
+              {!submitted && (
+                <div className="exercise-controls">
+                  <button
+                    type="button"
+                    className="text-button"
+                    onClick={() => setHintVisible(!hintVisible)}
+                    aria-expanded={hintVisible}
+                  >
+                    <Lightbulb size={17} />{' '}
+                    {hintVisible ? 'Hinweis ausblenden' : 'Kleiner Denkanstoß'}
+                  </button>
+                  <button className="button primary" type="submit" disabled={selection === null}>
+                    Antwort prüfen <ArrowRight size={17} />
+                  </button>
+                </div>
+              )}
+            </form>
+            {hintVisible && !submitted && (
+              <div className="hint">
+                <Lightbulb size={18} />
+                <p>{exercise.hint}</p>
+              </div>
+            )}
+            {submitted && (
+              <div className={`answer-feedback ${correct ? 'success' : 'try-again'}`} role="status">
+                <div className="feedback-title">
+                  {correct ? <CheckCircle2 size={23} /> : <Lightbulb size={23} />}
+                  <h3>
+                    {correct
+                      ? 'Richtig. Das sitzt!'
+                      : 'Noch nicht ganz. Hier kommt der Zusammenhang.'}
+                  </h3>
+                </div>
+                {exercise.formula && <div className="formula">{exercise.formula}</div>}
+                <p className="explanation">{exercise.explanation}</p>
+                <button className="button primary" onClick={onNext}>
+                  Weiterlernen <ArrowRight size={17} />
+                </button>
+              </div>
+            )}
           </div>
-        )}
+          <aside className="task-work-panel" aria-label="Dein Arbeitsbereich">
+            {kind === 'calculation' ? (
+              <CalculationWorkspace draft={workpad} onChange={changeWorkpad} />
+            ) : (
+              <label className="practice-notes">
+                Notizen
+                <textarea
+                  value={workpad.notes}
+                  maxLength={15000}
+                  rows={7}
+                  placeholder="Gedanken, Begründungen und offene Fragen …"
+                  onChange={(event) => changeWorkpad({ ...workpad, notes: event.target.value })}
+                />
+              </label>
+            )}
+            <p className="workpad-storage-note" role={workpadWarning ? 'status' : undefined}>
+              {workpadWarning ||
+                'Dein Entwurf bleibt in diesem Browser gespeichert. Er wird nicht bewertet.'}
+            </p>
+          </aside>
+        </div>
         <div className="source-note">
           <ShieldCheck size={15} />
           <span>{exercise.sourceLabel} · Lösungsweg im Übungsmodus nach der Antwort sichtbar.</span>
@@ -983,23 +1216,9 @@ function Tools({
   state: LearningState;
   onImport: (state: LearningState) => boolean;
 }) {
-  const [mass, setMass] = useState('100');
-  const [delta, setDelta] = useState('20');
   const [message, setMessage] = useState('');
   const [pending, setPending] = useState<LearningState | null>(null);
   const fileRef = useRef<HTMLInputElement>(null);
-  const m = Number(mass.replace(',', '.'));
-  const d = Number(delta.replace(',', '.'));
-  const valid =
-    mass.trim() !== '' &&
-    delta.trim() !== '' &&
-    Number.isFinite(m) &&
-    Number.isFinite(d) &&
-    m > 0 &&
-    d >= 0 &&
-    m <= 1e9 &&
-    d <= 100;
-  const energy = m * 4.18 * d;
   async function importFile(event: ChangeEvent<HTMLInputElement>) {
     setMessage('');
     setPending(null);
@@ -1043,94 +1262,9 @@ function Tools({
         description="Zusammenhänge greifbar machen. Formeln verstehen. Deinen Lernstand sichern."
       />
       <div className="tools-grid">
-        <section className="surface calculator">
-          <div className="section-heading">
-            <h2>Wärmeenergie berechnen</h2>
-            <Flame size={22} />
-          </div>
-          <p>Wie viel Energie braucht Wasser, um wärmer zu werden?</p>
-          <div className="formula large">Q = m · c · ΔT</div>
-          <div className="calculator-inputs">
-            <label>
-              Wassermasse <span>in kg</span>
-              <input
-                inputMode="decimal"
-                value={mass}
-                onChange={(e) => setMass(e.target.value)}
-                aria-describedby="calculator-assumptions"
-              />
-            </label>
-            <label>
-              Temperaturdifferenz <span>in K</span>
-              <input
-                inputMode="decimal"
-                value={delta}
-                onChange={(e) => setDelta(e.target.value)}
-                aria-describedby="calculator-assumptions"
-              />
-            </label>
-          </div>
-          <div className="calculator-result" aria-live="polite">
-            {valid ? (
-              <>
-                <span>Benötigte Wärmeenergie</span>
-                <strong>
-                  {(energy / 3600).toLocaleString('de-DE', { maximumFractionDigits: 3 })}{' '}
-                  <small>kWh</small>
-                </strong>
-                <span>{energy.toLocaleString('de-DE', { maximumFractionDigits: 1 })} kJ</span>
-              </>
-            ) : (
-              <p>
-                Bitte eine positive Masse und eine Temperaturdifferenz von 0 bis 100 K eingeben.
-              </p>
-            )}
-          </div>
-          <p className="tool-assumptions" id="calculator-assumptions">
-            Modellrechnung für flüssiges Wasser: c = 4,18 kJ/(kg · K). Ohne Wärmeverluste und
-            Phasenwechsel. 1 kWh = 3.600 kJ.
-          </p>
-        </section>
-        <section className="surface formula-reference">
-          <div className="section-heading">
-            <h2>Griffbereit: Grundformeln</h2>
-            <BookOpen size={21} />
-          </div>
-          <dl>
-            <div>
-              <dt>Wärmeenergie</dt>
-              <dd>
-                <strong>Q = m · c · ΔT</strong>
-                <span>m in kg, c in kJ/(kg · K), ΔT in K → Q in kJ</span>
-              </dd>
-            </div>
-            <div>
-              <dt>Volumenstrom</dt>
-              <dd>
-                <strong>V̇ = V / t</strong>
-                <span>V in Litern, t in Minuten → V̇ in l/min</span>
-              </dd>
-            </div>
-            <div>
-              <dt>Luftwechsel</dt>
-              <dd>
-                <strong>n = V̇ / V</strong>
-                <span>V̇ in m³/h, Raumvolumen V in m³ → n in h⁻¹</span>
-              </dd>
-            </div>
-            <div>
-              <dt>Gefälle</dt>
-              <dd>
-                <strong>i = Δh / l · 100 %</strong>
-                <span>Höhenunterschied und waagerechte Bezugslänge in gleicher Einheit</span>
-              </dd>
-            </div>
-          </dl>
-          <p className="tool-assumptions">
-            Grundlagen für Modellaufgaben. Anlagenplanung und konkrete Arbeitsausführung benötigen
-            die passenden aktuellen Fachquellen.
-          </p>
-        </section>
+        <Suspense fallback={<p role="status">Deine Formelwerkstatt wird geladen …</p>}>
+          <FormulaWorkbench />
+        </Suspense>
         <section className="surface data-tools">
           <div>
             <span className="topic-icon">

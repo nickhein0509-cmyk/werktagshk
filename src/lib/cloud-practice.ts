@@ -1,4 +1,6 @@
 import { supabase } from './supabase';
+import type { DifficultyLevel } from './difficulty';
+import type { ExerciseKind } from './exercise-kind';
 
 export const cloudTopics: Record<string, string> = {
   trinkwasser: 'Trinkwasser',
@@ -11,6 +13,24 @@ export const cloudTopics: Record<string, string> = {
   wiso: 'Wirtschaft & Soziales',
 };
 export type QuestionKind = 'choice' | 'numeric' | 'short' | 'self';
+export type CloudDifficulty = 'basic' | 'applied';
+export type CloudDemand = 'foundation' | 'application';
+export interface CloudEditorialReview {
+  difficultyLevel: DifficultyLevel;
+  taskKind: ExerciseKind;
+  status: 'supported' | 'qualified' | 'needs_revision';
+  reviewedAt: string;
+  rubricVersion: 'werktag-demand/1';
+  practiceEligible: boolean;
+}
+export const cloudDifficultyLabels: Record<CloudDifficulty, string> = {
+  basic: 'Basis',
+  applied: 'Anwendung',
+};
+export const cloudDemandLabels: Record<CloudDemand, string> = {
+  foundation: 'Grundlagen',
+  application: 'Anwendung',
+};
 export type JsonRecord = Record<string, unknown>;
 export interface CatalogQuestion {
   id: string;
@@ -21,6 +41,9 @@ export interface CatalogQuestion {
   active: boolean;
   reviewStatus: string;
   excludedReason?: string;
+  difficulty?: CloudDifficulty;
+  demand?: CloudDemand;
+  editorialReview?: CloudEditorialReview;
 }
 export interface CloudRound {
   id: string;
@@ -42,6 +65,9 @@ export interface CloudQuestion {
   options: { id: string; label: string }[];
   unit: string;
   figures: JsonRecord[];
+  difficulty?: CloudDifficulty;
+  demand?: CloudDemand;
+  editorialReview?: CloudEditorialReview;
 }
 export interface CloudSnapshot {
   id: string;
@@ -81,6 +107,61 @@ function integer(v: unknown): v is number {
 }
 function kind(v: unknown): v is QuestionKind {
   return ['choice', 'numeric', 'short', 'self'].includes(String(v));
+}
+/** Preserve the existing bank's two-level scale; never infer a grade from the task text. */
+export function parseCloudDifficulty(value: unknown): CloudDifficulty | undefined {
+  return value === 'basic' || value === 'applied' ? value : undefined;
+}
+
+function parseCloudDemand(value: unknown): CloudDemand | undefined {
+  return value === 'foundation' || value === 'application' ? value : undefined;
+}
+
+/** Only the answer-free, version-bound projection belongs in the learner catalog. */
+export function parseEditorialReview(value: unknown): CloudEditorialReview | undefined {
+  if (
+    !record(value) ||
+    ![1, 2, 3, 4].includes(value.difficultyLevel as number) ||
+    !['calculation', 'context', 'knowledge'].includes(value.taskKind as string) ||
+    !['supported', 'qualified', 'needs_revision'].includes(value.status as string) ||
+    value.rubricVersion !== 'werktag-demand/1' ||
+    !string(value.reviewedAt) ||
+    !Number.isFinite(Date.parse(value.reviewedAt)) ||
+    typeof value.practiceEligible !== 'boolean'
+  )
+    return undefined;
+  return {
+    difficultyLevel: value.difficultyLevel as DifficultyLevel,
+    taskKind: value.taskKind as ExerciseKind,
+    status: value.status as CloudEditorialReview['status'],
+    reviewedAt: value.reviewedAt,
+    rubricVersion: value.rubricVersion,
+    practiceEligible: value.practiceEligible,
+  };
+}
+
+export function compareEditorialDifficulty(
+  a: Pick<CatalogQuestion, 'editorialReview'>,
+  b: Pick<CatalogQuestion, 'editorialReview'>,
+  direction: 'asc' | 'desc' = 'asc',
+): number {
+  const first = a.editorialReview?.difficultyLevel;
+  const second = b.editorialReview?.difficultyLevel;
+  if (first === undefined) return second === undefined ? 0 : 1;
+  if (second === undefined) return -1;
+  return direction === 'asc' ? first - second : second - first;
+}
+
+/** Unknown classifications remain last in either direction. Ties retain catalogue order. */
+export function compareCloudDifficulty(
+  a: Pick<CatalogQuestion, 'difficulty'>,
+  b: Pick<CatalogQuestion, 'difficulty'>,
+  direction: 'asc' | 'desc' = 'asc',
+): number {
+  if (!a.difficulty) return b.difficulty ? 1 : 0;
+  if (!b.difficulty) return -1;
+  const difference = Number(a.difficulty === 'applied') - Number(b.difficulty === 'applied');
+  return direction === 'asc' ? difference : -difference;
 }
 /** Prefer the latest active revision while preserving blocked metadata for inspection. */
 export function latestCatalog(catalog: CatalogQuestion[]): CatalogQuestion[] {
@@ -127,6 +208,9 @@ export function parseLearning(data: unknown): CloudLearning {
       active: q.active,
       reviewStatus: string(q.reviewStatus) ? q.reviewStatus : 'unbekannt',
       excludedReason: string(q.excludedReason) ? q.excludedReason : undefined,
+      difficulty: parseCloudDifficulty(q.difficulty),
+      demand: parseCloudDemand(q.demand),
+      editorialReview: parseEditorialReview(q.editorialReview),
     };
   });
   const rounds = data.rounds.map((r): CloudRound => {
@@ -189,6 +273,9 @@ export function parseSnapshot(data: unknown): CloudSnapshot {
       multiple: q.multiple === true,
       unit: string(q.unit) ? q.unit : '',
       figures: Array.isArray(q.figures) ? q.figures.filter(record) : [],
+      difficulty: parseCloudDifficulty(q.difficulty),
+      demand: parseCloudDemand(q.demand),
+      editorialReview: parseEditorialReview(q.editorialReview),
     };
   }
   return {

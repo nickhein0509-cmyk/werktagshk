@@ -6,6 +6,21 @@ checkout; each cloud task is isolated. Do not create a worktree unless requested
 
 ## Product priority confirmed on 23 October 2026
 
+The examination workspace has a user-controlled `Prüfungsmodus` switch. OFF is
+practice with roomy calculation steps, notes, hints and embedded calculator. ON
+hides learning aids and calculator; allow a plain free working area and the user's
+own calculator. Keep measured time running across mode changes/navigation from
+explicit round start until hand-in. Preserve drafts, distinguish calculations,
+context tasks and knowledge questions, and never label an assisted round as an
+unaided simulation. Use the numbered, quiet paper structure of the user's known
+old exams without committing their private contents. See `docs/practice-workspace.md`.
+
+The Werkzeugkoffer supports selecting formula families and the sought variable.
+Keep units, explicit model assumptions and a traceable substitution/conversion
+path together. Changing units preserves the physical quantity; rearranging carries
+the current result into the known values. Keep formula use separate from attempts
+and block nonunique inverses such as division by zero with useful German feedback.
+
 Priority 1 is Nick's preparation for Gesellenprüfung Teil 2 on 7 December 2026.
 Prioritize meaningful original questions, justified calculations and explanations,
 and direct practice/review in Arbeitsplanung, Systemanalyse und Instandhaltung,

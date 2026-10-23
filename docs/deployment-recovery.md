@@ -22,8 +22,9 @@ zu schreiben. Anonyme Aufrufe sind ausgeschlossen. Die private Funktion prüft
 Bestätigung, Lernendenfreigabe und Sitzungseigentümer weiterhin selbst.
 
 Der Katalog zeigt aktive aktuelle Fassungen; Metadaten früherer Fassungen bleiben
-im geladenen Datensatz erhalten. Die Themenrunde wählt Aufgaben auf dem Server,
-nicht eine einzelne angeklickte ID. Abbildungen müssen vollständig darstellbar
+im geladenen Datensatz erhalten. Die Rundenauswahl bleibt serverseitig. Seit
+0.7.0 unterstützt sie auch Einzelstarts mit exakter Fragefassung sowie Thema,
+Aufgabenart und vier redaktionelle Stufen. Abbildungen müssen vollständig darstellbar
 sein; andernfalls bleibt die normale Bewertung gesperrt. Keine privaten Aufgaben,
 Musterlösungen, Quelldateien, Zugangsdaten oder Lernakten sind Teil des Repositorys.
 
@@ -35,6 +36,15 @@ Deployment zugänglich. Gast- und Kontolernstände bleiben getrennt. Die ursprü
 Supabase-Lernhistorie wird nicht in ein anderes Fortschrittsschema umgeschrieben.
 
 ## Veröffentlichung und Git-Anbindung
+
+Seit 0.8.0 erschließt „Fachwissen nachschlagen“ die vorhandenen Artikel und
+Begriffe über `shk_knowledge_catalog` und `shk_knowledge_read`. Der Katalogabruf
+erzeugt keine Lernereignisse. Der ausdrückliche Volltextaufruf ist ein
+idempotent protokollierter Nachschlagevorgang und kann bei offenen verknüpften
+Aufgaben als Hilfe zählen. Lesen ist weder Abgabe noch Beherrschungsnachweis.
+Volltexte werden nicht in Browserstorage, URLs oder öffentliche Assets kopiert.
+Kurz gültige Freigaben, Maskierung, Konto- und Fensterwechsel gelten auch für
+diesen Zugang. Die vorhandenen RPCs und ihre Schutzregeln bleiben erhalten.
 
 Das bestehende Projekt besitzt Domain, Laufzeitvariablen und Rückkehrmöglichkeit
 zur vorherigen Bereitstellung. Keine Domains verschieben oder Schlüssel rotieren.

@@ -14,24 +14,61 @@ fachlichen Minispielen fest; diese Funktionen werden jetzt noch nicht gebaut.
 
 Gestaltung ansehen: [Desktop](docs/screenshots/desktop.png),
 [Handy](docs/screenshots/mobile.png) und [Aufgabe](docs/screenshots/exercise.png).
+Prüfungsbereich: [Desktop](docs/screenshots/exam-mode.png) und [Handy](docs/screenshots/exam-mobile.png).
+Werkzeugkoffer: [Formelwerkstatt](docs/screenshots/formula-workbench.png) und [Handy](docs/screenshots/formula-workbench-mobile.png).
+Aktueller Ausbau: [21 Formeln](docs/screenshots/formula-expanded.png),
+[Handy](docs/screenshots/formula-expanded-mobile.png),
+[Schwierigkeitsauswahl](docs/screenshots/library-difficulty.png) und
+[Prüfungsvorbereitung](docs/screenshots/exam-difficulty-setup.png).
+Privates Aufgabenverzeichnis mit rein synthetischen Beispielen:
+[Desktop](docs/screenshots/private-bank-desktop-synthetic.png) und
+[Handy](docs/screenshots/private-bank-mobile-synthetic.png).
+Fachwissen mit rein synthetischem Inhalt:
+[Übersicht](docs/screenshots/knowledge-overview-desktop-synthetic.png),
+[Reader](docs/screenshots/knowledge-reader-desktop-synthetic.png) und
+[Handy](docs/screenshots/knowledge-reader-mobile-synthetic.png).
 
 ## Was funktioniert
 
 - Übersicht mit echten Tageszielen, bearbeiteten Aufgaben und Lerntagen.
-- 144 eigene Übungen mit Hinweisen und Erklärungen: die bisherigen 108
-  Modellaufgaben und 36 neue Fälle für Teil 2. Je zwölf neue Fälle zu
+- 204 eigene Übungen mit Hinweisen und Erklärungen: die bisherigen 108
+  Modellaufgaben und 96 Fälle für Teil 2. Je 32 Fälle zu
   Arbeitsplanung, Systemanalyse/Instandhaltung und WiSo. Vier WiSo-Fälle
   beziehen sich auf konkret gelesene Primärquellen.
-- Prüfungsfälle erscheinen zuerst. Prüfungsbereich, Lernfeld, Suchbegriff und
-  Merkliste lassen sich kombinieren und gemeinsam zurücksetzen.
-- Privater bisheriger Fragenbestand über das vorhandene Supabase-Lernkonto:
-  Auswahl, Zahlen, Kurzantwort und Selbstvergleich, mit Bewertung auf dem Server.
-  Gespeicherte Übungsrunden lassen sich fortsetzen; Entwürfe explizit speichern.
+- Prüfungsfälle erscheinen zuerst. Prüfungsbereich, Aufgabenart, Lernfeld, Suchbegriff,
+  Merkliste und vier redaktionelle Schwierigkeitsstufen lassen sich kombinieren.
+  Leicht/schwer sortieren; „Weiterlernen“ folgt der gewählten Auswahl.
+  Die [Einstufungsregeln](docs/difficulty-rubric.md) beschreiben die Anforderungen.
+- 631 private aktuelle Fragen über das vorhandene Supabase-Lernkonto: alle einzeln
+  inhaltlich geprüft und nach Aufgabenart sowie vier Stufen eingeordnet. Einzelne
+  Aufgaben direkt öffnen oder nach Thema, Art und Stufe eine Runde starten.
+  Die bisherigen Kategorien Basis/Anwendung bleiben zusätzlich verfügbar.
+  Auswahl, Zahlen, Kurzantwort und Selbstvergleich werden weiter auf dem Server
+  bewertet; gespeicherte Runden und Entwürfe bleiben erhalten.
+  32 korrigierte Inhaltsfassungen erhalten die alten Versionen. 23 Fragen tragen
+  noch gezielte Quellen-/Bildvorbehalte. Die [vollständige Inhaltsauswertung](docs/private-bank-release.md)
+  beschreibt Umfang und Grenzen; Zugriff und Rechenwertebereiche bleiben geschützt.
+- Fachwissen aus dem vorhandenen privaten Lernkonto: 112 Fachartikel, 111 Begriffe
+  und 15 Lernfelder. Suche und Filter nach Thema, Inhalt und Lernfeld führen zu
+  Zusammenfassung, Zusammenhang, Formeln, Beispiel und Übungsweg. Volltexte öffnen
+  sich ausdrücklich; Nachschlagen kann bei offenen Aufgaben als Hilfe zählen.
+  Es erzeugt keinen Beherrschungsnachweis. Der [ausführliche Wissensstand](docs/knowledge-state.md)
+  beschreibt fachliche Abdeckung, Quellenstatus und sinnvolle nächste Vertiefungen.
 - Lernwerkstatt mit Suche, Themenfiltern und Merkliste.
+- Rechenaufgaben, Kontextaufgaben und Wissensfragen getrennt filtern.
+  Großes Rechenblatt mit Teilschritten, eigenen Browsernotizen und Taschenrechner.
+- Prüfungsbereich mit nummeriertem Arbeitsblatt nach dem Aufbau bekannter
+  Altprüfungen. Sechs eigene Aufgaben je Runde; Lernhilfen über „Prüfungsmodus“
+  ausschaltbar. Eigener Rechner und freier Rechenweg im Prüfungsmodus.
+  Die Uhr läuft vom ausdrücklichen Start bis zur Abgabe, auch bei Navigation.
+  Alle Lösungen erst nach Abgabe, keine amtlichen Punkte oder Zeitvorgaben.
 - Wiederholung: zuletzt falsche Antworten sofort; zuletzt richtige Antworten
   nach 72 Stunden. Das ist eine einfache Produktregel, kein validiertes Lernmodell.
 - Frei einteilbarer Lernplan und ein Tagesziel von einer bis zehn Aufgaben.
-- Wärmeenergie-Rechner mit Einheiten und Annahmen sowie ein kleines Formelregister.
+- Formelwerkstatt mit 21 Formelfamilien und 64 Umstellungen, Suche und Bereichen.
+  Wärme, Strömung, Druck, Geometrie, Ausdehnung, trockene Mischung und elektrische
+  Grundmodelle: automatische Einheitenumrechnung und nachvollziehbarer Rechenweg.
+  Eine [erweiterbare Auswahl](docs/formula-expansion.md), keine vollständige Formelsammlung.
 - Validierter JSON-Export und -Import von Lernstand, Merkliste und Tagesziel.
   Ein Import ersetzt Daten erst nach ausdrücklicher Bestätigung in der App.
 - Höhere Lernstandsformate sind gegen Überschreiben geschützt, auch wenn sie
@@ -77,6 +114,8 @@ beenden ihren eigenen Entwicklungsserver und verändern keine echten Lerndaten.
 - `src/content`: eigene neue Fallaufgaben und separat belegte WiSo-Rechtsfälle.
 - `src/exam.ts`: redaktionelle Schwerpunktzuordnung ohne Änderung alter Antworten.
 - `src/components/FlowDashboard.tsx` und `src/design`: Flow-Oberfläche und Tokens.
+- `src/components/FormulaWorkbench.tsx` und `src/lib/formulas.ts`: Formelwahl,
+  Umstellungen und Einheitenmodelle ohne Einfluss auf den Lernstand.
 - `src/lib/learning.ts`: versionierter Lernstand, Validierung und Wiederholung.
 - `tests/e2e`: Browserprüfungen mit isolierten Datensätzen.
 - `.agents/skills`: zwei lokale Skills für Inhalte und Produktdesign.
@@ -96,10 +135,20 @@ Wiederherstellungsschlüssel gesichert; Rohdaten lassen sich separat exportieren
 
 Die Antworten der eigenen Modellübungen liegen im ausgelieferten JavaScript.
 Private Fragen werden erst zur jeweiligen Runde geladen und serverseitig bewertet.
-Diese Wiederanbindung bietet einen Übungsablauf, keinen neuen Prüfungsmodus. Die App enthält keine private Literatur, alte
+Der Prüfungsmodus ist eine Selbstübung mit ausgeblendeten Lernhilfen; die
+eigenen Antwortschlüssel bleiben im Browsercode. Der private Fragenbestand
+verwendet weiterhin seine vorhandenen Freigaberegeln. Die App enthält keine private Literatur, alte
 Prüfungsunterlagen oder wiederhergestellte persönliche Lerngeschichte. Die
 Modellaufgaben und Formeln ersetzen keine aktuellen Normen, Herstellerunterlagen
 oder fachgerechte Anlagenplanung. Ein KI-Chat ist noch nicht angebunden.
+
+Rechenentwürfe der Modellaufgaben werden separat nach Gast/Konto und Aufgabe
+in diesem Browser gespeichert und zählen nicht als Versuch. Sie sind nicht im
+Lernstandexport oder der Cloud-Synchronisierung enthalten. Die laufende
+Prüfungsrunde samt Notizen und Zeit wird im aktuellen Browser-Tab gesichert;
+die Uhr läuft bei Neuladen weiter und eine bereits abgegebene Runde wird nicht
+erneut verbucht. Private zusätzliche Rechenblätter bleiben nur in der geöffneten
+Bestandsansicht erhalten und werden nicht an den Server gesendet.
 
 Der Code ist für Nicks Projekt gedacht. Eine öffentliche Bereitstellung, Lizenz
 oder Freigabe privater Quellen ist damit nicht festgelegt. GitHub Actions ist für

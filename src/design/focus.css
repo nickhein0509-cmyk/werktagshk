@@ -1,0 +1,309 @@
+/* The task is the primary surface; metadata and secondary routes stay quiet. */
+[hidden] {
+  display: none !important;
+}
+textarea {
+  font: inherit;
+}
+textarea:focus-visible {
+  outline: 3px solid var(--flow-copper-ink);
+  outline-offset: 3px;
+}
+.flow-hero {
+  min-height: 460px;
+}
+.flow-hero h1 {
+  font-size: clamp(44px, 5.5vw, 80px);
+  margin-bottom: 38px;
+}
+.flow-focus > p:not(.eyebrow) {
+  max-width: 470px;
+}
+.flow-focus .hero-action {
+  margin-top: 15px;
+}
+.flow-exam-date time > strong {
+  font-size: 65px;
+}
+.flow-topics-heading h2 {
+  font-size: 24px;
+}
+.topic-card {
+  background: transparent;
+  border-radius: 8px;
+}
+.topic-card h3 {
+  font-size: 19px;
+}
+.topic-card .subject-object {
+  background: transparent;
+}
+.topic-card .subject-object svg {
+  color: var(--flow-ink-muted);
+}
+.exam-priority-card {
+  background: transparent;
+  border-radius: 8px;
+}
+.exam-priority-card h3 {
+  font-size: clamp(20px, 2vw, 28px);
+}
+.routine-icon {
+  color: var(--flow-text-muted);
+}
+.library-exam-entry {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px 22px;
+  padding: 0 0 20px;
+  margin-bottom: 24px;
+  border-bottom: 1px solid var(--flow-line-dark);
+}
+.library-exam-entry > span {
+  color: var(--flow-text-muted);
+  font-size: 13px;
+}
+.library-exam-entry .text-button {
+  color: var(--flow-text);
+}
+.kind-filter-row {
+  margin-bottom: 20px;
+}
+.kind-filter-row .filter-chip {
+  border-radius: 9px;
+}
+.exercise-kind {
+  color: var(--flow-ink);
+  font-size: 12px;
+  font-weight: 650;
+  margin-bottom: 12px;
+}
+.exercise-kind > span {
+  font-weight: 400;
+  color: var(--flow-ink-muted);
+}
+.practice-library .exercise-grid {
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+  background: var(--flow-surface);
+  border-radius: 16px;
+  overflow: hidden;
+}
+.practice-library .exercise-card {
+  display: grid;
+  grid-template-columns: 44px minmax(0, 1fr) 155px;
+  gap: 6px 22px;
+  border: 0;
+  border-bottom: 1px solid var(--flow-line);
+  border-radius: 0;
+  padding: 24px;
+  background: transparent;
+}
+.practice-library .exercise-card:last-child {
+  border-bottom: 0;
+}
+.practice-library .exercise-card-top {
+  grid-column: 1;
+  grid-row: 1 / 5;
+  flex-direction: column;
+  gap: 8px;
+  justify-content: flex-start;
+  margin: 0;
+}
+.practice-library .topic-icon {
+  background: transparent;
+  width: 36px;
+  height: 36px;
+}
+.practice-library .exercise-category {
+  grid-column: 2;
+  grid-row: 1;
+  margin: 0;
+  font-size: 11px;
+}
+.practice-library .exercise-kind {
+  grid-column: 2;
+  grid-row: 2;
+  margin: 0;
+}
+.practice-library .exercise-card h2 {
+  grid-column: 2;
+  grid-row: 3;
+  font-size: 20px;
+  margin: 3px 0;
+  letter-spacing: -0.02em;
+}
+.practice-library .exercise-card > p {
+  grid-column: 2;
+  grid-row: 4;
+  font-size: 13px;
+  line-height: 1.65;
+  margin: 0;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+.practice-library .exercise-card-bottom {
+  grid-column: 3;
+  grid-row: 1 / 5;
+  border: 0;
+  padding: 0;
+  justify-content: center;
+  align-items: flex-end;
+  flex-direction: column;
+  gap: 10px;
+}
+.practice-library .exercise-card-bottom > span {
+  font-size: 11px;
+  text-align: right;
+}
+.practice-library .exercise-card-bottom .text-button {
+  font-size: 13px;
+}
+.practice-task-layout {
+  display: grid;
+  gap: 24px;
+}
+.task-question-panel,
+.task-work-panel {
+  min-width: 0;
+}
+.calculation-dialog {
+  width: min(1240px, calc(100vw - 48px));
+  max-height: 94dvh;
+}
+.calculation-dialog .dialog-body {
+  padding: 28px 34px;
+}
+.calculation-dialog .practice-task-layout {
+  grid-template-columns: minmax(0, 0.9fr) minmax(0, 1.1fr);
+  gap: 34px;
+}
+.calculation-dialog .task-work-panel {
+  padding-left: 28px;
+  border-left: 1px solid var(--flow-line);
+}
+.calculation-dialog .workpad-layout {
+  grid-template-columns: minmax(0, 1fr);
+}
+.calculation-dialog .task-context {
+  font-size: 15px;
+  line-height: 1.8;
+}
+.calculation-dialog .answer-option {
+  padding: 14px;
+}
+.calculation-dialog .exercise-controls {
+  flex-wrap: wrap;
+}
+.practice-notes {
+  display: grid;
+  gap: 10px;
+  font-size: 14px;
+  font-weight: 600;
+}
+.practice-notes textarea {
+  width: 100%;
+  padding: 16px;
+  border: 1px solid #a0b1a8;
+  border-radius: 10px;
+  resize: vertical;
+  background: #fffefa;
+  color: var(--flow-ink);
+  line-height: 1.7;
+  font-size: 15px;
+  font-weight: 400;
+}
+.workpad-storage-note {
+  font-size: 11px;
+  line-height: 1.6;
+  color: var(--flow-ink-muted);
+  margin: 12px 0 0;
+}
+@media (max-width: 1000px) {
+  .calculation-dialog .practice-task-layout {
+    grid-template-columns: 1fr;
+  }
+  .calculation-dialog .task-work-panel {
+    padding: 24px 0 0;
+    border-left: 0;
+    border-top: 1px solid var(--flow-line);
+  }
+  .practice-library .exercise-card {
+    grid-template-columns: 36px minmax(0, 1fr);
+    gap: 6px 14px;
+  }
+  .practice-library .exercise-card-bottom {
+    grid-column: 2;
+    grid-row: 5;
+    align-items: center;
+    flex-direction: row;
+    justify-content: space-between;
+  }
+}
+@media (max-width: 700px) {
+  .main-nav {
+    display: flex;
+    overflow-x: auto;
+    gap: 3px;
+    scrollbar-width: thin;
+  }
+  .main-nav .nav-item {
+    flex: 0 0 76px;
+    font-size: 10px;
+    min-height: 58px;
+  }
+  .flow-hero {
+    min-height: 0;
+  }
+  .flow-hero h1 {
+    font-size: clamp(39px, 10vw, 60px);
+    margin-bottom: 28px;
+  }
+  .flow-focus .hero-action {
+    margin-top: 10px;
+  }
+  .flow-hero-bottom {
+    gap: 22px;
+  }
+  .flow-routine .section-heading {
+    flex-wrap: wrap;
+  }
+  .practice-library .exercise-card {
+    padding: 20px 15px;
+    gap: 6px 8px;
+  }
+  .practice-library .exercise-card h2 {
+    font-size: 18px;
+  }
+  .practice-library .exercise-card-bottom {
+    flex-wrap: wrap;
+    gap: 2px 10px;
+    margin-top: 5px;
+  }
+  .practice-library .exercise-card-bottom > span {
+    font-size: 10px;
+  }
+  .calculation-dialog {
+    width: calc(100vw - 16px);
+    max-height: 96dvh;
+    border-radius: 16px;
+  }
+  .calculation-dialog .dialog-body {
+    padding: 22px 18px;
+  }
+  .calculation-dialog .dialog-top {
+    padding: 10px 12px;
+  }
+  .calculation-dialog .dialog-body h2 {
+    font-size: 26px;
+  }
+  .library-exam-entry {
+    margin-top: -5px;
+    gap: 4px;
+  }
+}

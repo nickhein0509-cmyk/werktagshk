@@ -60,6 +60,53 @@
 .cloud-practice {
   min-width: 0;
 }
+.cloud-catalog-summary {
+  margin: 18px 0 24px;
+  border-block: 1px solid var(--flow-line-dark, #355052);
+  padding: 12px 0;
+  color: var(--flow-text-muted, #b9cbc5);
+  font-size: 13px;
+}
+.cloud-catalog-summary summary {
+  cursor: pointer;
+  min-height: 44px;
+  padding: 12px 0;
+  color: var(--flow-text, #f7f7f2);
+  font-weight: 600;
+}
+.cloud-catalog-summary p {
+  margin: 12px 0;
+  max-width: 82ch;
+  line-height: 1.7;
+}
+.cloud-topic-counts {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+  gap: 8px 24px;
+  margin: 20px 0 8px;
+}
+.cloud-topic-counts > div {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 8px 0;
+  border-bottom: 1px solid var(--flow-line-dark, #355052);
+}
+.cloud-topic-counts dt,
+.cloud-topic-counts dd {
+  margin: 0;
+}
+.cloud-topic-counts dd {
+  font-variant-numeric: tabular-nums;
+  color: var(--flow-text, #f7f7f2);
+}
+.cloud-practice .cloud-difficulty-label {
+  font-size: 12px;
+  font-weight: 600;
+}
+.cloud-difficulty-label > span {
+  font-weight: 400;
+}
 .cloud-practice .page-heading {
   display: none;
 }
@@ -124,13 +171,148 @@
   flex-wrap: wrap;
   gap: 12px;
 }
+
+/* The active paper is the working surface; the directory stays quiet. */
+.cloud-practice .cloud-round {
+  padding: clamp(20px, 3vw, 40px);
+  border-color: #d7ded8;
+  border-radius: 10px;
+  box-shadow: none;
+}
+.cloud-practice .cloud-round > h3 {
+  max-width: 52ch;
+  margin: 30px 0 12px;
+  font-size: clamp(23px, 2.4vw, 32px);
+  line-height: 1.25;
+}
+.cloud-practice .cloud-round > .cloud-preformatted {
+  max-width: 78ch;
+  margin-block: 24px 30px;
+  font-size: 17px;
+  line-height: 1.75;
+}
+.cloud-practice .cloud-round-calculation fieldset {
+  background: #fff;
+  padding: 24px;
+}
+.cloud-practice .cloud-round-calculation fieldset textarea {
+  min-height: 145px;
+}
+.cloud-practice .cloud-workpad {
+  margin-block: 30px;
+}
+.cloud-practice .cloud-workpad-note,
+.cloud-practice .cloud-directory-note {
+  max-width: 82ch;
+  color: #53665f;
+  font-size: 13px;
+  line-height: 1.65;
+}
+.cloud-practice .cloud-directory-note {
+  color: var(--flow-text-muted, #b9cbc5);
+}
+.cloud-practice .cloud-context-notes {
+  display: grid;
+  gap: 10px;
+  color: #264c42;
+  font-size: 15px;
+  font-weight: 600;
+}
+.cloud-practice .cloud-context-notes textarea {
+  min-height: 180px;
+  line-height: 1.7;
+  font-weight: 400;
+}
+.cloud-practice .cloud-directory {
+  display: grid;
+  margin-block: 20px;
+  border-top: 1px solid var(--flow-line-dark, #355052);
+}
+.cloud-practice .cloud-directory-entry {
+  display: grid;
+  gap: 5px;
+  padding: 20px 0;
+  border-bottom: 1px solid var(--flow-line-dark, #355052);
+}
+.cloud-practice .cloud-directory-entry h3 {
+  margin: 0;
+  color: var(--flow-text, #f7f7f2);
+  font-size: 17px;
+  line-height: 1.5;
+  font-weight: 600;
+}
+.cloud-practice .cloud-directory-entry p {
+  margin: 0;
+  color: var(--flow-text-muted, #b9cbc5);
+  font-size: 13px;
+  line-height: 1.65;
+}
+.cloud-practice .cloud-directory-entry p:last-child {
+  font-size: 12px;
+}
+.cloud-editorial-label {
+  font-weight: 600;
+  line-height: 1.65;
+}
+.cloud-editorial-label > span {
+  font-weight: 400;
+}
+.cloud-native-options {
+  max-width: 440px;
+  margin-block: 12px 20px;
+  color: var(--flow-text-muted, #b9cbc5);
+}
+.cloud-native-options summary {
+  min-height: 44px;
+  padding-block: 12px;
+  cursor: pointer;
+}
+.cloud-native-options label {
+  display: grid;
+  gap: 8px;
+  padding-block: 8px 16px;
+}
+.cloud-round-start {
+  display: grid;
+  justify-items: start;
+  gap: 10px;
+  margin-block: 16px 28px;
+}
+.cloud-round-start p {
+  margin: 0;
+}
+.cloud-round-start > .button.primary {
+  background: var(--flow-text, #f7f7f2);
+  color: var(--flow-ink, #183c3a);
+  border-color: #b7c0b8;
+}
+.cloud-round-start > .button.primary:hover:not(:disabled) {
+  background: #e2e7df;
+}
+.cloud-practice .cloud-question-start {
+  justify-self: start;
+  margin-top: 9px;
+  min-height: 44px;
+  max-width: 100%;
+  white-space: normal;
+}
 @media (max-width: 600px) {
-  .cloud-round {
+  .cloud-practice .cloud-round {
     padding: 14px;
+  }
+  .cloud-practice .cloud-round-calculation fieldset {
+    padding: 16px;
+  }
+  .cloud-practice .cloud-round > .cloud-preformatted {
+    font-size: 16px;
   }
   .cloud-practice .cloud-actions {
     align-items: stretch;
     flex-direction: column;
+  }
+  .cloud-round-start,
+  .cloud-round-start > .button {
+    width: 100%;
   }
 }
 

@@ -26,6 +26,7 @@ export function FlowDashboard({
   onLibrary,
   onArea,
   onCloud,
+  onExam,
   onReview,
   onPlan,
   onStart,
@@ -36,6 +37,7 @@ export function FlowDashboard({
   onLibrary: (topic?: TopicId | 'all') => void;
   onArea: (area: ExamAreaId) => void;
   onCloud: () => void;
+  onExam: () => void;
   onReview: () => void;
   onPlan: () => void;
   onStart: (exercise: Exercise) => void;
@@ -57,12 +59,6 @@ export function FlowDashboard({
           </h1>
           <div className="flow-hero-bottom">
             <div className="flow-focus">
-              <p className="eyebrow">VERSTEHEN. RECHNEN. BEGRÜNDEN.</p>
-              <h2>
-                Mit jeder Frage
-                <br />
-                ein Stück sicherer.
-              </h2>
               <p>
                 Übe die Zusammenhänge für deine Prüfung. Mit eigenen Aufgaben, klaren Lösungswegen
                 und deinem privaten Fragenbestand.
@@ -71,8 +67,8 @@ export function FlowDashboard({
                 <button className="button hero-action" onClick={() => onLibrary()}>
                   Prüfungsfragen öffnen <ArrowUpRight size={19} />
                 </button>
-                <button className="text-button" onClick={onCloud}>
-                  Mein Fragenbestand <ArrowRight size={17} />
+                <button className="text-button" onClick={onExam}>
+                  Runde mit Zeitmessung <ArrowRight size={17} />
                 </button>
               </div>
               <span className="hero-meta">Eigene Übungsaufgaben · keine offiziellen Prüfungen</span>
@@ -161,7 +157,9 @@ export function FlowDashboard({
       <section className="flow-routine" aria-labelledby="routine-title">
         <div className="section-heading">
           <h2 id="routine-title">Dranbleiben wird Routine.</h2>
-          <span className="quiet">DEIN NÄCHSTER KLEINER SCHRITT</span>
+          <button className="text-button" onClick={onCloud}>
+            Mein Fragenbestand <ArrowRight size={16} />
+          </button>
         </div>
         <div className="routine-grid">
           <div className="routine-week">

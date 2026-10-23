@@ -1,0 +1,125 @@
+{
+  "content_version": 1,
+  "checked_on": "2026-10-23",
+  "scope": "Original task models only. No private source, normative or official examination review.",
+  "checks": {
+    "exam-ap-speicher-mit-entnahme-v1": {
+      "stored_kJ": "15048.00",
+      "stored_kWh": "4.18",
+      "net_power_kW": "4.5",
+      "time_min": "55.73333333333333333333333333",
+      "rounded_minutes": 56
+    },
+    "exam-ap-zuschnitt-schnittfuge-v1": {
+      "exhaustive_assignment_check": [
+        {
+          "bars": 1,
+          "feasible_assignments": 0,
+          "example": []
+        },
+        {
+          "bars": 2,
+          "feasible_assignments": 0,
+          "example": []
+        },
+        {
+          "bars": 3,
+          "feasible_assignments": 6,
+          "example": [
+            {
+              "piece_bars": [
+                0,
+                1,
+                2,
+                2
+              ],
+              "used_mm": [
+                3404,
+                3404,
+                5208
+              ]
+            }
+          ]
+        }
+      ],
+      "minimum_bars": 3
+    },
+    "exam-si-energieprotokoll-v1": {
+      "energy_kWh": "6.3",
+      "duration_h": "0.75",
+      "mean_kW": "8.4",
+      "reference_percent": "80.0"
+    },
+    "exam-si-widerstand-normieren-v1": {
+      "R_first_Pa_h2_m6": "0.0025",
+      "R_second_Pa_h2_m6": "0.0025",
+      "ratio": "1"
+    },
+    "exam-si-zweipunkt-vergleich-v1": {
+      "deviations_K": [
+        "2",
+        "2"
+      ]
+    },
+    "exam-wiso-engpassstunde-v1": {
+      "enumerated_feasible_allocations": [
+        {
+          "a": 0,
+          "b": 0,
+          "hours": 0,
+          "contribution_eur": 0
+        },
+        {
+          "a": 0,
+          "b": 1,
+          "hours": 2,
+          "contribution_eur": 150
+        },
+        {
+          "a": 0,
+          "b": 2,
+          "hours": 4,
+          "contribution_eur": 300
+        },
+        {
+          "a": 0,
+          "b": 3,
+          "hours": 6,
+          "contribution_eur": 450
+        },
+        {
+          "a": 1,
+          "b": 0,
+          "hours": 3,
+          "contribution_eur": 180
+        },
+        {
+          "a": 1,
+          "b": 1,
+          "hours": 5,
+          "contribution_eur": 330
+        },
+        {
+          "a": 2,
+          "b": 0,
+          "hours": 6,
+          "contribution_eur": 360
+        }
+      ],
+      "best": {
+        "a": 0,
+        "b": 3,
+        "hours": 6,
+        "contribution_eur": 450
+      }
+    },
+    "exam-wiso-restzahlung-v1": {
+      "advance_eur": "540.0",
+      "remaining_eur": "1260.0"
+    },
+    "exam-wiso-gewichtete-auswahl-v1": {
+      "A": "70.0",
+      "B": "72.0"
+    }
+  }
+}
