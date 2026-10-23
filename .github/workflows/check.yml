@@ -19,5 +19,13 @@ jobs:
           node-version-file: .nvmrc
           cache: npm
       - run: npm ci
-      - run: npx playwright install --with-deps chromium
+      - name: Vorhandenen Browser nutzen oder Chromium installieren
+        shell: bash
+        run: |
+          task_chromium="$(command -v google-chrome || command -v chromium || true)"
+          if [ -n "$task_chromium" ]; then
+            printf 'PLAYWRIGHT_CHROMIUM_EXECUTABLE_PATH=%s\n' "$task_chromium" >> "$GITHUB_ENV"
+          else
+            npx playwright install --with-deps chromium
+          fi
       - run: npm run check
