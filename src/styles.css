@@ -2577,3 +2577,8 @@ fieldset:disabled .answer-option {
 .exercise-card h2 {
   overflow-wrap: anywhere;
 }
+
+/* Project navigation stays separate from the learning sections. */
+.project-switch { display:inline-flex;align-items:center;justify-content:center;min-height:44px;padding:.5rem .8rem;border:1px solid currentColor;border-radius:8px;font-size:.85rem;font-weight:650;white-space:nowrap;color:inherit;text-decoration:none; }
+.project-switch:focus-visible { outline:3px solid #c99470;outline-offset:3px; }
+@media(max-width:480px){.topbar .project-switch{padding:.4rem .55rem;font-size:.78rem;}.topbar .breadcrumb{display:none;}}

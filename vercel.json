@@ -2,5 +2,32 @@
   "framework": "vite",
   "buildCommand": "npm run build",
   "installCommand": "npm ci",
-  "outputDirectory": "dist"
+  "outputDirectory": "dist",
+  "rewrites": [
+    {
+      "source": "/api/assistenz/owntracks",
+      "destination": "/api/assistenz?path=pub"
+    },
+    {
+      "source": "/assistenz",
+      "destination": "/api/assistenz?path=map"
+    },
+    {
+      "source": "/assistenz/:path*",
+      "destination": "/api/assistenz?path=map/:path*"
+    },
+    {
+      "source": "/projekte",
+      "destination": "/index.html"
+    },
+    {
+      "source": "/projekte/",
+      "destination": "/index.html"
+    }
+  ],
+  "functions": {
+    "api/assistenz.mjs": {
+      "maxDuration": 30
+    }
+  }
 }

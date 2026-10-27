@@ -321,6 +321,7 @@ function App() {
             WerkTag<span>.</span>
           </button>
           <div className="breadcrumb">{navItems.find((x) => x.id === page)?.label}</div>
+          <a className="project-switch" href="/projekte">Projekte</a>
           <button
             className="daily-progress"
             onClick={() => navigate('plan')}
