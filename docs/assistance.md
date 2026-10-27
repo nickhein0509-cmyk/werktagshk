@@ -24,3 +24,7 @@ HTML-/JS-/CSS-Pfade und Cookie-Paths werden von `/map` auf `/assistenz` umgesetz
 ## Prüfung
 
 `npm run check` enthält App-Build, bestehende Tests, gezielte Proxy-Schutztests und Chromium-Interaktionstests. Live-Prüfungen erfolgen zusätzlich ohne Login und über eine echte geschützte Kartenanmeldung. Es werden keine künstlichen Standortpunkte an die produktive Ablage gesendet.
+
+### Veröffentlichungsprüfung
+
+Am 27.10.2026: Build, 250 App-Tests, acht gezielte Gatewaytests und 62 Chromium-Interaktionstests bestanden. Vercel-Produktion wurde bereitgestellt. Live: Projektauswahl und Assistenz-HTML 200; ohne Kartensitzung private Daten 401; fremder Browser-Origin 403; ohne Basic-Anmeldung Standortempfang 401. Kartenanmeldung, geschützter Datenabruf und getrennte Owner-Sitzung erfolgreich geprüft. Es wurden keine künstlichen Standortpunkte geschrieben. Die iPhone-Übernahme der festen URL ist ein eigener Geräteschritt.

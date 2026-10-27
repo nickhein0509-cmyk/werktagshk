@@ -71,6 +71,7 @@ export function createGateway(options={}) {
     const headers={'accept-encoding':'identity'};
     for(const h of ['accept','content-type','x-csrf-token'])if(typeof req.headers[h]==='string')headers[h]=req.headers[h];
     if(ingestion && typeof req.headers.authorization==='string' && /^Basic [A-Za-z0-9+/]+=*$/i.test(req.headers.authorization))headers.authorization=req.headers.authorization;
+    if(ingestion)for(const h of ['x-limit-d','x-limit-u','content-encoding'])if(typeof req.headers[h]==='string')headers[h]=req.headers[h];
     if(!ingestion){
       const selected=onlyMapCookies(req.headers.cookie);
       if(selected)headers.cookie=selected;
