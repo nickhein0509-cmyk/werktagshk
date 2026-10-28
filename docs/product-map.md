@@ -58,7 +58,8 @@ und betroffenen Tests vor einer Änderung lesen.
 - Lernstände, persönliche Assistenzaufzeichnungen und Materialdaten sind
   getrennte Datenbereiche. Eine gemeinsame Anmeldung erlaubt keinen beliebigen
   Transfer zwischen ihnen.
-- Der Assistent hat bestehende GPS-/Tagesjournalfunktionen. Vollständige automatische
+- Der Assistent unterstützt Notizen, Aufgaben und Zeitraumssuche unabhängig vom
+  GPS-Abruf sowie bestehende GPS-/Tagesjournalfunktionen. Vollständige automatische
   Dokumentation ist eine Produktrichtung; externe AI ist derzeit nicht angebunden.
 - Geschützte Katalogdaten, Originalunterlagen, Geheimnisse und persönliche
   Aufzeichnungen gehören auch bei privaten Produkt-Repositories nicht in Git.

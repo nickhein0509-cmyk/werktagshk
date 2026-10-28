@@ -10,6 +10,7 @@ const routes = new Map([
   ['map/logout', ['POST']], ['account/status', ['GET']],
   ['account/session', ['POST']], ['account/claim', ['POST']],
   ['health/status', ['GET']], ['health/configure', ['POST']], ['health/disable', ['POST']],
+  ['health/check', ['POST']], ['health/refresh', ['POST']],
   ['map/components', ['GET','HEAD']], ['map/components/view', ['GET','HEAD']],
   ...catalogueFiles.map(file => ['map/components/' + file, ['GET','HEAD']]),
 ]);
@@ -56,7 +57,7 @@ export function createCloudProxy(options = {}) {
         else { const chunks = []; let size = 0; for await (const p of req) { size += p.length; if (size > 262144) return reply(res, 413, 'Anfrage zu groß.'); chunks.push(Buffer.from(p)); } bytes = Buffer.concat(chunks); }
         if (bytes.length > 262144) return reply(res, 413, 'Anfrage zu groß.');
       }
-      const r = await (options.fetchImpl ?? fetch)(endpoint, { method: req.method, headers, body: bytes, redirect: 'manual', signal: AbortSignal.timeout(20000) });
+      const r = await (options.fetchImpl ?? fetch)(endpoint, { method: req.method, headers, body: bytes, redirect: 'manual', signal: AbortSignal.timeout(route.startsWith('health/') ? 55000 : 20000) });
       if (r.status >= 300 && r.status < 400) throw Error();
       const parts = []; let size = 0;
       if (r.body) for await (const p of r.body) { size += p.length; if (size > 4 * 1024 * 1024) throw Error(); parts.push(Buffer.from(p)); }

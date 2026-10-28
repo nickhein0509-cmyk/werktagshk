@@ -6,7 +6,7 @@ const response = (status, body) => Response.json(body, { status, headers: { 'Cac
 const fail = code => { throw Object.assign(new Error(code), { code }); };
 const safeError = error => safeCodes.has(error?.code) ? error.code : 'HEALTH_SYNC_FAILED';
 
-export function createHealthSyncHandler({ supabaseUrl, serviceKey, fetcher = fetch, now = () => new Date().toISOString() }) {
+export function createHealthSyncHandler({ supabaseUrl, serviceKey, publicOrigin = 'https://werk-tag.com', fetcher = fetch, now = () => new Date().toISOString() }) {
   const base = supabaseUrl.replace(/\/$/, '');
   const headers = { apikey: serviceKey, Authorization: `Bearer ${serviceKey}`, 'Content-Type': 'application/json' };
   async function db(path, body, method = 'POST') {
@@ -37,8 +37,9 @@ export function createHealthSyncHandler({ supabaseUrl, serviceKey, fetcher = fet
       const committed = await rpc('assistance_health_commit_sync', { p_installation_id: installationId, p_lease_token: claim.leaseToken, p_days: snapshot.days, p_source_last_sync_at: snapshot.sourceLastSyncAt, p_source_last_data_at: snapshot.sourceLastDataAt });
       return committed?.committed === true ? { ok: true } : { skipped: true };
     } catch (error) {
-      await rpc('assistance_health_fail_sync', { p_installation_id: installationId, p_lease_token: claim.leaseToken, p_error_code: safeError(error) });
-      return { ok: false };
+      const code = safeError(error);
+      await rpc('assistance_health_fail_sync', { p_installation_id: installationId, p_lease_token: claim.leaseToken, p_error_code: code });
+      return { ok: false, error: code };
     }
   }
   return async req => {
@@ -55,23 +56,44 @@ export function createHealthSyncHandler({ supabaseUrl, serviceKey, fetcher = fet
         for (const installation of installations) { const result = await syncOne(installation.installation_id); if (result.ok) completed++; else if (result.ok === false) failed++; }
         return response(failed ? 503 : 200, { ok: failed === 0, completed, failed });
       }
-      if (!['status', 'configure', 'disable'].includes(route)) return response(404, { ok: false, error: 'HEALTH_NOT_FOUND' });
+      if (!['status', 'configure', 'disable', 'check', 'refresh'].includes(route)) return response(404, { ok: false, error: 'HEALTH_NOT_FOUND' });
       if (req.method !== (route === 'status' ? 'GET' : 'POST')) return response(405, { ok: false, error: 'HEALTH_METHOD_NOT_ALLOWED' });
+      if (req.method === 'POST' && (req.headers.get('origin') !== publicOrigin || req.headers.get('sec-fetch-site') === 'cross-site')) return response(403, { ok: false, error: 'HEALTH_ORIGIN_REQUIRED' });
       const installationId = await owner(req);
       if (!installationId) return response(403, { ok: false, error: 'HEALTH_OWNER_REQUIRED' });
-      if (route === 'configure') {
+      if (route === 'configure' || route === 'check') {
         if (Number(req.headers.get('content-length')) > 2048) return response(413, { ok: false, error: 'HEALTH_INVALID_REQUEST' });
         const raw = await req.text();
         if (raw.length > 2048) return response(413, { ok: false, error: 'HEALTH_INVALID_REQUEST' });
         let body;
         try { body = JSON.parse(raw); } catch { return response(400, { ok: false, error: 'HEALTH_INVALID_REQUEST' }); }
         if (!body || Object.keys(body).length !== 1 || !validApiKey(body.apiKey)) return response(400, { ok: false, error: 'HEALTH_KEY_INVALID' });
-        await freddyClient(body.apiKey, fetcher).check();
+        const checked = await freddyClient(body.apiKey, fetcher).check();
+        if (route === 'check') {
+          body.apiKey = null;
+          return response(200, { ok: true, sourceConnected: true, sourceLastSyncAt: checked.sourceLastSyncAt, sourceLastDataAt: checked.sourceLastDataAt, metricsAvailable: checked.metrics.length, historyWindowDays: checked.historyWindowDays, historyFloor: checked.historyFloor });
+        }
         await rpc('assistance_health_configure', { p_installation_id: installationId, p_api_key: body.apiKey, p_function_url: base + '/functions/v1/health-sync?route=sync' });
         body.apiKey = null;
         // Complete one real import before calling activation successful. Failures remain visible in status.
         await syncOne(installationId);
         return response(200, { ok: true, ...(await rpc('assistance_health_status', { p_installation_id: installationId })) });
+      }
+      if (route === 'refresh') {
+        if (Number(req.headers.get('content-length')) > 2048) return response(413, { ok: false, error: 'HEALTH_INVALID_REQUEST' });
+        const raw = await req.text();
+        if (raw.length > 2048) return response(413, { ok: false, error: 'HEALTH_INVALID_REQUEST' });
+        let body;
+        try { body = raw.trim() ? JSON.parse(raw) : {}; } catch { return response(400, { ok: false, error: 'HEALTH_INVALID_REQUEST' }); }
+        if (!body || Array.isArray(body) || typeof body !== 'object' || Object.keys(body).length) return response(400, { ok: false, error: 'HEALTH_INVALID_REQUEST' });
+        const status = await rpc('assistance_health_status', { p_installation_id: installationId });
+        if (!status?.configured) return response(409, { ok: false, error: 'HEALTH_NOT_CONFIGURED' });
+        if (!status.enabled) return response(409, { ok: false, error: 'HEALTH_SYNC_DISABLED' });
+        const elapsed = Date.parse(now()) - Date.parse(status.lastAttemptAt);
+        if (Number.isFinite(elapsed) && elapsed < 60000) return response(429, { ok: false, error: 'HEALTH_REFRESH_COOLDOWN', retryAfterSeconds: Math.max(1, Math.ceil((60000 - elapsed) / 1000)) });
+        const result = await syncOne(installationId);
+        const next = await rpc('assistance_health_status', { p_installation_id: installationId });
+        return response(result.ok ? 200 : result.skipped ? 409 : 503, { ...next, ok: result.ok === true, ...(result.ok ? {} : { error: result.skipped ? 'HEALTH_SYNC_BUSY' : result.error }) });
       }
       if (route === 'disable') await rpc('assistance_health_disable', { p_installation_id: installationId });
       return response(200, { ok: true, ...(await rpc('assistance_health_status', { p_installation_id: installationId })) });

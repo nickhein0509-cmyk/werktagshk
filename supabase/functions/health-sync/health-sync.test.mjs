@@ -49,9 +49,9 @@ test('source connection is validated without requesting or returning raw health 
   assert.throws(() => sourceMetadata({ sources: [{ ...source, needsReauth: true }] }), /HEALTH_SOURCE_NOT_CONNECTED/);
 });
 
-function fixture({ owner = true, providerStatus = 200, cursorLoop = false, committed = true } = {}) {
+function fixture({ owner = true, providerStatus = 200, cursorLoop = false, committed = true, initialConfigured = false, initialAttemptAt = null, claimAvailable = true } = {}) {
   const calls = [], stored = [];
-  let configured = false, disabled = false;
+  let configured = initialConfigured, disabled = false, lastAttemptAt = initialAttemptAt, lastSuccessAt = null, errorCode = null;
   const fetcher = async (input, options = {}) => {
     const url = new URL(input), body = options.body ? JSON.parse(options.body) : null;
     calls.push({ path: url.pathname, query: url.search, body });
@@ -61,10 +61,10 @@ function fixture({ owner = true, providerStatus = 200, cursorLoop = false, commi
     if (url.pathname.endsWith('/assistance_health_authorize_cron')) return json(body.p_secret === 's'.repeat(64));
     if (url.pathname.endsWith('/assistance_health_configure')) { configured = true; return json(null); }
     if (url.pathname.endsWith('/assistance_health_disable')) { disabled = true; return json(null); }
-    if (url.pathname.endsWith('/assistance_health_status')) return json({ configured, enabled: configured && !disabled, cronActive: configured && !disabled, status: disabled ? 'disabled' : configured ? 'active' : 'not_configured' });
-    if (url.pathname.endsWith('/assistance_health_claim')) return json({ claimed: true, apiKey, leaseToken: lease });
-    if (url.pathname.endsWith('/assistance_health_commit_sync')) { if (committed) stored.push(body); return json({ committed, ...(committed ? {} : { reason: 'superseded' }) }); }
-    if (url.pathname.endsWith('/assistance_health_fail_sync')) return json(null);
+    if (url.pathname.endsWith('/assistance_health_status')) return json({ configured, enabled: configured && !disabled, cronActive: configured && !disabled, status: disabled ? 'disabled' : errorCode ? 'error' : configured ? 'active' : 'not_configured', lastAttemptAt, lastSuccessAt, errorCode });
+    if (url.pathname.endsWith('/assistance_health_claim')) { if (!claimAvailable) return json({ claimed: false }); lastAttemptAt = fetchedAt; return json({ claimed: true, apiKey, leaseToken: lease }); }
+    if (url.pathname.endsWith('/assistance_health_commit_sync')) { if (committed) { stored.push(body); lastSuccessAt = fetchedAt; errorCode = null; } return json({ committed, ...(committed ? {} : { reason: 'superseded' }) }); }
+    if (url.pathname.endsWith('/assistance_health_fail_sync')) { errorCode = body.p_error_code; return json(null); }
     if (url.pathname.endsWith('/sources')) return providerStatus === 200 ? json({ data: [source] }) : new Response('private-provider-error-not-to-return', { status: providerStatus });
     if (url.pathname.endsWith('/catalog')) return json({ data: [{ metric: 'steps_total' }] });
     if (url.pathname.endsWith('/metrics')) return json({ data: [steps], next_cursor: cursorLoop ? 'same' : null });
@@ -72,7 +72,7 @@ function fixture({ owner = true, providerStatus = 200, cursorLoop = false, commi
   };
   const handler = createHealthSyncHandler({ supabaseUrl: 'https://test-project.supabase.co', serviceKey: 'server-only-test-key', fetcher, now: () => fetchedAt });
   const request = (route, body, auth = token) => handler(new Request('https://test-project.supabase.co/functions/v1/health-sync?route=' + route, {
-    method: route === 'status' ? 'GET' : 'POST', headers: { Authorization: 'Bearer ' + auth, 'Content-Type': 'application/json' }, ...(body ? { body: JSON.stringify(body) } : {}),
+    method: route === 'status' ? 'GET' : 'POST', headers: { Authorization: 'Bearer ' + auth, 'Content-Type': 'application/json', Origin: 'https://werk-tag.com' }, ...(body ? { body: JSON.stringify(body) } : {}),
   }));
   return { handler, request, calls, stored };
 }
@@ -120,4 +120,95 @@ test('a disabled or replaced lease is skipped rather than counted as a successfu
   assert.equal(response.status, 200);
   assert.deepEqual(await response.json(), { ok: true, completed: 0, failed: 0 });
   assert.equal(f.stored.length, 0);
+});
+
+test('checking a key returns only connection metadata and never stores or schedules it', async () => {
+  const f = fixture();
+  const response = await f.request('check', { apiKey }), body = await response.json();
+  assert.equal(response.status, 200);
+  assert.deepEqual(body, { ok: true, sourceConnected: true, sourceLastSyncAt: '2026-10-28T11:55:00.000Z', sourceLastDataAt: '2026-10-28T11:54:00.000Z', metricsAvailable: 1, historyWindowDays: null, historyFloor: null });
+  assert.equal(JSON.stringify(body).includes(apiKey), false);
+  assert.equal(f.calls.some(call => /assistance_health_(configure|claim|commit|fail|disable)/.test(call.path)), false);
+  assert.equal(f.calls.some(call => call.path.endsWith('/metrics')), false);
+  assert.equal(f.stored.length, 0);
+});
+
+test('owner mutations reject a foreign or absent origin before reading ownership or keys', async () => {
+  for (const route of ['check', 'configure', 'refresh', 'disable']) {
+    for (const origin of [null, 'https://other.example.invalid']) {
+      const f = fixture({ initialConfigured: true });
+      const headers = { Authorization: 'Bearer ' + token, 'Content-Type': 'application/json' };
+      if (origin) headers.Origin = origin;
+      const response = await f.handler(new Request('https://test-project.supabase.co/functions/v1/health-sync?route=' + route, { method: 'POST', headers, body: JSON.stringify({ apiKey }) }));
+      assert.equal(response.status, 403);
+      assert.deepEqual(await response.json(), { ok: false, error: 'HEALTH_ORIGIN_REQUIRED' });
+      assert.equal(f.calls.length, 0);
+    }
+  }
+});
+
+test('manual refresh requires an existing enabled connection and preserves its configuration', async () => {
+  const missing = fixture();
+  const absent = await missing.request('refresh', {});
+  assert.equal(absent.status, 409);
+  assert.equal((await absent.json()).error, 'HEALTH_NOT_CONFIGURED');
+  assert.equal(missing.calls.some(call => call.path.endsWith('/assistance_health_claim')), false);
+
+  const f = fixture({ initialConfigured: true });
+  const response = await f.request('refresh', {}), body = await response.json();
+  assert.equal(response.status, 200);
+  assert.equal(body.lastSuccessAt, fetchedAt);
+  assert.equal(f.stored.length, 1);
+  assert.equal(JSON.stringify(body).includes(apiKey), false);
+  assert.equal(f.calls.some(call => /assistance_health_(configure|disable)/.test(call.path)), false);
+  await f.request('disable', {});
+  const paused = await f.request('refresh', {});
+  assert.equal(paused.status, 409);
+  assert.equal((await paused.json()).error, 'HEALTH_SYNC_DISABLED');
+  assert.equal(f.stored.length, 1);
+});
+
+test('manual refresh respects recent attempts and concurrent leases without extra provider calls', async () => {
+  const cooldown = fixture({ initialConfigured: true, initialAttemptAt: '2026-10-28T11:59:45.000Z' });
+  const recent = await cooldown.request('refresh', {});
+  assert.equal(recent.status, 429);
+  assert.deepEqual(await recent.json(), { ok: false, error: 'HEALTH_REFRESH_COOLDOWN', retryAfterSeconds: 45 });
+  assert.equal(cooldown.calls.some(call => call.path.endsWith('/assistance_health_claim')), false);
+
+  const leased = fixture({ initialConfigured: true, claimAvailable: false });
+  const busy = await leased.request('refresh', {});
+  assert.equal(busy.status, 409);
+  assert.equal((await busy.json()).error, 'HEALTH_SYNC_BUSY');
+  assert.equal(leased.calls.some(call => call.path.startsWith('/api/v1/')), false);
+});
+
+test('manual refresh surfaces a typed provider failure and never returns provider bodies', async () => {
+  const f = fixture({ initialConfigured: true, providerStatus: 429 });
+  const response = await f.request('refresh', {}), body = await response.json();
+  assert.equal(response.status, 503);
+  assert.equal(body.error, 'HEALTH_SOURCE_RATE_LIMITED');
+  assert.equal(body.errorCode, 'HEALTH_SOURCE_RATE_LIMITED');
+  assert.equal(body.lastSuccessAt, null);
+  assert.equal(f.stored.length, 0);
+  assert.equal(JSON.stringify(body).includes('private-provider-error'), false);
+  assert.equal(JSON.stringify(body).includes(apiKey), false);
+});
+
+test('manual refresh accepts no replacement key or arbitrary request properties', async () => {
+  const f = fixture({ initialConfigured: true });
+  const response = await f.request('refresh', { apiKey });
+  assert.equal(response.status, 400);
+  assert.equal((await response.json()).error, 'HEALTH_INVALID_REQUEST');
+  assert.equal(f.calls.some(call => call.path.endsWith('/assistance_health_claim')), false);
+});
+
+test('check reports documented history bounds and source provider casing is normalized', async () => {
+  const client = freddyClient(apiKey, async url => String(url).endsWith('/sources')
+    ? json({ data: [{ ...source, provider: 'apple-health' }] })
+    : json({ data: [{ metric: 'steps_total' }], meta: { history_window_days: 7, history_floor: '2026-10-22' } }));
+  const checked = await client.check();
+  assert.equal(checked.historyWindowDays, 7);
+  assert.equal(checked.historyFloor, '2026-10-22');
+  assert.deepEqual(checked.metrics, ['steps_total']);
+  assert.equal(normalizeRows([{ ...steps, provider: 'apple_health' }], { fetchedAt })[0].provider, 'APPLE_HEALTH');
 });

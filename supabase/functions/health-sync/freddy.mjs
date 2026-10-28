@@ -4,6 +4,7 @@ export const FREDDY_ORIGIN = 'https://freddy.coach';
 const merged = 'Merged (HealthKit daily statistics)';
 const fail = code => { throw Object.assign(new Error(code), { code }); };
 const iso = value => typeof value === 'string' && Number.isFinite(Date.parse(value)) ? new Date(value).toISOString() : null;
+const appleHealth = value => typeof value === 'string' && value.toUpperCase().replace(/-/g, '_') === 'APPLE_HEALTH';
 export const validApiKey = value => typeof value === 'string' && value.startsWith('fk_live_') && value.length >= 24 && value.length <= 512 && !/[\s\x00-\x1f\x7f]/.test(value);
 
 async function jsonResponse(response) {
@@ -26,7 +27,7 @@ function rowsFrom(value, keys) {
 export function sourceMetadata(value) {
   const rows = rowsFrom(value, ['data', 'sources']);
   if (!rows) fail('HEALTH_SOURCE_FORMAT');
-  const source = rows.find(row => String(row?.provider ?? '').toUpperCase() === 'APPLE_HEALTH');
+  const source = rows.find(row => appleHealth(row?.provider));
   if (!source || !['connected', 'active'].includes(String(source.status ?? '').toLowerCase()) || source.needsReauth === true || source.needs_reauth === true) fail('HEALTH_SOURCE_NOT_CONNECTED');
   return {
     sourceLastSyncAt: iso(source.lastSyncAt ?? source.last_sync_at),
@@ -64,9 +65,15 @@ export function freddyClient(apiKey, fetcher = fetch) {
   };
   return {
     async check() {
-      const source = sourceMetadata(await request('/api/v1/sources'));
-      const metrics = catalogMetrics(await request('/api/v1/catalog'));
-      return { ...source, metrics };
+      const sources = await request('/api/v1/sources');
+      const source = sourceMetadata(sources);
+      const catalog = await request('/api/v1/catalog');
+      const metrics = catalogMetrics(catalog);
+      // Meta describes the provider's accessible history, not deleted local data.
+      const meta = catalog?.meta ?? sources?.meta;
+      const historyWindowDays = Number.isSafeInteger(meta?.history_window_days) && meta.history_window_days > 0 ? meta.history_window_days : null;
+      const historyFloor = validHealthDate(meta?.history_floor) ? meta.history_floor : null;
+      return { ...source, metrics, historyWindowDays, historyFloor };
     },
     async snapshot({ fetchedAt = new Date().toISOString(), days = 7 } = {}) {
       const checked = await this.check();
@@ -93,7 +100,7 @@ export function freddyClient(apiKey, fetcher = fetch) {
 export function normalizeRows(rows, { fetchedAt, sourceLastSyncAt = null, sourceLastDataAt = null, from, to }) {
   const groups = new Map();
   for (const row of rows) {
-    if (!row || row.provider !== 'APPLE_HEALTH' || !Object.hasOwn(HEALTH_METRICS, row.metric)) fail('HEALTH_SOURCE_FORMAT');
+    if (!row || !appleHealth(row.provider) || !Object.hasOwn(HEALTH_METRICS, row.metric)) fail('HEALTH_SOURCE_FORMAT');
     if (!validHealthDate(row.date) || (from && row.date < from) || (to && row.date > to)) fail('HEALTH_SOURCE_FORMAT');
     if (!Number.isFinite(row.numValue) || row.numValue < 0 || row.unit !== HEALTH_METRICS[row.metric]) fail('HEALTH_SOURCE_FORMAT');
     const isMerged = [row.device, row.deviceLabel].some(value => value === 'Merged' || value === merged);

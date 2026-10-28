@@ -1,6 +1,6 @@
 {
-  "release": "werktag-assistant-workspace-0.11.0",
-  "appVersion": "0.11.0",
+  "release": "werktag-assistant-timeline-0.12.0",
+  "appVersion": "0.12.0",
   "design": "flow",
   "designVersion": 2,
   "learningSchemaVersion": 1,
@@ -52,6 +52,11 @@
     "assistant-notes-and-tasks",
     "assistant-range-search",
     "gps-independent-manual-records",
-    "assistant-account-recovery"
+    "assistant-account-recovery",
+    "linked-day-timeline-map",
+    "recoverable-map-loading",
+    "task-deadline-focus",
+    "freddy-connection-diagnostics",
+    "protected-manual-health-refresh"
   ]
 }

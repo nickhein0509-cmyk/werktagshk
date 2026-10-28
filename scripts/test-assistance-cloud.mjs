@@ -54,7 +54,7 @@ test('cloud route and method allowlist rejects unsupported targets before any up
   const proxy = createCloudProxy({ endpoint, fetchImpl: async () => { calls++; return json(); } });
   for (const [route, method] of [['export', 'GET'], ['status', 'GET'], ['map', 'GET'], ['map/app.js', 'GET'],
     ['map/../data', 'GET'], ['account/delete', 'POST'], ['health/import', 'POST'], ['pub', 'GET'],
-    ['map/data', 'POST'], ['account/claim', 'GET'], ['health/disable', 'GET']]) {
+    ['map/data', 'POST'], ['account/claim', 'GET'], ['health/disable', 'GET'], ['health/check', 'GET'], ['health/refresh', 'GET']]) {
     const res = response();
     await proxy(request('/api/assistenz', method, { origin }), res, route);
     assert.equal(res.statusCode, 405, route + ' ' + method);
@@ -77,13 +77,33 @@ test('manual context range preserves bounds and session while rejecting writes b
 test('browser mutations require exact origin and reject cross-site requests', async () => {
   let calls = 0;
   const proxy = createCloudProxy({ endpoint, fetchImpl: async () => { calls++; return json(); } });
-  for (const route of ['map/auth', 'map/context', 'account/session', 'account/claim', 'health/configure', 'health/disable']) {
+  for (const route of ['map/auth', 'map/context', 'account/session', 'account/claim', 'health/configure', 'health/disable', 'health/check', 'health/refresh']) {
     for (const headers of [{}, { origin: 'https://other.example' }, { origin, 'sec-fetch-site': 'cross-site' }]) {
       const res = response(); await proxy(request('/api/assistenz', 'POST', headers), res, route);
       assert.equal(res.statusCode, 403, route);
     }
   }
   assert.equal(calls, 0);
+});
+
+test('owner Health checks and refreshes forward only to the Health function with exact body and bearer', async () => {
+  const seen = [];
+  const proxy = createCloudProxy({ endpoint, fetchImpl: async (url, options) => {
+    seen.push({ route: url.searchParams.get('route'), options });
+    return json({ ok: true });
+  } });
+  for (const [route, body] of [['health/check', { apiKey: 'fk_live_synthetic_test_key_only' }], ['health/refresh', {}]]) {
+    const req = request('/api/assistenz-health', 'POST', { origin, authorization: 'Bearer synthetic.jwt.signature', 'content-type': 'application/json' });
+    req.body = body;
+    const res = response(); await proxy(req, res, route);
+    assert.equal(res.statusCode, 200);
+    const forwarded = seen.at(-1);
+    assert.equal(forwarded.route, route.slice(7));
+    assert.equal(forwarded.options.headers.authorization, 'Bearer synthetic.jwt.signature');
+    assert.equal(forwarded.options.headers.origin, origin);
+    assert.deepEqual(JSON.parse(forwarded.options.body.toString('utf8')), body);
+    assert.doesNotMatch(res.body, /fk_live_|synthetic.jwt/);
+  }
 });
 
 test('cloud endpoint configuration is HTTPS and function-path constrained', async () => {

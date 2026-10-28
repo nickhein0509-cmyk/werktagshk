@@ -1,6 +1,6 @@
 # WerkTag Assistent auf Handy und Desktop
 
-Produkt: **ASSISTENT**, Version 0.11.0. Einstieg: `/assistenz`.
+Produkt: **ASSISTENT**, Version 0.12.0. Einstieg: `/assistenz`.
 Produktauftrag und Aufgaben: [werktag-assistent](https://github.com/nickhein0509-cmyk/werktag-assistent).
 Der produktive Code bleibt entsprechend der [Produktkarte](product-map.md) in
 diesem gemeinsamen Repository. Der Ausbau verschiebt keine Lern- oder Materialdaten.
@@ -9,9 +9,13 @@ diesem gemeinsamen Repository. Der Ausbau verschiebt keine Lern- oder Materialda
 
 - **Übersicht:** eine Notiz oder Aufgabe schnell festhalten und letzte Einträge sehen.
 - **Notizen und Aufgaben:** Titel und Text durchsuchen, offene/erledigte Aufgaben
-  filtern, bearbeiten, bewusst löschen oder abhaken. Fälligkeiten sind Datumsangaben;
+  filtern, nach Fälligkeit ordnen, bearbeiten, bewusst löschen oder abhaken. Die
+  Fokusübersicht zeigt heute fällige, überfällige und terminlose offene Aufgaben im
+  vollständig geladenen Suchzeitraum. Bei einem Abruffehler zeigt sie keine falschen
+  Nullstände. Fälligkeiten sind Datumsangaben;
   es werden dadurch keine Benachrichtigungen oder Termine außerhalb des Assistenten angelegt.
-- **Mein Tag:** vorhandene Wege, Aufenthalte, Health-Werte und weitere manuelle
+- **Mein Tag:** verknüpfte Karte und chronologische [Tageszeitachse](assistant-timeline.md),
+  vorhandene Wege, Aufenthalte, Health-Werte und weitere manuelle
   Tagesangaben. Ein Kalender erlaubt auch Tage ohne GPS-Aufzeichnung.
 - **Statistik:** bestehende Tages-/Wochen-/Monatsauswertungen; manuelle Notizen und
   Aufgaben bleiben von tatsächlichen Sensorwerten getrennt.
