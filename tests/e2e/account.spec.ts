@@ -248,7 +248,13 @@ test('recovery callback lets the signed-in owner explicitly confirm a matching n
   await page.getByLabel('Neues Passwort wiederholen', { exact: true }).fill(password);
   await page.getByRole('button', { name: 'Neues Passwort speichern', exact: true }).click();
   await expect(page.getByText(/Dein neues Passwort ist gespeichert/)).toBeVisible();
-  expect(calls.find((entry) => entry.route === 'auth:update-password')?.body).toEqual({ password });
+  const update = calls.find((entry) => entry.route === 'auth:update-password')?.body;
+  expect(update).toMatchObject({ password });
+  // supabase-js may include null PKCE bookkeeping in a password-only update.
+  expect(Object.keys(update ?? {}).filter((key) => !['password', 'code_challenge', 'code_challenge_method'].includes(key))).toEqual([]);
+  for (const key of ['code_challenge', 'code_challenge_method']) {
+    if (update && key in update) expect(update[key]).toBeNull();
+  }
   await expect(page.getByRole('heading', { name: 'Neues Passwort festlegen', exact: true })).toHaveCount(0);
   expect(await page.evaluate(() => JSON.stringify(localStorage) + JSON.stringify(sessionStorage))).not.toContain(password);
 });
