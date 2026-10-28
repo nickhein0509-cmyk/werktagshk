@@ -62,11 +62,11 @@ export function createCloudProxy(options = {}) {
       if (r.body) for await (const p of r.body) { size += p.length; if (size > 4 * 1024 * 1024) throw Error(); parts.push(Buffer.from(p)); }
       for (const h of ['content-type', 'content-disposition', 'content-security-policy', 'www-authenticate', 'retry-after']) { const value = r.headers.get(h); if (value) res.setHeader(h, value); }
       const catalogue = cataloguePath(route);
-      if (catalogue) {
+      if (catalogue === 'index.html') {
         // Supabase's Edge gateway sanitizes HTML to plain text with a sandbox.
         // Only these fixed, authenticated catalogue routes may render HTML here.
         res.setHeader('Content-Security-Policy', CATALOGUE_CSP);
-        if (r.ok || (catalogue === 'index.html' && r.status === 401)) {
+        if (r.ok || r.status === 401) {
           res.setHeader('Content-Type', catalogueType(catalogue));
         }
       }
