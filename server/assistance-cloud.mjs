@@ -1,6 +1,7 @@
 import { Buffer } from 'node:buffer';
 
 const COOKIE = '__Secure-werktag-assistance';
+const catalogueFiles = ['app.js','inflate.js','style-0.css','style-1.css','chrome.css','blocks/shk-offline-index.b64',...Array.from({length:42},(_,i)=>`blocks/shk-shard-${i}.b64`)];
 const routes = new Map([
   ['pub', ['POST']], ['map/data', ['GET']], ['map/archive', ['GET']],
   ['map/statistics', ['GET']], ['map/context', ['GET', 'POST']],
@@ -8,6 +9,8 @@ const routes = new Map([
   ['map/logout', ['POST']], ['account/status', ['GET']],
   ['account/session', ['POST']], ['account/claim', ['POST']],
   ['health/status', ['GET']], ['health/configure', ['POST']], ['health/disable', ['POST']],
+  ['map/components', ['GET','HEAD']], ['map/components/view', ['GET','HEAD']],
+  ...catalogueFiles.map(file => ['map/components/' + file, ['GET','HEAD']]),
 ]);
 export function cloudCookie(header = '') {
   return header.split(';').map(s => s.trim()).filter(s => s.startsWith(COOKIE + '=')).join('; ');
@@ -56,7 +59,7 @@ export function createCloudProxy(options = {}) {
       if (r.status >= 300 && r.status < 400) throw Error();
       const parts = []; let size = 0;
       if (r.body) for await (const p of r.body) { size += p.length; if (size > 4 * 1024 * 1024) throw Error(); parts.push(Buffer.from(p)); }
-      for (const h of ['content-type', 'content-disposition', 'www-authenticate', 'retry-after']) { const value = r.headers.get(h); if (value) res.setHeader(h, value); }
+      for (const h of ['content-type', 'content-disposition', 'content-security-policy', 'www-authenticate', 'retry-after']) { const value = r.headers.get(h); if (value) res.setHeader(h, value); }
       const cookies = (r.headers.getSetCookie?.() ?? []).filter(c => c.startsWith(COOKIE + '='));
       if (route !== 'pub' && cookies.length) res.setHeader('Set-Cookie', cookies);
       res.statusCode = r.status; res.end(Buffer.concat(parts));

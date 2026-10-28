@@ -64,7 +64,9 @@ async function fixture(page: Page, options: Options = {}) {
     events.push('map:data');
     return route.fulfill({ status: authorized ? 200 : 401, contentType: 'application/json', body: '{}' });
   });
-  await page.route('**/assistenz/app-v4.js', route => {
+  // Vite adds `?import` to variable dynamic imports in development. Match the
+  // protected asset path so the synthetic module also intercepts that request.
+  await page.route(url => url.pathname === '/assistenz/app-v4.js', route => {
     events.push('map:module');
     return route.fulfill({ status: 200, contentType: 'text/javascript', body: `
       const marker = document.getElementById('distance');

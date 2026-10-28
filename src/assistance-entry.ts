@@ -3,6 +3,8 @@ import { supabase } from './lib/supabase';
 // The map's capability flow stays independent. This bridge only exchanges the
 // existing account session for a permission-checked, HttpOnly map session.
 const explicitMapKey = Boolean(new URLSearchParams(location.hash.slice(1)).get('key'));
+const components = document.documentElement.dataset.assistanceView === 'components';
+const entryPath = components ? '/assistenz/components' : '/assistenz';
 const resetMarker = 'werktag-assistance-clear-on-boot';
 let activeUserId: string | null = null;
 let observedUserId: string | null | undefined;
@@ -27,7 +29,7 @@ function blocked(message: string) {
     document.body.append(section);
   }
   const title = document.createElement('h1');
-  title.textContent = 'Karte noch gesperrt';
+  title.textContent = components ? 'Komponentenliste noch gesperrt' : 'Karte noch gesperrt';
   const text = document.createElement('p');
   text.textContent = message;
   const account = document.createElement('a');
@@ -36,7 +38,7 @@ function blocked(message: string) {
   const retry = document.createElement('button');
   retry.type = 'button';
   retry.textContent = 'Erneut prüfen';
-  retry.addEventListener('click', () => location.replace('/assistenz'));
+  retry.addEventListener('click', () => location.replace(entryPath));
   section.replaceChildren(title, text, account, retry);
 }
 
@@ -55,7 +57,7 @@ async function changeAccount() {
   try { await clearMapSession(); } catch { /* Next boot checks the binding again. */ }
   // A fresh document removes all old map/context/Health values and does not
   // silently reuse a capability fragment after an account change.
-  location.replace('/assistenz');
+  location.replace(entryPath);
 }
 
 supabase?.auth.onAuthStateChange((event, session) => {
@@ -104,6 +106,17 @@ async function start() {
   try { session = await localAccountSession(); } catch { /* Clear stale bound sessions below. */ }
   activeUserId = session?.user.id ?? null;
   if (authRevision !== before && observedUserId !== activeUserId) return changeAccount();
+  if (components && explicitMapKey) {
+    let key = new URLSearchParams(location.hash.slice(1)).get('key');
+    history.replaceState(null, '', entryPath);
+    try {
+      const response = await fetch('/assistenz/auth', {
+        method: 'POST', credentials: 'same-origin', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ key }), signal: AbortSignal.timeout(8000),
+      });
+      if (!response.ok) throw new Error('legacy-catalogue-auth-failed');
+    } finally { key = null; }
+  }
 
   if (!explicitMapKey) {
     const stored = await storedMapSession();
@@ -124,6 +137,7 @@ async function start() {
   if (authRevision !== before && observedUserId !== activeUserId) return changeAccount();
   ready = true;
   if (transitioning) return;
+  if (components) { location.replace('/assistenz/components/view'); return; }
   const moduleUrl = '/assistenz/app-v4.js';
   await import(/* @vite-ignore */ moduleUrl);
 }

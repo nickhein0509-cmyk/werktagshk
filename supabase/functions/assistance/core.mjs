@@ -1,4 +1,5 @@
 import {selectPoints,berlinDay,healthView,validateHealthDay,emptyContext,updateContextValue,validateContextValue,contextView,statisticsFromData,gpxForDay} from './domain.mjs';
+import {cataloguePath,catalogueResponse,catalogueUnauthorized,validateCatalogueResource} from './catalog.mjs';
 export const COOKIE='__Secure-werktag-assistance';
 const MSG=new Set(['location','status','transition','waypoint','waypoints','steps','beacon','card','lwt','cmd','request','encrypted']);
 const enc=new TextEncoder();
@@ -96,6 +97,20 @@ export function createAssistance({store,installationId,publicOrigin='https://wer
  for(const c of data.contexts)validateContextValue(c,c.date);
  for(const a of data.archives){limitedKeys(a,['date','json','gpx']);if(!dateOK(a.date)||typeof a.json!=='string'||typeof a.gpx!=='string')error(400,'Ungültiges Archiv.');let parsed;try{parsed=JSON.parse(a.json);}catch{error(400,'Ungültiges Archiv.');}if(parsed?.schemaVersion!==1||parsed.date!==a.date||parsed.timeZone!=='Europe/Berlin'||!Array.isArray(parsed.points)||!parsed.journal||!Number.isInteger(parsed.revision)||parsed.revision<1)error(400,'Ungültiges Archiv.');if(await sha256(JSON.stringify({points:parsed.points,journal:parsed.journal}))!==parsed.contentHash)error(400,'Ungültiger Archiv-Hash.');for(const p of parsed.points){const checked=await normalizeLocation({...p,_type:'location'},p.source,p.device,now());if(checked.id!==p.id||!iso(p.receivedAt)||berlinDay(p.tst)!==a.date)error(400,'Ungültiger Archivstandort.');}}
  return reply({ok:true,...await store.import(installationId,data)});
+ }
+ if(route==='import-catalog'&&req.method==='POST'){
+ query(url,[]);const body=await parseBody(req,2*1024*1024);limitedKeys(body,['ownerToken','path','body','contentType','sha256','sourceSha256']);
+ if(!await verify(install,body.ownerToken,'owner_hash'))error(403,'Besitzerfreigabe ungültig.');
+ const value=await validateCatalogueResource(body),result=await store.importCatalogue(installationId,value);
+ if(result?.conflict)error(409,'Dieser Katalogteil ist bereits mit anderem Inhalt gespeichert.');
+ return reply({ok:true,...result});
+ }
+ if(route==='map/components'||route.startsWith('map/components/')){
+ query(url,[]);const path=cataloguePath(route);if(!path)error(404,'Nicht gefunden.');
+ if(!['GET','HEAD'].includes(req.method))error(405,'Nur lesender Zugriff ist erlaubt.');
+ try{await mapSession(req,install);}catch(e){if(e.status===401&&path==='index.html')return catalogueUnauthorized(req.method);throw e;}
+ const row=await store.catalogueResource(installationId,path);
+ return await catalogueResponse(row,path,req.method);
  }
  const s=await mapSession(req,install);
  if(route==='map/session'&&req.method==='GET'){query(url,[]);return reply({canRead:true,canWrite:s.canWrite,csrfToken:s.canWrite?await sha256('csrf:'+s.token):null,accountBound:s.accountBound});}

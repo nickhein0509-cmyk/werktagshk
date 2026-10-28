@@ -1,6 +1,6 @@
 {
-  "release": "werktag-cloud-assistance-0.9.0",
-  "appVersion": "0.9.0",
+  "release": "werktag-combined-projects-0.10.0",
+  "appVersion": "0.10.0",
   "design": "flow",
   "designVersion": 2,
   "learningSchemaVersion": 1,
@@ -45,6 +45,9 @@
     "account-linked-assistance",
     "supabase-owntracks-ingestion",
     "gps-route-analysis",
-    "cloud-health-sync-setup"
+    "cloud-health-sync-setup",
+    "private-components-project",
+    "isolated-work-branches",
+    "combined-release-workflow"
   ]
 }

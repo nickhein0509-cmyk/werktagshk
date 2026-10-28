@@ -20,6 +20,8 @@ const store={
  async claim(id:string,userId:string){return check(await admin.rpc('assistance_claim',{p_installation_id:id,p_user_id:userId}));},
  async ingest(id:string,point:any,type:string){return check(await admin.rpc('assistance_ingest',{p_installation_id:id,p_point:point,p_message_type:type}));},
  async import(id:string,data:any){return check(await admin.rpc('assistance_import',{p_installation_id:id,p_data:data}));},
+ async importCatalogue(id:string,value:any){return check(await admin.rpc('assistance_catalog_import',{p_installation_id:id,p_path:value.path,p_body:value.body,p_content_type:value.contentType,p_sha256:value.sha256,p_source_sha256:value.sourceSha256}));},
+ async catalogueResource(id:string,path:string){return check(await admin.rpc('assistance_catalog_resource',{p_installation_id:id,p_path:path}));},
  async points(id:string){return check(await admin.rpc('assistance_read_points',{p_installation_id:id})).map(canonicalPoint);},
  async receipts(id:string){return check(await admin.from('assistance_receipts').select('payload').eq('installation_id',id).maybeSingle())?.payload??null;},
  async health(id:string){return (await all('health_days',id)).map(r=>r.payload);},
