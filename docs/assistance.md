@@ -2,6 +2,8 @@
 
 Produktbereich: **Assistent**. Materialliste und Lernapp sind eigenständige Produkte; gemeinsame Zugänge und aktuelle Codezuständigkeiten stehen in der [Produktkarte](product-map.md).
 
+Version 0.11.0 erweitert die bisherige GPS-Ansicht um den [Tagesassistenten mit Notizen, Aufgaben und Suche](assistant-workspace.md). Manuelle Aufzeichnungen benötigen keinen erfolgreichen GPS-Abruf. Bestehende Sensor- und Katalogverträge bleiben erhalten.
+
 Seit 0.9 verwendet die Assistenz den direkten Cloudpfad OwnTracks → feste WerkTag-Adresse → Supabase. `/konto` stellt Anmeldung und die einmalige Besitzerzuordnung bereit. Die gemeinsame 0.10 ergänzt den vorhandenen privaten Komponentenkatalog. Beide persönlichen Bereiche verwenden die geprüfte Cloud-Kartensitzung; Lernstände bleiben getrennt. PC und Tunnel sind für diesen Betriebsweg nicht erforderlich. Health ist erst nach privater Freddy-Schlüsseleingabe für den 15-Minuten-Cloudabgleich aktiviert.
 
 Aktuelle Architektur, Migrationen, Zugriff und Grenzen: [Cloud-Assistenz](cloud-assistance.md), [Komponentenliste](components.md), [parallele Branches](parallel-work.md). Bestehende HTTP-/Intent-Zugänge und historische Daten werden erhalten.

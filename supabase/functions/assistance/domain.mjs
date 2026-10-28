@@ -154,6 +154,8 @@ function segment(value, times) {
   return out;
 }
 const kindFields = {
+  note: ['title', 'at'],
+  task: ['title', 'status', 'dueDate'],
   activity: ['label', 'startAt', 'endAt', 'segmentRef'],
   workout: ['sport', 'startAt', 'endAt', 'sets', 'reps', 'rpe'],
   checkin: ['energy', 'mood', 'soreness'],
@@ -169,6 +171,17 @@ function normalizeEntry(input, date) {
   const out = { id: input.id.toLowerCase(), kind: input.kind };
   const note = text(input.note, 2000); if (note !== undefined) out.note = note;
   switch (out.kind) {
+    case 'note': {
+      if (!out.note) fail('Die Notiz darf nicht leer sein.');
+      const title = text(input.title, 120); if (title !== undefined) out.title = title;
+      break;
+    }
+    case 'task':
+      out.title = text(input.title, 120, true);
+      if (!['open', 'done'].includes(input.status)) fail('Ungültiger Aufgabenstatus.');
+      out.status = input.status;
+      if (input.dueDate !== undefined) out.dueDate = validateContextDate(input.dueDate);
+      break;
     case 'activity': {
       out.label = text(input.label, 120, true); Object.assign(out, interval(input, date));
       const ref = segment(input.segmentRef, out); if (ref) out.segmentRef = ref; break;
@@ -195,7 +208,7 @@ function normalizeEntry(input, date) {
     case 'planned_event':
       out.title = text(input.title, 120, true); Object.assign(out, interval(input, date)); break;
   }
-  if (['hydration', 'nutrition', 'weight'].includes(out.kind) && input.at !== undefined) out.at = withinDay(instant(input.at, true), date);
+  if (['note', 'hydration', 'nutrition', 'weight'].includes(out.kind) && input.at !== undefined) out.at = withinDay(instant(input.at, true), date);
   return out;
 }
 function entryInput(entry) {
@@ -247,6 +260,42 @@ export function updateContextValue(previous,input,nowISO=new Date().toISOString(
   if(input.operation==='delete')entries.splice(index,1);else{const saved={...normalized,source:{provider:'MANUAL',sourceId:null},createdAt:existing?.createdAt??now,updatedAt:now,revision:(existing?.revision??0)+1};if(index===-1)entries.push(saved);else entries[index]=saved;}
   const value={schemaVersion:1,date,timezone:TZ,revision:previous.revision+1,updatedAt:now,entries};
   if(new TextEncoder().encode(JSON.stringify(value,null,2)+'\n').length>MAX_FILE)fail('Zu viele Kontextdaten.',413,'context-limit');return value;
+}
+
+export function validateContextRange(from, to) {
+  validateContextDate(from); validateContextDate(to);
+  if (from > to || (Date.parse(to + 'T00:00:00Z') - Date.parse(from + 'T00:00:00Z')) / 86400000 + 1 > 90) {
+    fail('Bitte einen Zeitraum von höchstens 90 Tagen wählen.');
+  }
+  return { from, to };
+}
+
+export function contextRange(values, from, to) {
+  validateContextRange(from, to);
+  if (!Array.isArray(values)) fail('Tageseinträge sind vorübergehend nicht verfügbar.', 503, 'context-storage');
+  const documents = [], dates = new Set(); let count = 0;
+  for (const value of values) {
+    try { validateContextValue(value, value?.date); }
+    catch { fail('Tageseinträge sind beschädigt.', 503, 'context-storage'); }
+    if (dates.has(value.date)) fail('Tageseinträge sind beschädigt.', 503, 'context-storage');
+    dates.add(value.date);
+    if (value.date < from || value.date > to) continue;
+    const entries = value.entries.filter(entry => ['note', 'task'].includes(entry.kind)).map(entry => ({
+      ...normalizeEntry(entryInput(entry), value.date),
+      source: { provider: 'MANUAL', sourceId: null },
+      createdAt: entry.createdAt, updatedAt: entry.updatedAt, revision: entry.revision,
+    }));
+    count += entries.length;
+    if (count > 2000) fail('Zu viele Notizen oder Aufgaben. Bitte den Zeitraum verkleinern.', 413, 'context-range-limit');
+    documents.push({ date: value.date, revision: value.revision, entries });
+  }
+  documents.sort((a, b) => a.date.localeCompare(b.date));
+  const result = { schemaVersion: 1, timezone: TZ, from, to, documents };
+  // Leave room below the gateway's 4 MiB response limit, including UTF-8 text.
+  if (new TextEncoder().encode(JSON.stringify(result)).length > 3 * 1024 * 1024) {
+    fail('Zu viele Notizen oder Aufgaben. Bitte den Zeitraum verkleinern.', 413, 'context-range-limit');
+  }
+  return result;
 }
 
 export function selectPoints(rows, date, limit = 20000) {
@@ -325,7 +374,7 @@ function healthSummary(healthDays,date){
 }
 
 
-const CONTEXT_KINDS=['activity','workout','checkin','hydration','nutrition','weight','planned_event'];
+const CONTEXT_KINDS=['note','task','activity','workout','checkin','hydration','nutrition','weight','planned_event'];
 function manualValues(entries,key,aggregation='sum-of-manual-entries'){
   const values=entries.map(e=>e[key]).filter(Number.isFinite),sum=values.reduce((a,b)=>a+b,0);
   return {value:values.length?(aggregation==='mean-of-self-reports'?sum/values.length:sum):null,count:values.length,aggregation};

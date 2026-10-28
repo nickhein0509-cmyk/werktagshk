@@ -65,8 +65,8 @@ export function ProjectHub() {
               <ArrowUpRight className="project-hub__arrow" size={24} strokeWidth={1.6} />
             </div>
             <span className="project-hub__category">02 · PERSÖNLICH</span>
-            <h2 id="project-hub-assistance-title">AI Assistance</h2>
-            <p>Der eigene Bereich für deine Wege, Standortdaten und persönliche Übersicht.</p>
+            <h2 id="project-hub-assistance-title">Dein Assistent</h2>
+            <p>Notizen, Aufgaben und dein Tagesjournal. Persönliche Aufzeichnungen auf Handy und Desktop.</p>
             <span className="project-hub__privacy">
               <LockKeyhole size={15} aria-hidden="true" /> Eigene geschützte Sitzung
             </span>

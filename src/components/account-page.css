@@ -15,6 +15,7 @@
 .account-card .account-primary{background:#174f49;border-color:#174f49;color:#fff}
 .account-card button:disabled{opacity:.65;cursor:wait}
 .account-card button[aria-pressed=true]{background:#e4eee6;border-color:#174f49}
+.account-card .account-reset{margin-top:1rem}.account-help{font-size:.9rem;color:#4e665e}
 .account-actions{display:flex;flex-wrap:wrap;gap:.75rem;margin:1rem 0}
 .account-email{overflow-wrap:anywhere}
 .account-health-state{font-weight:750}

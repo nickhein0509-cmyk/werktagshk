@@ -18,6 +18,17 @@ function lockVisibleMap() {
   if (main) main.hidden = true;
 }
 
+// Following a personal link while this document is already open only changes
+// its fragment. Restart the guarded bootstrap so that the new proof is consumed
+// once, cleared from the address bar, and cannot inherit the previous view.
+window.addEventListener('hashchange', () => {
+  const fragment = new URLSearchParams(location.hash.slice(1));
+  if (fragment.has('key') || fragment.has('owner')) {
+    lockVisibleMap();
+    location.reload();
+  }
+});
+
 function blocked(message: string) {
   lockVisibleMap();
   let section = document.getElementById('assistance-auth-state');
@@ -29,7 +40,7 @@ function blocked(message: string) {
     document.body.append(section);
   }
   const title = document.createElement('h1');
-  title.textContent = components ? 'Komponentenliste noch gesperrt' : 'Karte noch gesperrt';
+  title.textContent = components ? 'Komponentenliste noch gesperrt' : 'Assistent noch gesperrt';
   const text = document.createElement('p');
   text.textContent = message;
   const account = document.createElement('a');

@@ -1,6 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {createAssistance,hashSecret,sha256,normalizeLocation,COOKIE} from './core.mjs';
+import {updateContextValue} from './domain.mjs';
 const NOW=Date.parse('2026-10-28T12:00:00Z'),ID='b4f2aa0a-c752-42f4-9b9d-10aecf7c9420';
 async function fixture(){
  const secrets={username:'iphone',password:'p'.repeat(40),map:'m'.repeat(43),owner:'o'.repeat(43)};
@@ -82,4 +83,60 @@ test('Completed days persist once; late arrival warns without rewriting original
  let r=await f.request('map/data&date=2026-10-27',{cookie:c});assert.equal(r.status,200);let v=await r.json();assert.equal(f.archives.length,1);assert.equal(v.archive.status.mode,'on-demand');const original=JSON.stringify(f.archives[0].payload);
  f.points.push({...await normalizeLocation({...loc,tst:base+300,lat:52.005},'iphone','d',NOW),receivedAt:new Date(NOW).toISOString()});
  r=await f.request('map/data&date=2026-10-27',{cookie:c});v=await r.json();assert.equal(v.points.length,3);assert.equal(v.archive.status.archiveSnapshotOlder,true);assert.deepEqual(v.archive.status.olderDates,['2026-10-27']);assert.equal(JSON.stringify(f.archives[0].payload),original);assert.equal(v.archive.days[0].livePointCount,3);
+});
+
+test('notes save and read without requesting GPS; failed optional GPS cannot turn a committed edit into an error',async()=>{
+ const f=await fixture(),c=await f.unlock(true),session=await(await f.request('map/session',{cookie:c})).json();
+ let gpsReads=0;f.store.points=async()=>{gpsReads++;throw Error('private synthetic GPS failure');};
+ const note={date:'2026-10-28',expectedRevision:0,operation:'upsert',entry:{id:'11111111-1111-4111-8111-111111111111',kind:'note',note:'Eigene Notiz'}};
+ let r=await f.request('map/context',{method:'POST',cookie:c,headers:{'x-csrf-token':session.csrfToken},body:note});
+ assert.equal(r.status,200);assert.equal((await r.json()).revision,1);assert.equal(gpsReads,0);
+ r=await f.request('map/context&date=2026-10-28',{cookie:c});assert.equal(r.status,200);assert.equal((await r.json()).entries[0].note,'Eigene Notiz');assert.equal(gpsReads,0);
+ const startTimestamp=Date.parse('2026-10-28T10:00:00Z')/1000,endTimestamp=startTimestamp+600;
+ const linked=updateContextValue(f.contexts[0],{date:note.date,expectedRevision:1,operation:'upsert',entry:{id:'22222222-2222-4222-8222-222222222222',kind:'activity',label:'Bewusst benannt',startAt:new Date(startTimestamp*1000).toISOString(),endAt:new Date(endTimestamp*1000).toISOString(),segmentRef:{journalIdAtCreation:'synthetic-trip',archiveRevisionAtCreation:null,algorithmVersion:1,startTimestamp,endTimestamp,segmentKind:'trip'}}},new Date(NOW).toISOString());
+ f.contexts[0]=linked;
+ r=await f.request('map/context&date=2026-10-28',{cookie:c});assert.equal(r.status,200);let value=await r.json();assert.equal(value.entries[1].segmentStatus,'unverified');assert.equal(value.entries[1].needsReview,true);
+ const task={date:note.date,expectedRevision:2,operation:'upsert',entry:{id:'33333333-3333-4333-8333-333333333333',kind:'task',title:'Erledigen',status:'open'}};
+ r=await f.request('map/context',{method:'POST',cookie:c,headers:{'x-csrf-token':session.csrfToken},body:task});
+ assert.equal(r.status,200);value=await r.json();assert.equal(value.revision,3);assert.equal(f.contexts[0].revision,3);assert.equal(value.entries[1].segmentStatus,'unverified');assert.equal(value.entries[2].kind,'task');assert.equal(gpsReads,2);
+});
+
+test('task completion remains owner/CSRF protected and concurrent changes preserve unrelated entries',async()=>{
+ const f=await fixture(),c=await f.unlock(true),session=await(await f.request('map/session',{cookie:c})).json(),headers={'x-csrf-token':session.csrfToken};
+ const entry={id:'11111111-1111-4111-8111-111111111111',kind:'task',title:'Eigene Aufgabe',status:'open',dueDate:'2026-10-30'};
+ const create={date:'2026-10-28',expectedRevision:0,operation:'upsert',entry};
+ assert.equal((await f.request('map/context',{method:'POST',cookie:c,headers,body:create})).status,200);
+ const note={date:create.date,expectedRevision:1,operation:'upsert',entry:{id:'22222222-2222-4222-8222-222222222222',kind:'note',note:'Anderer Eintrag'}};
+ assert.equal((await f.request('map/context',{method:'POST',cookie:c,headers,body:note})).status,200);
+ const edit={...create,expectedRevision:1,entry:{...entry,status:'done'}};
+ assert.equal((await f.request('map/context',{method:'POST',cookie:c,headers,body:edit})).status,409);
+ assert.equal(f.contexts[0].entries[0].status,'open');assert.equal(f.contexts[0].entries[1].note,'Anderer Eintrag');
+ assert.equal((await f.request('map/context',{method:'POST',cookie:c,headers:{'x-csrf-token':'wrong'},body:{...edit,expectedRevision:2}})).status,403);
+ for(const s of f.sessions.values())s.owner_until=new Date(NOW-1).toISOString();
+ assert.equal((await f.request('map/context',{method:'POST',cookie:c,headers,body:{...edit,expectedRevision:2}})).status,403);
+ assert.equal(f.contexts[0].revision,2);
+});
+
+test('context range requires a valid session and returns manual records without GPS/Health reads',async()=>{
+ const f=await fixture();let reads=0;f.store.contexts=async(id,from,to)=>{reads++;assert.equal(id,ID);assert.equal(from,'2026-10-27');assert.equal(to,'2026-10-28');return f.contexts;};
+ f.store.points=f.store.health=async()=>{throw Error('Sensor reads must not be required');};
+ f.contexts.push(updateContextValue(null,{date:'2026-10-28',expectedRevision:0,operation:'upsert',entry:{id:'11111111-1111-4111-8111-111111111111',kind:'note',note:'Notiz'}},new Date(NOW).toISOString()));
+ const route='map/context-range&from=2026-10-27&to=2026-10-28';
+ assert.equal((await f.request(route)).status,401);assert.equal(reads,0);
+ const c=await f.unlock();const r=await f.request(route,{cookie:c});assert.equal(r.status,200);assert.equal(r.headers.get('cache-control'),'no-store');
+ const value=await r.json();assert.equal(value.documents[0].entries[0].kind,'note');assert.equal(value.documents[0].revision,1);assert.equal(value.timezone,'Europe/Berlin');assert.equal(reads,1);
+ assert.equal((await f.request(route,{cookie:c,method:'POST',body:{}})).status,405);
+ for(const s of f.sessions.values())s.valid_until=new Date(NOW-1).toISOString();assert.equal((await f.request(route,{cookie:c})).status,401);assert.equal(reads,1);
+});
+
+test('context range rejects bad/oversized query bounds before reads and never exposes partial corrupt storage',async()=>{
+ const f=await fixture(),c=await f.unlock();let calls=0;f.store.contexts=async()=>{calls++;return [];};
+ for(const query of ['','&from=2026-10-28','&from=2026-10-29&to=2026-10-28','&from=2026-07-30&to=2026-10-28','&from=2026-02-30&to=2026-03-01','&from=2026-10-28&to=2026-10-28&to=2026-10-29','&from=2026-10-28&to=2026-10-28&extra=1']){
+   assert.equal((await f.request('map/context-range'+query,{cookie:c})).status,400,query);
+ }
+ assert.equal(calls,0);
+ f.store.contexts=async()=>{throw Error('private synthetic storage detail');};
+ let r=await f.request('map/context-range&from=2026-10-28&to=2026-10-28',{cookie:c});assert.equal(r.status,503);assert.ok(!(await r.text()).includes('private synthetic'));
+ f.store.contexts=async()=>[{date:'2026-10-28',revision:1,entries:[]}];
+ r=await f.request('map/context-range&from=2026-10-28&to=2026-10-28',{cookie:c});assert.equal(r.status,503);assert.equal((await r.json()).documents,undefined);
 });

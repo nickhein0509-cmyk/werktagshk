@@ -161,3 +161,14 @@ test('an interrupted account-change transition clears even a late legacy cookie 
   expect(state.events[0]).toBe('map:logout');
   expect(await page.evaluate(() => sessionStorage.getItem('werktag-assistance-clear-on-boot'))).toBeNull();
 });
+
+test('a personal capability link opened in the same document restarts the guarded access flow', async ({ page }) => {
+  const state = await fixture(page, { signedIn: true, linked: true });
+  await page.goto('/assistance.html');
+  await expect(page.locator('#distance')).toHaveText(privateValue);
+  await page.evaluate(() => { location.hash = 'key=synthetic-reopened-map-key'; });
+  await expect.poll(() => state.events.filter(event => event === 'map:module').length).toBe(2);
+  await expect(page.locator('#distance')).toHaveText(privateValue);
+  expect(state.events).toContain('map:legacy-auth');
+  await expect(page).toHaveURL(/\/assistance\.html$/);
+});

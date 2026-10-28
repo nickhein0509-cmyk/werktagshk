@@ -29,3 +29,15 @@ jobs:
             npx playwright install --with-deps chromium
           fi
       - run: npm run check
+      - name: Safari-Engine für die Handyprüfung vorbereiten
+        run: npx playwright install --with-deps webkit
+      - name: Assistent auf mobiler Safari-Engine prüfen
+        run: npx playwright test --config playwright.assistant-webkit.config.ts
+      - name: Synthetische Assistentenansichten für die Oberflächenprüfung
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: assistant-ui-synthetic
+          path: test-results/assistant-ui/*.png
+          if-no-files-found: ignore
+          retention-days: 3

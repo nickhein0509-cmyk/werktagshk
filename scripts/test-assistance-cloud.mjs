@@ -63,6 +63,17 @@ test('cloud route and method allowlist rejects unsupported targets before any up
   assert.equal(calls, 0);
 });
 
+test('manual context range preserves bounds and session while rejecting writes before upstream access', async () => {
+  let seen, calls=0;
+  const proxy=createCloudProxy({endpoint,fetchImpl:async(url,options)=>{calls++;seen={url,options};return json({schemaVersion:1,documents:[]});}});
+  const res=response();
+  await proxy(request('/assistenz/context-range?from=2026-10-01&to=2026-10-28','GET',{cookie:'learning=private; __Secure-werktag-assistance=synthetic-session',authorization:'Bearer unrelated'}),res,'map/context-range');
+  assert.equal(res.statusCode,200);assert.equal(seen.url.searchParams.get('route'),'map/context-range');
+  assert.equal(seen.url.searchParams.get('from'),'2026-10-01');assert.equal(seen.url.searchParams.get('to'),'2026-10-28');
+  assert.equal(seen.options.headers.cookie,'__Secure-werktag-assistance=synthetic-session');assert.equal(seen.options.headers.authorization,undefined);
+  const blocked=response();await proxy(request('/assistenz/context-range','POST',{origin}),blocked,'map/context-range');assert.equal(blocked.statusCode,405);assert.equal(calls,1);
+});
+
 test('browser mutations require exact origin and reject cross-site requests', async () => {
   let calls = 0;
   const proxy = createCloudProxy({ endpoint, fetchImpl: async () => { calls++; return json(); } });

@@ -1,5 +1,5 @@
 const $ = id => document.getElementById(id);
-const labels = { activity: 'Ort / Tätigkeit benennen', workout: 'Training', checkin: 'Tages-Check-in', hydration: 'Trinkmenge', nutrition: 'Ernährung', weight: 'Körpergewicht', planned_event: 'Geplanter Termin' };
+const labels = { activity: 'Ort / Tätigkeit benennen', workout: 'Training', checkin: 'Tages-Check-in', hydration: 'Trinkmenge', nutrition: 'Ernährung', weight: 'Körpergewicht', planned_event: 'Geplanter Termin', note: 'Notiz', task: 'Aufgabe' };
 const sports = { basketball: 'Basketball', calisthenics: 'Calisthenics', skateboarding: 'Skateboard', walking: 'Gehen', running: 'Laufen', cycling: 'Radfahren', other: 'Andere Sportart' };
 const number = new Intl.NumberFormat('de-DE', { maximumFractionDigits: 1 });
 const dayFormatter = new Intl.DateTimeFormat('en-CA', { timeZone: 'Europe/Berlin', year: 'numeric', month: '2-digit', day: '2-digit' });
@@ -24,7 +24,9 @@ const entryFields = {
   hydration: ['amountMl', 'at'],
   nutrition: ['energyKcal', 'proteinG', 'carbsG', 'fatG', 'at'],
   weight: ['kg', 'at'],
-  planned_event: ['title', 'startAt', 'endAt']
+  planned_event: ['title', 'startAt', 'endAt'],
+  note: ['title', 'at'],
+  task: ['title', 'status', 'dueDate']
 };
 function node(tag, text, className) { const e = document.createElement(tag); if (text !== undefined) e.textContent = text; if (className) e.className = className; return e; }
 const field = (name, title, type = 'number', options = '') => '<label>' + title + '<input name="' + name + '" type="' + type + '" ' + options + '></label>';
@@ -36,13 +38,15 @@ function fieldsMarkup(kind) {
   if (kind === 'workout') return '<label>Sportart<select name="sport">' + Object.entries(sports).map(([value, label]) => '<option value="' + value + '">' + label + '</option>').join('') + '</select></label>' + interval + field('sets', 'Sätze · optional', 'number', 'min="1" max="200" step="1"') + field('reps', 'Wiederholungen · optional', 'number', 'min="1" max="10000" step="1"') + field('rpe', 'Anstrengung · optional · 1 bis 10', 'number', 'min="1" max="10" step="0.5"');
   if (kind === 'checkin') return score('energy', 'Energie · Selbstauskunft') + score('mood', 'Stimmung · Selbstauskunft') + score('soreness', 'Muskelkater · Selbstauskunft');
   if (kind === 'hydration') return field('amountMl', 'Getrunkene Menge · ml', 'number', 'required min="1" max="10000" step="1"') + at;
-  if (kind === 'nutrition') return field('energyKcal', 'Energie · kcal', 'number', 'required min="0" max="50000" step="0.1"') + field('proteinG', 'Eiweiß · g · optional', 'number', 'min="0" max="5000" step="0.1"') + field('carbsG', 'Kohlenhydrate · g · optional', 'number', 'min="0" max="5000" step="0.1"') + field('fatG', 'Fett · g · optional', 'number', 'min="0" max="5000" step="0.1"') + at;
+  if (kind === 'nutrition') return field('energyKcal', 'Energie · kcal', 'number', 'required min="0" max="20000" step="0.1"') + field('proteinG', 'Eiweiß · g · optional', 'number', 'min="0" max="5000" step="0.1"') + field('carbsG', 'Kohlenhydrate · g · optional', 'number', 'min="0" max="5000" step="0.1"') + field('fatG', 'Fett · g · optional', 'number', 'min="0" max="5000" step="0.1"') + at;
   if (kind === 'weight') return field('kg', 'Körpergewicht · kg', 'number', 'required min="1" max="1000" step="0.1"') + at;
+  if (kind === 'note') return field('title', 'Titel · optional', 'text', 'maxlength="120"') + at;
+  if (kind === 'task') return field('title', 'Aufgabe', 'text', 'required maxlength="120"') + '<label>Status<select name="status"><option value="open">Offen</option><option value="done">Erledigt</option></select></label>' + field('dueDate', 'Fällig am · optional', 'date', 'min="2000-01-01" max="2100-12-31"');
   return field('title', 'Titel des geplanten Termins', 'text', 'required maxlength="120"') + interval;
 }
-export function createContext({ onLocked, onChanged }) {
+export function createContext({ onLocked, onChanged, onAccessChanged = () => {} }) {
   $('context-view').innerHTML = '<div class="panel-heading"><div><p class="eyebrow">DEIN PERSÖNLICHER KONTEXT</p><h2>Was war heute?</h2><p class="panel-intro">Bewusst ergänzt. Getrennt von den Sensordaten.</p></div><span id="context-owner-status" class="pill">Nur lesen</span></div><p id="context-message" class="panel-message" role="status"></p><div id="context-entry-list" class="context-entry-list"></div><div id="context-owner"><details id="context-owner-details"><summary>Einträge zum Bearbeiten freigeben</summary><form id="context-owner-form" class="owner-form"><label for="context-owner-token">Persönliche Besitzerfreigabe</label><input id="context-owner-token" type="password" autocomplete="off" spellcheck="false" required placeholder="Besitzerlink oder Freigabe einfügen"><button type="submit">Bearbeiten freigeben</button></form><p class="subtle">Dein normaler Kartenlink bleibt ein Lesezugang. Die Freigabe gilt für diesen Browser.</p></details></div><div id="context-editor" hidden><div class="context-create-heading"><h3 id="context-form-title">Eintrag ergänzen</h3><button id="context-use-segment" type="button" hidden>Ausgewählten Abschnitt benennen</button></div><label class="context-kind">Was möchtest du festhalten?<select id="context-kind">' + Object.entries(labels).map(([kind, title]) => '<option value="' + kind + '">' + title + '</option>').join('') + '</select></label><p id="context-segment-note" class="subtle"></p><form id="context-form"><div id="context-fields" class="context-fields"></div><label class="context-note">Notiz · optional<textarea name="note" rows="2" maxlength="2000" placeholder="Deine eigene Ergänzung"></textarea></label><details class="time-occurrence"><summary>Doppelte Uhrzeit bei Zeitumstellung</summary><label>Bei zweimal vorkommenden Uhrzeiten<select name="occurrence"><option value="first">Erste Uhrzeit verwenden</option><option value="second">Zweite Uhrzeit verwenden</option></select></label></details><p id="context-form-message" class="panel-message" role="status"></p><div class="form-actions"><button id="context-save" type="submit" class="primary">Eintrag speichern</button><button id="context-new" type="button">Neuen Eintrag beginnen</button><button id="context-rebase" type="button" hidden>Aktuellen Stand geprüft · Entwurf behalten</button></div></form><p class="subtle">Alle Einträge sind manuelle Angaben. Ein geplanter Termin bestätigt weder Anwesenheit noch Training. Entwürfe bleiben beim Tageswechsel in diesem geöffneten Tab erhalten.</p></div>';
-  let day = null, segment = null, journal = null, archiveRevision = null, session = { canRead: false, canWrite: false }, loadingVersion = 0, saving = false, currentForm = null;
+  let day = null, segment = null, journal = null, archiveRevision = null, session = { canRead: false, canWrite: false }, loadingVersion = 0, securityVersion = 0, saving = false, currentForm = null;
   const documents = new Map(), drafts = new Map(), fetched = new Map();
   const validDay = value => /^\d{4}-\d{2}-\d{2}$/.test(value ?? '');
   function draft(date = day) { if (!drafts.has(date)) drafts.set(date, { kind: 'activity', fields: {}, editing: null, dirty: false, baseRevision: documents.get(date)?.revision ?? 0, conflict: false, pendingId: null }); return drafts.get(date); }
@@ -66,6 +70,7 @@ export function createContext({ onLocked, onChanged }) {
     $('context-kind').value = state.kind;
     $('context-fields').innerHTML = fieldsMarkup(state.kind);
     $('context-form').reset();
+    $('context-form').elements.namedItem('note').required = state.kind === 'note';
     for (const [name, value] of Object.entries(values)) { const input = $('context-form').elements.namedItem(name); if (input) input.value = value; }
     $('context-form-title').textContent = state.editing ? 'Eintrag bearbeiten' : 'Eintrag ergänzen';
     $('context-save').textContent = state.editing ? 'Änderung speichern' : 'Eintrag speichern';
@@ -84,6 +89,8 @@ export function createContext({ onLocked, onChanged }) {
     return ![...(journal.trips ?? []), ...(journal.stays ?? [])].some(part => part.kind === ref.segmentKind && part.startTimestamp === ref.startTimestamp && part.endTimestamp === ref.endTimestamp);
   }
   function description(entry) {
+    if (entry.kind === 'note') return entry.title || 'Notiz';
+    if (entry.kind === 'task') return entry.title;
     if (entry.kind === 'activity') return entry.label;
     if (entry.kind === 'workout') return sports[entry.sport] ?? entry.sport;
     if (entry.kind === 'checkin') return [['energy', 'Energie'], ['mood', 'Stimmung'], ['soreness', 'Muskelkater']].filter(([key]) => Number.isFinite(entry[key])).map(([key, title]) => title + ' ' + entry[key] + '/5').join(' · ') || 'Tagesnotiz';
@@ -107,6 +114,7 @@ export function createContext({ onLocked, onChanged }) {
       heading.append(label, node('span', entry.kind === 'planned_event' ? 'Geplant · manuell' : 'Manuell ergänzt', 'pill')); card.append(heading, node('strong', description(entry)));
       if (entry.startAt) card.append(node('p', displayTime(entry.startAt) + ' – ' + displayTime(entry.endAt), 'subtle'));
       else if (entry.at) card.append(node('p', displayTime(entry.at), 'subtle'));
+      if (entry.kind === 'task') card.append(node('p', (entry.status === 'done' ? 'Erledigt' : 'Offen') + (entry.dueDate ? ' · Fällig am ' + new Date(entry.dueDate + 'T12:00:00Z').toLocaleDateString('de-DE') : ''), 'subtle'));
       if (entry.note) card.append(node('p', entry.note, 'context-entry-note'));
       if (refUncertain(entry)) card.append(node('p', 'Zuordnung prüfen: Der GPS-Abschnitt hat sich seit deiner Ergänzung geändert.', 'context-warning'));
       if (session.canWrite) {
@@ -123,10 +131,12 @@ export function createContext({ onLocked, onChanged }) {
     }));
   }
   async function refreshSession() {
+    const version = securityVersion;
     const r = await fetch('/assistenz/session', { cache: 'no-store', signal: AbortSignal.timeout(10000) });
+    if (version !== securityVersion) return false;
     if (r.status === 401) { session = { canRead: false, canWrite: false }; updateAccess(); onLocked(); return false; }
     if (!r.ok) throw new Error('Die Besitzerfreigabe konnte nicht geprüft werden.');
-    session = await r.json(); updateAccess(); return true;
+    const next = await r.json(); if (version !== securityVersion) return false; session = next; updateAccess(); return true;
   }
   async function load(date = day, force = false) {
     if (!validDay(date)) return;
@@ -134,11 +144,13 @@ export function createContext({ onLocked, onChanged }) {
     const version = ++loadingVersion;
     try {
       const r = await fetch('/assistenz/context?' + new URLSearchParams({ date }), { cache: 'no-store', signal: AbortSignal.timeout(10000) });
+      if (version !== loadingVersion) return;
       if (r.status === 401) { onLocked(); return; }
       if (!r.ok) throw new Error();
       const value = await r.json(); if (version !== loadingVersion) return;
       documents.set(date, value); fetched.set(date, Date.now()); const state = draft(date);
-      if (!state.dirty && !state.conflict) state.baseRevision = value.revision;
+      // Keep an existing editor bound to the revision of its displayed fields.
+      if (!state.editing && !state.dirty && !state.conflict) state.baseRevision = value.revision;
       if (date === day) { feedback(''); renderEntries(); }
     } catch { if (date === day && version === loadingVersion) feedback('Tageseinträge vorübergehend nicht erreichbar. Dein Entwurf bleibt erhalten.'); }
   }
@@ -150,7 +162,7 @@ export function createContext({ onLocked, onChanged }) {
       if (key === 'segmentRef') { if (state.segmentRef) entry.segmentRef = { ...state.segmentRef }; continue; }
       const value = values[key]; if (value === undefined || value === '') continue;
       if (['startAt', 'endAt', 'at'].includes(key)) entry[key] = berlinInputToIso(value, occurrence);
-      else entry[key] = ['label', 'title', 'sport'].includes(key) ? value.trim() : Number(value);
+      else entry[key] = ['label', 'title', 'sport', 'status', 'dueDate'].includes(key) ? value.trim() : Number(value);
     }
     if (values.note?.trim()) entry.note = values.note.trim();
     if (entry.startAt && dayFormatter.format(new Date(entry.startAt)) !== day) throw new Error('Der Beginn muss zum gewählten Tag in Berliner Zeit gehören.');
@@ -160,13 +172,14 @@ export function createContext({ onLocked, onChanged }) {
   }
   async function write(operation, id) {
     if (saving || !session.canWrite || !validDay(day)) return;
-    capture(); const date = day, state = draft(), revision = operation === 'delete' ? documents.get(day)?.revision : state.baseRevision;
+    capture(); const version = securityVersion, date = day, state = draft(), revision = operation === 'delete' ? documents.get(day)?.revision : state.baseRevision;
     if (state.conflict && operation !== 'delete') { formFeedback('Bitte zuerst den geänderten gespeicherten Stand prüfen. Dein Entwurf ist erhalten.'); return; }
     let entry; try { if (operation === 'upsert') entry = buildEntry(); } catch (error) { formFeedback(error.message); return; }
     saving = true; $('context-save').disabled = true; feedback('Wird gespeichert …');
     try {
       const r = await fetch('/assistenz/context', { method: 'POST', headers: { 'Content-Type': 'application/json', 'X-CSRF-Token': session.csrfToken ?? '' }, body: JSON.stringify({ date, expectedRevision: revision, operation, ...(entry ? { entry } : { id }) }), signal: AbortSignal.timeout(10000) });
       const response = await r.json().catch(() => ({}));
+      if (version !== securityVersion) return;
       if (r.status === 409) {
         state.conflict = true; state.dirty = true;
         if (date === day) { await load(date, true); $('context-rebase').hidden = false; formFeedback('Ein anderer Stand wurde gespeichert. Dein Entwurf ist erhalten. Prüfe die Einträge und bestätige den aktuellen Stand vor erneutem Speichern.'); } return;
@@ -179,6 +192,7 @@ export function createContext({ onLocked, onChanged }) {
       if (operation === 'upsert' || state.editing === id) {
         state.editing = null; state.pendingId = null; state.segmentRef = null; state.fields[state.kind] = {}; state.dirty = false; state.conflict = false;
       }
+      if (version !== securityVersion) return;
       state.baseRevision = documents.get(date)?.revision ?? state.baseRevision; onChanged(date);
       if (date === day) { renderEntries(); showForm(); feedback(operation === 'delete' ? 'Eintrag gelöscht.' : 'Eintrag gespeichert.'); }
     } catch (error) { if (date === day) feedback(typeof error.message === 'string' ? error.message : 'Speichern fehlgeschlagen. Dein Entwurf bleibt erhalten.'); }
@@ -190,7 +204,7 @@ export function createContext({ onLocked, onChanged }) {
     if (!value) throw new Error('Bitte die persönliche Besitzerfreigabe angeben.');
     const r = await fetch('/assistenz/owner', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ token: value }), signal: AbortSignal.timeout(10000) }); value = '';
     if (!r.ok) throw new Error(r.status === 429 ? 'Bitte kurz warten und die Freigabe erneut versuchen.' : 'Die Besitzerfreigabe ist ungültig oder abgelaufen.');
-    await refreshSession(); renderEntries(); showForm(); feedback('Bearbeiten ist in diesem Browser freigegeben.');
+    if (!await refreshSession()) return; renderEntries(); showForm(); feedback('Bearbeiten ist in diesem Browser freigegeben.'); onAccessChanged();
   }
   $('context-owner-form').addEventListener('submit', async event => {
     event.preventDefault(); let token = $('context-owner-token').value; $('context-owner-token').value = '';
@@ -226,7 +240,7 @@ export function createContext({ onLocked, onChanged }) {
     enableOwner,
     refresh() { if(validDay(day) && !draft().dirty) load(day); },
     reset() {
-      loadingVersion++; day = null; segment = journal = null; currentForm = null; session = { canRead: false, canWrite: false };
+      loadingVersion++; securityVersion++; day = null; segment = journal = null; currentForm = null; session = { canRead: false, canWrite: false };
       documents.clear(); drafts.clear(); fetched.clear(); $('context-entry-list').replaceChildren(); $('context-fields').replaceChildren(); $('context-form').reset(); $('context-owner-token').value = ''; updateAccess(); feedback('Öffne deinen persönlichen Kartenlink für deine Tageseinträge.');
     }
   };

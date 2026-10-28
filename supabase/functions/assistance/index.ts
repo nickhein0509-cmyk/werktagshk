@@ -4,9 +4,9 @@ const supabaseUrl=Deno.env.get('SUPABASE_URL')!;
 const admin=createClient(supabaseUrl,Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!,{auth:{persistSession:false,autoRefreshToken:false}});
 const installationId=Deno.env.get('ASSISTANCE_INSTALLATION_ID')??'b4f2aa0a-c752-42f4-9b9d-10aecf7c9420';
 const check=(result:any)=>{if(result.error)throw new Error('Database operation failed.');return result.data;};
-async function all(table:string,id:string,columns='*',order='date'){
+async function all(table:string,id:string,columns='*',order='date',bounds?:{from:string,to:string}){
  const out:any[]=[];
- for(let offset=0;;offset+=1000){const rows=check(await admin.from('assistance_'+table).select(columns).eq('installation_id',id).order(order,{ascending:true}).range(offset,offset+999));out.push(...rows);if(rows.length<1000)return out;if(out.length>2000000)throw new Error('Archive range too large.');}
+ for(let offset=0;;offset+=1000){let query=admin.from('assistance_'+table).select(columns).eq('installation_id',id).order(order,{ascending:true}).range(offset,offset+999);if(bounds)query=query.gte(order,bounds.from).lte(order,bounds.to);const rows=check(await query);out.push(...rows);if(rows.length<1000)return out;if(out.length>2000000)throw new Error('Archive range too large.');}
 }
 const canonicalPoint=(p:any)=>{const out:any={source:p.source,device:p.device,tst:p.tst,lat:p.lat,lon:p.lon};for(const key of ['acc','alt','vel','cog','batt','tid','id','receivedAt'])if(p[key]!==undefined)out[key]=p[key];return out;};
 const canonicalArchive=(a:any)=>({...a,payload:a.original_json?JSON.parse(a.original_json):a.payload});
@@ -25,7 +25,7 @@ const store={
  async points(id:string){return check(await admin.rpc('assistance_read_points',{p_installation_id:id})).map(canonicalPoint);},
  async receipts(id:string){return check(await admin.from('assistance_receipts').select('payload').eq('installation_id',id).maybeSingle())?.payload??null;},
  async health(id:string){return (await all('health_days',id)).map(r=>r.payload);},
- async contexts(id:string){return (await all('contexts',id)).map(r=>r.payload);},
+ async contexts(id:string,from?:string,to?:string){return (await all('contexts',id,'payload','date',from&&to?{from,to}:undefined)).map(r=>r.payload);},
  async context(id:string,date:string){return check(await admin.from('assistance_contexts').select('payload').eq('installation_id',id).eq('date',date).maybeSingle())?.payload??null;},
  async writeContext(id:string,date:string,revision:number,payload:any){return check(await admin.rpc('assistance_context_write',{p_installation_id:id,p_date:date,p_expected_revision:revision,p_payload:payload}));},
  async archives(id:string){return (await all('archives',id)).map(canonicalArchive);},
