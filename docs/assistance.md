@@ -1,6 +1,6 @@
 # AI Assistance auf WerkTag
 
-Stand: 28.10.2026, Webapp 0.8.1. Der SHK Lernbuddy bleibt auf `/`. `/projekte` bietet zwei getrennte Einstiege. Die bestehende private GPS-/Health-/Statistikoberfläche wird unter `/assistenz` durch einen eng begrenzten Server-Proxy erreichbar. Es gibt keine Zusammenführung von Lernständen, Konten oder Gesundheitsdaten.
+Stand: Entwicklung vom 28.10.2026, Basis Webapp 0.8.1. Der SHK Lernbuddy bleibt auf `/`. `/projekte` bietet drei Einstiege: Lernen, AI Assistance und Komponentenliste. Die bestehende private GPS-/Health-/Statistikoberfläche wird unter `/assistenz` durch einen eng begrenzten Server-Proxy erreichbar. Die Komponentenliste verwendet `/assistenz/components` und dieselbe private Sitzung. Es gibt keine Zusammenführung von Lernständen, Konten oder Gesundheitsdaten. Bereitstellung und Prüfung des privaten Katalogdienstes: [Komponentenliste](components.md).
 
 ## Änderung in 0.8.1
 
@@ -27,7 +27,7 @@ Der persönliche Kartenlink wird als Fragment `/assistenz#key=…&owner=…` am 
 
 Der Proxy erlaubt ausschließlich die vorhandenen Karten-Assets und API-Pfade sowie den schreibenden OwnTracks-Endpunkt. `/status`, `/export`, `/setup`, unbekannte Pfade und Methoden werden nicht weitergeleitet. Nur die zwei Kartencookies werden zum PC übertragen. Schreibende Browser-Anfragen benötigen exakt den konfigurierten WerkTag-Origin; die vorhandene Owner-/CSRF-Prüfung bleibt beim Empfänger. HTTP-Standortmeldungen benötigen Basic-Authentifizierung und keine Browser-Cookies.
 
-HTML-/JS-/CSS-Pfade und Cookie-Paths werden von `/map` auf `/assistenz` umgesetzt. JSON, GPX, Messwerte und Kontextinhalte bleiben unverändert. Es gibt keinen iframe und keine Abschwächung der vorhandenen Frame-Sperre. Fehlerseiten nennen die PC-Abhängigkeit ohne Daten preiszugeben.
+HTML-/JS-/CSS-Pfade der Assistenz und Cookie-Paths werden von `/map` auf `/assistenz` umgesetzt. Die Komponentenliste und ihre komprimierten Datenblöcke werden ohne Textänderung weitergeleitet. JSON, GPX, Messwerte und Kontextinhalte bleiben unverändert. Es gibt keinen iframe und keine Abschwächung der vorhandenen Frame-Sperre. Fehlerseiten nennen die PC-Abhängigkeit ohne Daten preiszugeben.
 
 ## Prüfung
 

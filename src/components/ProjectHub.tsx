@@ -1,7 +1,7 @@
-import { ArrowRight, ArrowUpRight, BookOpen, Compass, LockKeyhole, Wrench } from 'lucide-react';
+import { ArrowRight, ArrowUpRight, BookOpen, Boxes, Compass, LockKeyhole, Wrench } from 'lucide-react';
 import './project-hub.css';
 
-/** Separate entry points for the learning app and the personal assistance area. */
+/** Independent entry points for learning, personal assistance and the private catalogue. */
 export function ProjectHub() {
   return (
     <div className="project-hub">
@@ -25,8 +25,8 @@ export function ProjectHub() {
           <p className="project-hub__eyebrow">DEIN ARBEITSBEREICH</p>
           <h1>Deine Projekte.</h1>
           <p>
-            Wähle, womit du weitermachen möchtest. Lernen und persönliche Assistenz haben ihren
-            eigenen Platz.
+            Wähle, womit du weitermachen möchtest: Lernen, persönliche Assistenz oder deine
+            Komponentenliste.
           </p>
         </div>
 
@@ -74,13 +74,38 @@ export function ProjectHub() {
               Zur privaten Assistenz <ArrowRight size={18} aria-hidden="true" />
             </span>
           </a>
+
+          <a
+            className="project-hub__project project-hub__project--components"
+            href="/assistenz/components"
+            aria-labelledby="project-hub-components-title"
+          >
+            <div className="project-hub__project-top" aria-hidden="true">
+              <span className="project-hub__project-icon">
+                <Boxes size={27} strokeWidth={1.6} />
+              </span>
+              <ArrowUpRight className="project-hub__arrow" size={24} strokeWidth={1.6} />
+            </div>
+            <span className="project-hub__category">03 · NACHSCHLAGEN</span>
+            <h2 id="project-hub-components-title">Komponentenliste</h2>
+            <p>
+              Dein SHK-Katalog mit Herstellern, Rohrtypen und Bauteilen. Durchsuchen, filtern und
+              technische Angaben mit ihrem Prüfstand nachschlagen.
+            </p>
+            <span className="project-hub__privacy">
+              <LockKeyhole size={15} aria-hidden="true" /> Über deinen privaten Zugang
+            </span>
+            <span className="project-hub__project-link">
+              Zur Komponentenliste <ArrowRight size={18} aria-hidden="true" />
+            </span>
+          </a>
         </nav>
 
         <aside className="project-hub__separation" aria-label="Getrennte Projektbereiche">
           <LockKeyhole size={19} aria-hidden="true" />
           <p>
-            Der SHK-Lernstand gehört zum Lernbuddy. Die persönliche Assistenz nutzt einen eigenen
-            geschützten Zugang.
+            Dein Lernstand bleibt im Lernbuddy. Assistenz und Komponentenliste sind über deinen
+            privaten Zugang erreichbar.
           </p>
         </aside>
       </main>
