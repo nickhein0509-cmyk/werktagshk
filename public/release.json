@@ -1,6 +1,6 @@
 {
-  "release": "werktag-combined-projects-0.10.1",
-  "appVersion": "0.10.1",
+  "release": "werktag-assistant-workspace-0.11.0",
+  "appVersion": "0.11.0",
   "design": "flow",
   "designVersion": 2,
   "learningSchemaVersion": 1,
@@ -48,6 +48,10 @@
     "cloud-health-sync-setup",
     "private-components-project",
     "isolated-work-branches",
-    "combined-release-workflow"
+    "combined-release-workflow",
+    "assistant-notes-and-tasks",
+    "assistant-range-search",
+    "gps-independent-manual-records",
+    "assistant-account-recovery"
   ]
 }

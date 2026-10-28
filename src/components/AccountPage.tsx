@@ -1,16 +1,23 @@
 import { useEffect, useRef, useState } from 'react';
 import type { Session } from '@supabase/supabase-js';
 import { supabase } from '../lib/supabase';
+import { assistanceOwnerProof } from '../lib/assistance-access';
 import './account-page.css';
 
 // Remove only our private connection parameter. Supabase must still receive its
 // authentication callback fragment; keep the connection key only in memory.
 let pendingConnection = '';
+let pendingConnectionError = '';
+let recoveryRequested = false;
 if (/^\/konto\/?$/.test(window.location.pathname) && window.location.hash) {
   const fragment = new URLSearchParams(window.location.hash.slice(1));
-  if (fragment.has('connect')) {
-    pendingConnection = fragment.get('connect') ?? '';
+  recoveryRequested = fragment.get('type') === 'recovery';
+  if (fragment.has('connect') || fragment.has('owner') || fragment.has('key')) {
+    try { pendingConnection = assistanceOwnerProof(window.location.href); }
+    catch (error) { pendingConnectionError = error instanceof Error ? error.message : 'Der persönliche Link ist ungültig.'; }
     fragment.delete('connect');
+    fragment.delete('owner');
+    fragment.delete('key');
     const remaining = fragment.toString();
     window.history.replaceState(null, '', window.location.pathname + window.location.search + (remaining ? '#' + remaining : ''));
   }
@@ -70,8 +77,10 @@ export function AccountPage() {
   const [authReady, setAuthReady] = useState(!supabase);
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [passwordConfirmation, setPasswordConfirmation] = useState('');
+  const [recovery, setRecovery] = useState(recoveryRequested);
   const [register, setRegister] = useState(false);
-  const [message, setMessage] = useState('');
+  const [message, setMessage] = useState(() => pendingConnectionError);
   const [busy, setBusy] = useState(false);
   const [ownerKey, setOwnerKey] = useState(() => pendingConnection);
   const [link, setLink] = useState<LinkStatus | null>(null);
@@ -83,20 +92,36 @@ export function AccountPage() {
   const [healthMessage, setHealthMessage] = useState('');
   const [reload, setReload] = useState(0);
   const currentAccount = useRef<string | null>(null);
+  const accountObserved = useRef(false);
+  const authGeneration = useRef(0);
+  const emailInput = useRef<HTMLInputElement>(null);
   const mutations = useRef(new Set<AbortController>());
 
   useEffect(() => {
     pendingConnection = '';
+    pendingConnectionError = '';
+    recoveryRequested = false;
     document.title = 'Dein Konto · WerkTag';
     if (!supabase) return;
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, next) => {
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((event, next) => {
       const nextAccount = next?.user.id ?? null;
+      const changed = accountObserved.current && currentAccount.current !== null && currentAccount.current !== nextAccount;
+      const identityChanged = accountObserved.current && currentAccount.current !== nextAccount;
       if (currentAccount.current !== nextAccount) {
+        authGeneration.current++;
         for (const request of mutations.current) request.abort();
         mutations.current.clear();
         setBusy(false);
         setHealthBusy(false);
       }
+      if (changed || event === 'SIGNED_OUT') setOwnerKey('');
+      if (identityChanged || event === 'SIGNED_OUT') {
+        setPassword('');
+        setPasswordConfirmation('');
+        setRecovery(false);
+      }
+      if (event === 'PASSWORD_RECOVERY') setRecovery(true);
+      accountObserved.current = true;
       currentAccount.current = nextAccount;
       setSession(next);
       setAuthReady(true);
@@ -107,6 +132,8 @@ export function AccountPage() {
       for (const request of mutations.current) request.abort();
       mutations.current.clear();
       currentAccount.current = null;
+      accountObserved.current = false;
+      authGeneration.current++;
     };
   }, []);
 
@@ -172,7 +199,8 @@ export function AccountPage() {
     mutations.current.add(controller);
     setBusy(true);
     try {
-      await accountRequest('/api/assistenz-account?route=claim', session.access_token, { ownerKey }, controller.signal);
+      const proof = assistanceOwnerProof(ownerKey);
+      await accountRequest('/api/assistenz-account?route=claim', session.access_token, { ownerKey: proof }, controller.signal);
       if (controller.signal.aborted || currentAccount.current !== account) return;
       setOwnerKey('');
       setReload((value) => value + 1);
@@ -184,11 +212,61 @@ export function AccountPage() {
     }
   }
 
+  async function requestPasswordReset() {
+    if (!supabase || !emailInput.current?.reportValidity()) return;
+    const generation = authGeneration.current;
+    setBusy(true);
+    setMessage('');
+    try {
+      const { error } = await supabase.auth.resetPasswordForEmail(email.trim(), {
+        redirectTo: `${window.location.origin}/konto`,
+      });
+      if (authGeneration.current !== generation) return;
+      setMessage(error
+        ? 'Die Wiederherstellung ist gerade nicht verfügbar. Bitte versuche es später erneut.'
+        : 'Falls zu dieser E-Mail-Adresse ein Konto besteht, erhältst du einen Link zur Wiederherstellung. Prüfe auch den Spamordner.');
+    } catch {
+      if (authGeneration.current === generation) setMessage('Die Verbindung ist unterbrochen. Bitte versuche die Wiederherstellung erneut.');
+    } finally {
+      if (authGeneration.current === generation) {
+        setPassword('');
+        setBusy(false);
+      }
+    }
+  }
+
+  async function updatePassword() {
+    if (!supabase || !session) return;
+    if (password !== passwordConfirmation) {
+      setMessage('Die beiden Passwörter stimmen noch nicht überein.');
+      return;
+    }
+    const account = session.user.id;
+    const generation = authGeneration.current;
+    setBusy(true);
+    setMessage('');
+    try {
+      const { error } = await supabase.auth.updateUser({ password });
+      if (currentAccount.current !== account || authGeneration.current !== generation) return;
+      if (error) throw error;
+      setRecovery(false);
+      setMessage('Dein neues Passwort ist gespeichert. Verwende es künftig für deine Anmeldung auf Handy und Desktop.');
+    } catch {
+      if (currentAccount.current === account && authGeneration.current === generation) setMessage('Das Passwort konnte nicht gespeichert werden. Bitte versuche es erneut oder fordere einen neuen Wiederherstellungslink an.');
+    } finally {
+      if (currentAccount.current === account && authGeneration.current === generation) {
+        setPassword('');
+        setPasswordConfirmation('');
+        setBusy(false);
+      }
+    }
+  }
+
   async function signOut() {
     if (!supabase) return;
     setBusy(true);
     try {
-      const cleared = await fetch('/assistenz/logout', { method: 'POST', credentials: 'same-origin' });
+      const cleared = await fetch('/assistenz/logout', { method: 'POST', credentials: 'same-origin', signal: AbortSignal.timeout(8000) });
       if (!cleared.ok) throw new Error();
       const { error } = await supabase.auth.signOut({ scope: 'local' });
       if (error) throw error;
@@ -238,18 +316,33 @@ export function AccountPage() {
               <button type="button" aria-pressed={register} onClick={() => setRegister(true)}>Neues Konto</button>
             </div>
             <form onSubmit={(event) => { event.preventDefault(); void authenticate(); }}>
-              <label>E-Mail-Adresse<input type="email" autoComplete="email" required value={email} onChange={(event) => setEmail(event.target.value)} /></label>
+              <label>E-Mail-Adresse<input ref={emailInput} type="email" autoComplete="email" required value={email} onChange={(event) => setEmail(event.target.value)} /></label>
               <label>Passwort<input type="password" autoComplete={register ? 'new-password' : 'current-password'} minLength={8} required value={password} onChange={(event) => setPassword(event.target.value)} /></label>
               <button className="account-primary" disabled={busy}>{busy ? 'Bitte warten …' : register ? 'Konto erstellen' : 'Anmelden'}</button>
             </form>
+            {!register && <button className="account-reset" type="button" disabled={busy} onClick={() => void requestPasswordReset()}>Passwort vergessen</button>}
           </section>
         ) : (
           <>
             <section className="account-card"><h2>Dein Profil</h2><p>Angemeldet als <strong className="account-email">{session.user.email}</strong></p><button type="button" disabled={busy} onClick={() => void signOut()}>Abmelden</button></section>
+            {recovery && <section className="account-card" aria-labelledby="account-recovery-title">
+              <h2 id="account-recovery-title">Neues Passwort festlegen</h2>
+              <p>Wähle ein neues Passwort mit mindestens acht Zeichen für dein WerkTag-Konto.</p>
+              <form onSubmit={(event) => { event.preventDefault(); void updatePassword(); }}>
+                <label>Neues Passwort<input type="password" autoComplete="new-password" minLength={8} required value={password} onChange={(event) => setPassword(event.target.value)} /></label>
+                <label>Neues Passwort wiederholen<input type="password" autoComplete="new-password" minLength={8} required value={passwordConfirmation} onChange={(event) => setPasswordConfirmation(event.target.value)} /></label>
+                <button className="account-primary" disabled={busy}>Neues Passwort speichern</button>
+              </form>
+            </section>}
             <section className="account-card" aria-labelledby="account-assistance-title">
               <h2 id="account-assistance-title">Deine private Assistenz</h2>
               <p role="status">{linkMessage}</p>
-              {mapReady ? <a className="account-primary" href="/assistenz">Private Karte öffnen</a> : link && !link.linked && ownerKey ? <button className="account-primary" type="button" disabled={busy} onClick={() => void claim()}>Private Assistenz zuordnen</button> : !link?.linked && !ownerKey ? <p>Für die einmalige Zuordnung öffne deinen persönlichen Verbindungslink. Deine Zugangsdaten gehören nicht in öffentliche Nachrichten.</p> : null}
+              {mapReady ? <a className="account-primary" href="/assistenz">Assistent öffnen</a> : link && !link.linked ? <form onSubmit={(event) => { event.preventDefault(); void claim(); }}>
+                <p>Ordne deine bestehende Assistenz einmalig diesem Konto zu. Verwende deinen persönlichen Verbindungs- oder Besitzerlink; ein reiner Kartenlink genügt nicht.</p>
+                <label>Persönlicher Verbindungs- oder Besitzerlink<input type="password" autoComplete="off" spellCheck={false} required value={ownerKey} onChange={(event) => setOwnerKey(event.target.value)} /></label>
+                <button className="account-primary" type="submit" disabled={busy || !ownerKey.trim()}>Private Assistenz zuordnen</button>
+                <p className="account-help">Die Freigabe bleibt nur in diesem geöffneten Tab und wird nach erfolgreicher Zuordnung entfernt. Am Handy und Desktop verwendest du danach dieselbe Kontoanmeldung.</p>
+              </form> : null}
               {!mapReady && <button type="button" disabled={busy} onClick={() => setReload((value) => value + 1)}>Verbindung erneut prüfen</button>}
             </section>
             {mapReady && (

@@ -60,6 +60,8 @@ export function createStatistics({ onDay, onLocked }) {
       const item = element('article', undefined, extraClass); item.append(element('strong', title));
       for (const line of lines) item.append(element('p', line, 'subtle')); grid.append(item);
     };
+    if (context.counts?.note) card('Notizen', [number.format(context.counts.note) + ' bewusst gespeicherte Notizen']);
+    if (context.counts?.task) card('Aufgaben', [number.format(context.counts.task) + ' manuelle Aufgaben · kein Aktivitätsnachweis']);
     const sportNames = { basketball: 'Basketball', calisthenics: 'Calisthenics', skateboarding: 'Skateboard', walking: 'Gehen', running: 'Laufen', cycling: 'Radfahren', other: 'Andere Sportart' };
     if (context.workouts?.length) card('Training', context.workouts.map(entry => (sportNames[entry.sport] ?? entry.sport) + ' · ' + entry.count + ' Einträge · ' + number.format(entry.durationSeconds / 60) + ' Min.' + (entry.sets?.count ? ' · ' + number.format(entry.sets.value) + ' Sätze' : '') + (entry.reps?.count ? ' · ' + number.format(entry.reps.value) + ' Wiederholungen' : '') + (entry.rpe?.count ? ' · Anstrengung Ø ' + number.format(entry.rpe.value) + '/10 (Selbstauskunft)' : '')));
     if (context.activityLabels?.length) card('Deine Orts- / Tätigkeitslabels', context.activityLabels.map(entry => entry.label + ' · ' + entry.count + ' Einträge · ' + number.format(entry.durationSeconds / 60) + ' Min.'));

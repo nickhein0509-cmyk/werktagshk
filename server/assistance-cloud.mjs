@@ -5,7 +5,7 @@ const COOKIE = '__Secure-werktag-assistance';
 const catalogueFiles = ['app.js','inflate.js','style-0.css','style-1.css','chrome.css','blocks/shk-offline-index.b64',...Array.from({length:42},(_,i)=>`blocks/shk-shard-${i}.b64`)];
 const routes = new Map([
   ['pub', ['POST']], ['map/data', ['GET']], ['map/archive', ['GET']],
-  ['map/statistics', ['GET']], ['map/context', ['GET', 'POST']],
+  ['map/statistics', ['GET']], ['map/context', ['GET', 'POST']], ['map/context-range', ['GET']],
   ['map/session', ['GET']], ['map/auth', ['POST']], ['map/owner', ['POST']],
   ['map/logout', ['POST']], ['account/status', ['GET']],
   ['account/session', ['POST']], ['account/claim', ['POST']],

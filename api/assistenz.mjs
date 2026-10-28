@@ -2,7 +2,7 @@ import { Buffer } from 'node:buffer';
 import { cloudProxy } from '../server/assistance-cloud.mjs';
 
 const files = ['app-v4.js','app-v4.css','app-v3.js','app-v3.css','app-v2.js','app-v2.css','app.js','app.css','route.js','health-v2.js','health-v2.css','health-v1.js','health-v1.css','statistics-v1.js','context-v1.js','vendor/leaflet.js','vendor/leaflet.css'];
-const reads = new Set(['/map','/map/','/map/data','/map/archive','/map/statistics','/map/context','/map/session',...files.map(f=>'/map/'+f)]);
+const reads = new Set(['/map','/map/','/map/data','/map/archive','/map/statistics','/map/context','/map/context-range','/map/session',...files.map(f=>'/map/'+f)]);
 const componentFiles = ['app.js','inflate.js','style-0.css','style-1.css','chrome.css','blocks/shk-offline-index.b64',...Array.from({length:42},(_,i)=>`blocks/shk-shard-${i}.b64`)];
 const componentReads = new Set(['/map/components',...componentFiles.map(f=>'/map/components/'+f)]);
 const writes = new Set(['/map/auth','/map/logout','/map/owner','/map/context']);

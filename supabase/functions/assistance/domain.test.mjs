@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import {selectPoints,berlinDay,healthView,validateHealthDay,emptyContext,updateContextValue,validateContextValue,contextView,statisticsFromData,gpxForDay} from './domain.mjs';
+import {selectPoints,berlinDay,healthView,validateHealthDay,emptyContext,updateContextValue,validateContextValue,contextView,validateContextRange,contextRange,statisticsFromData,gpxForDay} from './domain.mjs';
 
 const id='12345678-1234-4234-8234-123456789abc';
 const point=(iso,lon=13.4,extra={})=>({id:iso,tst:Date.parse(iso)/1000,lat:52.5,lon,receivedAt:iso,...extra});
@@ -85,3 +85,84 @@ const now='2026-10-28T12:00:00.000Z';
   const changedJournal=structuredClone(snapshot);changedJournal.journal.trips[0].endReason='older-boundary';
   const rebuilt=statisticsFromData({points:original,archives:[changedJournal],from:snapshot.date,to:snapshot.date,now:Date.parse(now)});assert.equal(rebuilt.days[0].gps.source.archiveSnapshotOlder,true);
  });
+
+test('notes and tasks preserve manual provenance, timing, revisions and idempotent retries',()=>{
+  const note={id,kind:'note',note:'  Eigene Notiz  ',title:'  Titel  ',at:'2026-10-27T23:30:00Z'};
+  const saved=updateContextValue(null,request(note),now);
+  assert.equal(saved.entries[0].note,'Eigene Notiz');assert.equal(saved.entries[0].title,'Titel');
+  assert.equal(saved.entries[0].at,'2026-10-27T23:30:00.000Z');
+  assert.deepEqual(saved.entries[0].source,{provider:'MANUAL',sourceId:null});
+  assert.deepEqual(updateContextValue(saved,request(note),now),saved);
+  assert.throws(()=>updateContextValue(saved,request({...note,note:'Geändert'}),now),e=>e.statusCode===409);
+  const task={id:'abcdefab-1234-4234-8234-123456789abc',kind:'task',title:'Rückruf',status:'open',dueDate:'2026-11-02',note:'Eigene Aufgabe'};
+  const withTask=updateContextValue(saved,request(task,1),now);
+  const completed=updateContextValue(withTask,request({...task,status:'done'},2),'2026-10-28T12:01:00Z');
+  assert.equal(withTask.entries[1].status,'open');assert.equal(completed.entries[1].status,'done');
+  assert.equal(completed.entries[1].createdAt,now);assert.equal(completed.entries[1].revision,2);
+  assert.equal(completed.entries[1].dueDate,'2026-11-02');assert.equal(completed.revision,3);
+  assert.equal(validateContextValue(completed,completed.date),completed);
+  assert.throws(()=>updateContextValue(completed,request({...task,kind:'note',note:'Kein Typwechsel'},3),now));
+});
+
+test('note and task validation rejects empty text, foreign fields, invalid dates and unsupported status',()=>{
+  for(const entry of [
+    {id,kind:'note',note:'  '},{id,kind:'note',title:'Ohne Text'},
+    {id,kind:'note',note:'x'.repeat(2001)},{id,kind:'note',note:'Text',title:'x'.repeat(121)},
+    {id,kind:'note',note:'Text',at:'2026-10-28T23:30:00Z'},
+    {id,kind:'note',note:'Text',at:'2026-02-30T12:00:00Z'},
+    {id,kind:'note',note:'Text',source:{provider:'AI'}},
+    {id,kind:'task',title:'',status:'open'},{id,kind:'task',title:'Aufgabe'},
+    {id,kind:'task',title:'Aufgabe',status:'cancelled'},
+    {id,kind:'task',title:'Aufgabe',status:'done',completedAt:now},
+    ...['2026-02-30','1999-12-31','2101-01-01','2026-1-01'].map(dueDate=>({id,kind:'task',title:'Aufgabe',status:'open',dueDate})),
+  ])assert.throws(()=>updateContextValue(null,request(entry),now),e=>e.statusCode===400);
+  for(const dueDate of ['2000-01-01','2100-12-31']){
+    assert.equal(updateContextValue(null,request({id,kind:'task',title:'Aufgabe',status:'open',dueDate}),now).entries[0].dueDate,dueDate);
+  }
+});
+
+test('context range returns only a complete, sorted manual notes/tasks projection without sensor fields',()=>{
+  const note=updateContextValue(null,request({id,kind:'note',note:'Privater Text'}),now);
+  // Old/imported extras cannot carry unrelated data into the workspace response.
+  note.entries[0].location={lat:52,lon:13};note.entries[0].source.unrelatedHealth='must not escape';
+  let other=updateContextValue(null,{date:'2026-10-27',expectedRevision:0,operation:'upsert',entry:{id,kind:'hydration',amountMl:300}},now);
+  other=updateContextValue(other,{date:'2026-10-27',expectedRevision:1,operation:'upsert',entry:{id:'abcdefab-1234-4234-8234-123456789abc',kind:'task',title:'Später',status:'open'}},now);
+  const before=JSON.stringify([note,other]);
+  const range=contextRange([note,other],'2026-10-27','2026-10-28');
+  assert.deepEqual(Object.keys(range),['schemaVersion','timezone','from','to','documents']);
+  assert.equal(range.timezone,'Europe/Berlin');assert.deepEqual(range.documents.map(d=>d.date),['2026-10-27','2026-10-28']);
+  assert.deepEqual(range.documents.map(d=>d.entries.map(e=>e.kind)),[['task'],['note']]);
+  assert.equal(range.documents[0].revision,2);assert.equal(range.documents[1].entries[0].location,undefined);
+  assert.deepEqual(range.documents[1].entries[0].source,{provider:'MANUAL',sourceId:null});
+  assert.equal(JSON.stringify([note,other]),before);
+  assert.equal(contextRange([note,other],'2026-10-28','2026-10-28').documents.length,1);
+  assert.deepEqual(contextRange([],'2026-10-28','2026-10-28').documents,[]);
+});
+
+test('context range rejects invalid bounds and corrupt snapshots instead of returning partial data',()=>{
+  assert.deepEqual(validateContextRange('2026-07-31','2026-10-28'),{from:'2026-07-31',to:'2026-10-28'});
+  for(const [from,to] of [[undefined,'2026-10-28'],['2026-10-28',null],['2026-10-29','2026-10-28'],['2026-07-30','2026-10-28'],['2026-02-30','2026-03-01'],['1999-12-31','2000-01-01']]){
+    assert.throws(()=>validateContextRange(from,to),e=>e.statusCode===400);
+  }
+  const saved=updateContextValue(null,request({id,kind:'note',note:'Text'}),now);
+  assert.throws(()=>contextRange([saved,{date:'bad'}],'2026-10-28','2026-10-28'),e=>e.statusCode===503);
+  assert.throws(()=>contextRange([saved,saved],'2026-10-28','2026-10-28'),e=>e.statusCode===503);
+});
+
+test('context range rejects entry and UTF-8 byte overflow without truncation',()=>{
+  const template=updateContextValue(null,request({id,kind:'note',note:'Text'}),now);
+  const document=(date,count,note='Text')=>({...template,date,entries:Array.from({length:count},(_,i)=>({...template.entries[0],id:(i+1).toString(16).padStart(8,'0')+'-1234-4234-8234-123456789abc',note}))});
+  const tooMany=[24,25,26,27,28].map((day,i)=>document('2026-10-'+day,i===4?1:500));
+  assert.throws(()=>contextRange(tooMany,'2026-10-24','2026-10-28'),e=>e.statusCode===413);
+  const tooLarge=[document('2026-10-27',350,'界'.repeat(1800)),document('2026-10-28',350,'界'.repeat(1800))];
+  assert.throws(()=>contextRange(tooLarge,'2026-10-27','2026-10-28'),e=>e.statusCode===413);
+});
+
+test('notes/tasks statistics count manual entries without inventing activity or measured data',()=>{
+  let saved=updateContextValue(null,request({id,kind:'note',note:'Tagesnotiz'}),now);
+  saved=updateContextValue(saved,request({id:'abcdefab-1234-4234-8234-123456789abc',kind:'task',title:'Aufgabe',status:'done'},1),now);
+  const result=statisticsFromData({contexts:[saved],from:saved.date,to:saved.date,now:Date.parse(now)});
+  assert.equal(result.summary.context.counts.note,1);assert.equal(result.summary.context.counts.task,1);
+  assert.deepEqual(result.summary.context.activityLabels,[]);assert.equal(result.summary.context.planned.count,0);
+  assert.equal(result.summary.gps.present,false);assert.equal(result.summary.health.present,false);
+});

@@ -1,4 +1,4 @@
-import {selectPoints,berlinDay,healthView,validateHealthDay,emptyContext,updateContextValue,validateContextValue,contextView,statisticsFromData,gpxForDay} from './domain.mjs';
+import {selectPoints,berlinDay,healthView,validateHealthDay,emptyContext,updateContextValue,validateContextValue,contextView,validateContextRange,contextRange,statisticsFromData,gpxForDay} from './domain.mjs';
 import {cataloguePath,catalogueResponse,catalogueUnauthorized,validateCatalogueResource} from './catalog.mjs';
 export const COOKIE='__Secure-werktag-assistance';
 const MSG=new Set(['location','status','transition','waypoint','waypoints','steps','beacon','card','lwt','cmd','request','encrypted']);
@@ -45,6 +45,13 @@ export function createAssistance({store,installationId,publicOrigin='https://wer
  async function newSession(installation,userId=null,owner=false){const token=randomToken();await store.putSession({installation_id:installationId,token_hash:await sha256(token),valid_until:new Date(now()+7*86400000).toISOString(),owner_until:owner?new Date(now()+8*3600000).toISOString():null,account_user_id:userId});return token;}
  async function mapSession(req,installation){const s=await session(req,installation);if(!s)error(401,'Öffne deinen persönlichen Kartenlink oder melde dich an.');return s;}
  async function csrf(req,s){origin(req);if(!s.canWrite||!safeEqual(req.headers.get('x-csrf-token'),await sha256('csrf:'+s.token)))error(403,'Schreibfreigabe erforderlich.');}
+ async function manualView(value,date){
+ // A saved note or task must not depend on the availability of GPS history.
+ // References stay explicitly unverified when their optional journal is absent.
+ if(!value.entries.some(entry=>entry.kind==='activity'&&entry.segmentRef))return contextView(value,null);
+ try{return contextView(value,selectPoints(await store.points(installationId),date,Number.MAX_SAFE_INTEGER).journal);}
+ catch{return contextView(value,null);}
+ }
  async function archiveCompleted(points,known){
  const today=berlinDay(now()/1000),present=new Set(known.map(a=>a.date)),ordered=[...points].sort((a,b)=>a.tst-b.tst||a.receivedAt.localeCompare(b.receivedAt));
  for(const date of [...new Set(ordered.map(p=>berlinDay(p.tst)))].filter(d=>d<today&&!present.has(d))){
@@ -118,7 +125,7 @@ export function createAssistance({store,installationId,publicOrigin='https://wer
  if(route==='map/context'&&req.method==='POST'){
  query(url,[]);await csrf(req,s);const body=await parseBody(req);const previous=await store.context(installationId,body.date)??emptyContext(body.date),next=updateContextValue(previous,body,new Date(now()).toISOString());
  if(JSON.stringify(previous)!==JSON.stringify(next)&&!await store.writeContext(installationId,body.date,previous.revision,next))error(409,'Der Tag wurde inzwischen geändert. Bitte neu laden.');
- const points=await store.points(installationId);return reply(contextView(next,selectPoints(points,body.date,Number.MAX_SAFE_INTEGER).journal));
+ return reply(await manualView(next,body.date));
  }
  if(req.method!=='GET')error(405,'Methode nicht unterstützt.');
  if(route==='map/data'){
@@ -128,7 +135,8 @@ export function createAssistance({store,installationId,publicOrigin='https://wer
  const olderDates=[];const days=archives.map(a=>{const {date,pointCount,tripCount,stayCount,revision,updatedAt}=a.payload;const current=points.filter(p=>berlinDay(p.tst)===date).sort((a,b)=>a.tst-b.tst||a.receivedAt.localeCompare(b.receivedAt)),journal=selectPoints(points,date,Number.MAX_SAFE_INTEGER).journal;const archiveSnapshotOlder=JSON.stringify(current.map(p=>p.id))!==JSON.stringify(a.payload.points.map(p=>p.id))||JSON.stringify(journal)!==JSON.stringify(a.payload.journal);if(archiveSnapshotOlder)olderDates.push(date);return{date,pointCount,tripCount,stayCount,revision,updatedAt,archiveSnapshotOlder,livePointCount:current.length};});
  return reply({...selectPoints(points,date),health:healthView(health,date),archive:{enabled:true,days,status:{ok:true,mode:'on-demand',checkedAt:new Date(now()).toISOString(),archiveSnapshotOlder:olderDates.length>0,olderDates}},ingestion:ingestion??null,refreshedAt:new Date(now()).toISOString()});
  }
- if(route==='map/context'){query(url,['date']);const date=url.searchParams.get('date');if(!dateOK(date))error(400,'Ungültiges Datum.');const [value,points]=await Promise.all([store.context(installationId,date),store.points(installationId)]);return reply(contextView(value??emptyContext(date),selectPoints(points,date,Number.MAX_SAFE_INTEGER).journal));}
+ if(route==='map/context'){query(url,['date']);const date=url.searchParams.get('date');if(!dateOK(date))error(400,'Ungültiges Datum.');const value=await store.context(installationId,date)??emptyContext(date);validateContextValue(value,date);return reply(await manualView(value,date));}
+ if(route==='map/context-range'){query(url,['from','to']);const {from,to}=validateContextRange(url.searchParams.get('from'),url.searchParams.get('to'));return reply(contextRange(await store.contexts(installationId,from,to),from,to));}
  if(route==='map/statistics'){query(url,['from','to','bucket']);const [points,healthDays,contexts,knownArchives]=await Promise.all([store.points(installationId),store.health(installationId),store.contexts(installationId),store.archives(installationId)]);const archives=await archiveCompleted(points,knownArchives);return reply(statisticsFromData({points,healthDays,contexts,archives:archives.map(a=>a.payload),from:url.searchParams.get('from')??undefined,to:url.searchParams.get('to')??undefined,bucket:url.searchParams.get('bucket')??'day',now:now()}));}
  if(route==='map/archive'){
  query(url,['date','format']);const date=url.searchParams.get('date'),format=url.searchParams.get('format')??'gpx';if(!dateOK(date)||!['gpx','json'].includes(format))error(400,'Ungültiges Archivdatum.');let saved=await store.archive(installationId,date);if(!saved){await archiveCompleted(await store.points(installationId),await store.archives(installationId));saved=await store.archive(installationId,date);}if(!saved)error(404,'Dieser Tag ist noch nicht archiviert.');
