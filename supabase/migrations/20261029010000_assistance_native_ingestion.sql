@@ -31,7 +31,7 @@ begin
     perform public.assistance_ingest(p_installation_id,e->'payload','location');
    elsif e->>'kind'='health' then
     insert into public.assistance_native_health_days values(p_installation_id,(e->>'deviceId')::uuid,(e->'payload'->>'date')::date,(e->>'capturedAt')::timestamptz,moment,e->'payload')
-    on conflict(installation_id,device_id,date) do update set payload=excluded.payload,captured_at=excluded.captured_at,received_at=excluded.received_at
+    on conflict(installation_id,device_id,date) do update set payload=public.assistance_native_health_days.payload||excluded.payload,captured_at=excluded.captured_at,received_at=excluded.received_at
     where excluded.captured_at>public.assistance_native_health_days.captured_at;
    end if;
   end if;

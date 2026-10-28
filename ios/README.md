@@ -12,6 +12,7 @@ SF Symbols, Dynamic Type und Hell-/Dunkelmodus. Native MapKit-Karte.
 - Exponentielle Wiederholung bei Netzfehlern/429/5xx, sichtbare Auth-/Datenkonflikte.
 - Nach Abmeldung bleiben ausstehende Daten ausschließlich dem ursprünglichen Konto zugeordnet.
 - Health-Werte fehlen bei fehlender Lesefreigabe oder fehlenden Daten; niemals erfundene Nullwerte.
+  Der Server behält je Tageswert den letzten bekannten Messwert, wenn spätere Freigaben fehlen.
 
 ## Bauen
 

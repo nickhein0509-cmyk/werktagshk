@@ -52,29 +52,51 @@ jobs:
       - name: Compile SwiftUI app with free ad-hoc simulator signing
         working-directory: ios
         run: xcodebuild -project WerkTag.xcodeproj -scheme WerkTag -sdk iphonesimulator -configuration Debug -derivedDataPath build CODE_SIGN_IDENTITY=- CODE_SIGNING_ALLOWED=YES build
-      - name: Capture real simulator screen without accounts or personal data
-        timeout-minutes: 12
+      - name: Boot iPhone simulator
+        timeout-minutes: 8
         working-directory: ios
         run: |
           set -x
           xcrun simctl list runtimes
           SIM=$(xcrun simctl list devices available -j | python3 -c 'import json,sys; d=json.load(sys.stdin); print(next(x["udid"] for v in d["devices"].values() for x in v if "iPhone" in x["name"]))')
+          echo "IOS_SIMULATOR_ID=$SIM" >> "$GITHUB_ENV"
           xcrun simctl boot "$SIM"
           xcrun simctl bootstatus "$SIM" -b
-          xcodebuild test -project WerkTag.xcodeproj -scheme WerkTag -destination "platform=iOS Simulator,id=$SIM" -derivedDataPath build -resultBundlePath build/Smoke.xcresult -parallel-testing-enabled NO CODE_SIGN_IDENTITY=- CODE_SIGNING_ALLOWED=YES
-          xcrun xcresulttool export attachments --path build/Smoke.xcresult --output-path screenshots
-          xcrun simctl install "$SIM" build/Build/Products/Debug-iphonesimulator/WerkTag.app
-          xcrun simctl launch "$SIM" com.werktag.assistant
+      - name: Verify clean launch and all three native tabs
+        timeout-minutes: 8
+        working-directory: ios
+        run: xcodebuild test -project WerkTag.xcodeproj -scheme WerkTag -destination "platform=iOS Simulator,id=$IOS_SIMULATOR_ID" -derivedDataPath build -resultBundlePath build/Smoke.xcresult -parallel-testing-enabled NO CODE_SIGN_IDENTITY=- CODE_SIGNING_ALLOWED=YES
+      - name: Capture light and dark appearance without personal data
+        timeout-minutes: 3
+        working-directory: ios
+        run: |
+          xcrun simctl terminate "$IOS_SIMULATOR_ID" com.werktag.assistant || true
+          xcrun simctl ui "$IOS_SIMULATOR_ID" appearance light
+          xcrun simctl launch "$IOS_SIMULATOR_ID" com.werktag.assistant
           sleep 3
-          xcrun simctl io "$SIM" screenshot today-light.png
-          xcrun simctl ui "$SIM" appearance dark
+          xcrun simctl io "$IOS_SIMULATOR_ID" screenshot today-light.png
+          xcrun simctl ui "$IOS_SIMULATOR_ID" appearance dark
           sleep 2
-          xcrun simctl io "$SIM" screenshot today-dark.png
-          xcrun simctl shutdown "$SIM"
+          xcrun simctl io "$IOS_SIMULATOR_ID" screenshot today-dark.png
+      - name: Export UI evidence including failed assertions
+        if: always()
+        working-directory: ios
+        run: |
+          if [ -d build/Smoke.xcresult ]; then
+            xcrun xcresulttool export attachments --path build/Smoke.xcresult --output-path screenshots
+          fi
       - uses: actions/upload-artifact@v4
+        if: always()
         with:
           name: native-ios-screenshots
           path: |
             ios/*.png
             ios/screenshots/**
           retention-days: 7
+      - name: Stop simulator
+        if: always()
+        timeout-minutes: 2
+        run: |
+          if [ -n "$IOS_SIMULATOR_ID" ]; then
+            xcrun simctl shutdown "$IOS_SIMULATOR_ID" || true
+          fi

@@ -30,6 +30,12 @@ begin
  e:=jsonb_set(jsonb_set(jsonb_set(jsonb_set(e,'{0,id}','"66666666-6666-4666-8666-666666666666"'),'{0,capturedAt}','"2026-10-29T10:00:00Z"'),'{0,hash}','"health-old"'),'{0,payload,steps}','100');
  perform public.assistance_native_ingest(i,u,e);
  if (select (payload->>'steps')::int from public.assistance_native_health_days)<>900 then raise exception 'STALE_HEALTH_OVERWROTE'; end if;
+ -- Missing Health permissions must not erase previously confirmed metrics.
+ e:='[{"id":"77777777-7777-4777-8777-777777777777","deviceId":"33333333-3333-4333-8333-333333333333","kind":"health","capturedAt":"2026-10-29T13:00:00Z","hash":"health-partial","payload":{"date":"2026-10-29","timezone":"Europe/Berlin","activeEnergyKcal":20}}]';
+ perform public.assistance_native_ingest(i,u,e);
+ if (select (payload->>'steps')::int from public.assistance_native_health_days) is distinct from 900
+  or (select (payload->>'activeEnergyKcal')::int from public.assistance_native_health_days) is distinct from 20 then
+  raise exception 'PARTIAL_HEALTH_ERASED_CONFIRMED_METRIC'; end if;
  if has_table_privilege('authenticated','public.assistance_native_events','SELECT') or has_function_privilege('authenticated','public.assistance_native_ingest(uuid,uuid,jsonb)','EXECUTE') then raise exception 'DIRECT_ACCESS_GRANTED'; end if;
 end $$;
 rollback;

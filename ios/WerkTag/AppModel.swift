@@ -104,7 +104,8 @@ final class AppModel {
   do {
    let days=try await health.readWeek()
    guard account?.id==owner,let queue,queue.state.accountId==owner,healthEnabled else{return}
-   try queue.append(days.map{TransferEvent(health:$0)})
+   let available=days.filter{$0.steps != nil || $0.activeEnergyKcal != nil || $0.heartRateBpm != nil}
+   if !available.isEmpty {try queue.append(available.map{TransferEvent(health:$0)})}
    healthDays=days;healthChecked=Date();refreshCounts()
    message="Health-Abfrage abgeschlossen. Fehlende Werte können auch fehlende Lesefreigaben bedeuten."
    scheduleUpload()
