@@ -1,5 +1,7 @@
 # Private Assistenz in der Cloud · 0.9.0
 
+Produktbereiche: **Assistent** und die ausdrücklich geteilten Plattformverträge. Die Materialliste ist ein eigenständiges Produkt, das aktuell noch denselben Dienst verwendet. Zuständigkeiten: [Produktkarte](product-map.md).
+
 OwnTracks behält `https://werk-tag.com/api/assistenz/owntracks`, HTTP-Basic-Zugang und Gerätekennung. Das WerkTag-Gateway leitet ausschließlich erlaubte Anfragen an die Supabase-Funktion `assistance` weiter. Der Empfang bestätigt erst nach der atomaren Datenbankspeicherung mit `[]`; Wiederholungen werden anhand der bisherigen Punkt-ID dedupliziert. Ein PC oder Cloudflare-Tunnel ist für diesen Cloud-Pfad nicht erforderlich.
 
 ## Konto und Zugriff

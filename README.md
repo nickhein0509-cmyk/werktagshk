@@ -1,4 +1,22 @@
-# WerkTag · Dein SHK Lernbuddy
+# WerkTag · Lernapp, Assistent und Materialliste
+
+WerkTag besteht aus **drei eigenständigen Produkten** unter einer Domain:
+
+| Produkt | Zweck | Produktbereich | Laufender Einstieg |
+| --- | --- | --- | --- |
+| Lernapp | Schule und Gesellenprüfung | [werktag-lernen](https://github.com/nickhein0509-cmyk/werktag-lernen) | [Lernen](https://werk-tag.com/) |
+| Assistent | Persönliche Dokumentation und Aufzeichnungen | [werktag-assistent](https://github.com/nickhein0509-cmyk/werktag-assistent) | [Assistent](https://werk-tag.com/assistenz) |
+| Materialliste | Material und Komponenten für die praktische Arbeit draußen | [werktag-materialliste](https://github.com/nickhein0509-cmyk/werktag-materialliste) | [Materialliste](https://werk-tag.com/assistenz/components) |
+
+Die Produktbereiche sind privat und enthalten Auftrag, Zuständigkeiten und
+Aufgaben. **Dieser bisherige Repositoryname bleibt als gemeinsame produktive
+Codebasis erhalten.** Build, Anmeldung und Teile der APIs sind noch gekoppelt;
+eine unabhängige technische Bereitstellung ist noch nicht umgesetzt.
+Die [Produkt- und Eigentümerkarte](docs/product-map.md) erklärt für jeden Chat,
+wo er beginnen und welche Dateien er bearbeiten soll. `/projekte` und `/konto`
+sind gemeinsame Plattformdienste. Die bisherige Historie bleibt erhalten.
+
+## Lernapp
 
 Ein neuer Lernbuddy für Sanitär, Heizung, Klima/Lüftung und WiSo. Die responsive
 Web-App verbindet eine technische Werkstattgestaltung mit kurzen Übungsaufgaben,
@@ -28,13 +46,13 @@ Fachwissen mit rein synthetischem Inhalt:
 [Reader](docs/screenshots/knowledge-reader-desktop-synthetic.png) und
 [Handy](docs/screenshots/knowledge-reader-mobile-synthetic.png).
 
-## Gemeinsame Projekte und parallele Arbeit
+## Gemeinsame Plattform und parallele Arbeit
 
 `/projekte` bietet Lernen, private Assistenz und Komponentenliste. `/konto` ist der gemeinsame Anmeldeeinstieg. GPS und der geschützte Katalog werden über die bestehende Supabase-Cloud bereitgestellt; private Inhalte bleiben außerhalb dieses öffentlichen Repositorys. Details: [Cloud-Assistenz](docs/cloud-assistance.md) und [Komponentenliste](docs/components.md).
 
 Für verschiedene Chats/Works gilt: ein eigener Aufgabenbranch und eine eigene Arbeitskopie pro Auftrag, Übergabe über Pull Requests, gemeinsame Prüfung im Release-Branch. [Anleitung und Starthelfer](docs/parallel-work.md). `main` ist der geprüfte gemeinsame Veröffentlichungsstand.
 
-## Was funktioniert
+## Was die Lernapp bietet
 
 - Übersicht mit echten Tageszielen, bearbeiteten Aufgaben und Lerntagen.
 - 204 eigene Übungen mit Hinweisen und Erklärungen: die bisherigen 108

@@ -1,5 +1,9 @@
 # WerkTag: Prüfungsfokus jetzt, erwachsene Lernreise später
 
+Geltungsbereich seit Nicks Klarstellung vom 28. Oktober 2026: **WerkTag Lernapp**.
+Assistent und Materialliste sind eigenständige Produkte mit eigenen Zielen;
+siehe [Produktkarte](product-map.md).
+
 Arbeitsentwurf für die Projektplanung, 23. Oktober 2026. Die genannten Prioritäten
 und der Prüfungstermin stammen aus dem Nutzerauftrag. Dieses Dokument ist keine
 Prüfungsordnung und belegt weder offizielle Gewichtungen noch konkrete

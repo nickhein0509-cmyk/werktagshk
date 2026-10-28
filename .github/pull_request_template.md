@@ -6,6 +6,9 @@ Welches konkrete Problem löst der Stand und wie verhält sich WerkTag danach?
 
 ## Herkunft und Abhängigkeiten
 
+- Produkt: Lernapp / Assistent / Materialliste / gemeinsame Plattform
+- Verknüpfte Produktaufgabe:
+- Produktkarte und aktueller Implementierungsort geprüft:
 - Aufgabenbranch:
 - Vollständiger Basiscommit:
 - Vollständiger Ergebniscommit:
