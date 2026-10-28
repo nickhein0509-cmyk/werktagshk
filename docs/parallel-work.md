@@ -8,7 +8,7 @@ zum Livegang freigeben; der Koordinator verbindet genau diese Ergebnisse.
 
 ## Einen Auftrag beginnen
 
-1. Aktuelles `AGENTS.md` und die betroffenen Übergaben lesen. Repository,
+1. Aktuelles `AGENTS.md`, die [Produktkarte](product-map.md) und die betroffenen Übergaben lesen. Lernapp, Assistent, Materialliste oder gemeinsame Plattform als Ziel festhalten. Produktaufgaben gehören in den jeweiligen Produktbereich; solange der produktive Code hier liegt, verlinkt die Aufgabe den Implementierungs-PR in diesem Repository. Repository,
    vorhandene Arbeitskopie, Branch, vollständigen HEAD und offene Änderungen prüfen.
 2. Aufgabe benennen, z. B. `feat/kartenfilter-20261028` oder
    `fix/anmeldung-20261028`. Den Namen nicht für einen anderen Auftrag wiederverwenden.

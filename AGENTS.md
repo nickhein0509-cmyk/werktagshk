@@ -1,7 +1,25 @@
-# WerkTag SHK Lernbuddy
+# WerkTag: shared production platform for three products
 
-This is a new German-language SHK learning web app. The user explicitly requested
-a new implementation and design in `nickhein0509-cmyk/werktagshk`.
+Nick clarified on 28 October 2026 that WerkTag contains three independent
+products under `werk-tag.com`: **Lernapp** for school/examination preparation,
+**Assistent** for personal documentation and records, and **Materialliste** for
+practical field work. A shared domain or current build does not make them one
+product. Read [the product and ownership map](docs/product-map.md) first.
+
+This repository currently contains their shared production implementation,
+account entry and routing. The three private product repositories own each
+product's brief and tasks; they do not yet contain independent deployed apps.
+Until a verified extraction changes the map, implementation PRs still belong
+here. Identify the product, linked task and owned files before editing. A task
+for one product does not automatically authorize changes across all three.
+Coordinate genuinely shared authentication, routing, storage and releases.
+
+The learning-specific priorities and design requirements below apply to the
+Lernapp. They do not override Assistent or Materialliste requirements. Private
+study-source collections and personal learning evidence remain separate from
+the field-work Materialliste. No external AI is currently connected; personal
+documentation is the assistant's purpose, not proof of automatic capture of
+everything. Never fabricate completed integrations or activity records.
 
 ## Parallel work and releases
 

@@ -1,5 +1,7 @@
 # Komponentenliste als drittes WerkTag-Projekt
 
+Produktbereich: **Materialliste für praktische Arbeit im Außeneinsatz**. Die aktuelle Assistenzsitzung ist eine geteilte technische Abhängigkeit; sie macht den Katalog nicht zu einer Lernapp- oder Assistenten-Unterfunktion. Zuständigkeiten: [Produktkarte](product-map.md).
+
 Die Projektauswahl unter `/projekte` führt zu Lernen, AI Assistance und Komponentenliste. Der dritte Einstieg `/assistenz/components` ist eine leere öffentliche Anmeldeseite. Nach Prüfung der vorhandenen Kontositzung und der privaten Kartensitzung öffnet sie die geschützte Katalogansicht `/assistenz/components/view`.
 
 Die bestehende Komponentenliste V9 bleibt der Datenbestand. Originaldatei, Datensatz-IDs, Quellen, fünf Prüfstatusachsen, Filter und Exporte bleiben erhalten. Katalogdaten, Herstellerbilder und private Quelldateien gehören nicht ins öffentliche Repository. Eine technische Integration erteilt keine zusätzliche fachliche Freigabe.

@@ -1,0 +1,34 @@
+name: Produktaufgabe
+description: Eine konkrete Änderung eindeutig einem WerkTag-Produkt zuordnen.
+title: "[Produkt] "
+body:
+  - type: dropdown
+    id: produkt
+    attributes:
+      label: Produkt
+      options:
+        - Lernapp
+        - Assistent
+        - Materialliste
+        - Gemeinsame Plattform
+    validations:
+      required: true
+  - type: textarea
+    id: problem
+    attributes:
+      label: Ziel und aktuelles Problem
+      description: Welcher Nutzerablauf soll sich konkret ändern?
+    validations:
+      required: true
+  - type: input
+    id: produktaufgabe
+    attributes:
+      label: Aufgabe im privaten Produktbereich
+      description: Vorhandenen Link eintragen, keine privaten Inhalte kopieren.
+  - type: textarea
+    id: abnahme
+    attributes:
+      label: Abnahme und gemeinsame Abhängigkeiten
+      description: Woran erkennen wir Erfolg und welche weiteren Produkte sind betroffen?
+    validations:
+      required: true
