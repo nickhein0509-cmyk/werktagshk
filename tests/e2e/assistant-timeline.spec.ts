@@ -148,6 +148,7 @@ async function timelineFixture(page: Page, options: {
     recoverLeaflet: () => { leafletUnavailable = false; },
     recoverTiles: () => { tilesUnavailable = false; },
     clearGPS: () => { noGPS = true; },
+    restoreGPS: () => { noGPS = false; },
     failRangeOnce: () => { rangeFailures++; },
   };
 }
@@ -245,15 +246,31 @@ test('empty GPS remains an honest empty day and an expired session erases the pr
   await openDay(page);
   await expect(page.locator('#timeline .event')).toHaveCount(0);
   await expect(page.locator('#timeline-empty')).toContainText(/keine.*GPS|keine.*Standort/i);
+  // Establish private map content before testing erasure, rather than proving
+  // only that an already empty day remains empty after the session expires.
+  state.restoreGPS();
+  await page.locator('.journey-diagnostics summary').click();
+  await page.locator('#refresh-now').click();
+  await expect(page.locator('#timeline .event')).toHaveCount(4);
+  await page.locator('#timeline .event.stay').click();
+  await expect(page.locator('#map-selection-summary')).toContainText('Ausgewählter Aufenthalt');
+  await expect(page.locator('#timeline-day-summary')).toContainText('gespeicherte Messpunkte');
+  await expect(page.locator('#map .leaflet-pane')).not.toHaveCount(0);
   await page.locator('#view-workspace').click();
   await page.locator('#workspace-note').fill('Synthetischer privater Entwurf');
   await page.locator('#view-day').click();
   state.expire();
-  await page.locator('.journey-diagnostics summary').click();
   await page.locator('#refresh-now').click();
   await expect(page.locator('#access')).toBeVisible();
-  await expect(page.locator('.leaflet-container')).toHaveCount(0);
+  // Leaflet.remove() may retain its inert host class; private panes, tiles,
+  // controls and geometry must nevertheless be removed from that host.
+  await expect(page.locator('#map > *')).toHaveCount(0);
+  await expect(page.locator('.leaflet-pane, .leaflet-tile')).toHaveCount(0);
   await expect(page.locator('#timeline .event')).toHaveCount(0);
+  await expect(page.locator('#timeline-day-summary')).toHaveText('Melde dich an, um deine Wege und Aufenthalte zu sehen.');
+  await expect(page.locator('#map-selection-summary')).toHaveText('Deine privaten Abschnitte erscheinen nach der Anmeldung.');
+  await expect(page.locator('#timeline-date-label')).toHaveText('Deine Zeitachse');
+  await expect(page.locator('#view-day')).toBeDisabled();
   await expect(page.locator('#workspace-note')).toHaveValue('');
 });
 
