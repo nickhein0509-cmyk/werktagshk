@@ -10,6 +10,8 @@ Ansicht und alle Ressourcen benötigen dieselbe gültige private Sitzung wie die
 
 Der Cloud-Empfänger prüft die bestehende Sitzung vor jeder Ressourcenabfrage. Die Ressourcen liegen in einer eigenen Tabelle mit RLS und ohne direkten Zugriff für PUBLIC, anon und authenticated. Ausschließlich die serverseitige Rolle darf die eingeschränkten Import-/Lesefunktionen aufrufen. Kein öffentlicher Bucket, frei wählbarer Dateipfad oder signierter Downloadlink ist erforderlich.
 
+Das Supabase-Gateway setzt HTML-Antworten auf Klartext mit Sandbox. Der WerkTag-Proxy stellt ausschließlich für die fest erlaubten Katalogrouten den vertraglichen MIME-Typ und die restriktive Katalog-CSP wieder her. Zugriffskontrolle, Status und unveränderte Antwortbytes bleiben erhalten; technische Fehler bleiben JSON.
+
 Die überprüfte Originaldatei wird einmalig mit `scripts/materialize-catalog-cloud.mjs` kopierend übernommen. Das Skript benötigt ausdrücklich die vorhandenen privaten Konfigurations-, Adapter- und Originalpfade; es liest den Besitzerbeweis ausschließlich aus der Konfiguration. Weder Zugangsdaten noch Kataloginhalte werden protokolliert. Original und Adapter müssen ihren bereits geprüften Hash besitzen. Der Transfer verändert die Originaldatei nicht und erhält alle 43 komprimierten Datenblöcke bytegleich.
 
 Die 49 festen Ressourcen werden an den verifizierten Originalhash gebunden und unveränderlich gespeichert. Identische Wiederholungen sind zulässig; ein veränderter Inhalt am selben Pfad wird mit Konflikt abgewiesen. Der Cloud-Dienst gibt keine Teile aus, bevor die gesamte Version vollständig vorliegt. Ein späterer Katalogwechsel benötigt eine ausdrücklich geprüfte neue Versionsstrategie; der Import überschreibt keine vorhandene Version.

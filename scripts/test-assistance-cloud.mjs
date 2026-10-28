@@ -4,6 +4,7 @@ import { Readable } from 'node:stream';
 import { readFile } from 'node:fs/promises';
 import { createCloudProxy, cloudCookie } from '../server/assistance-cloud.mjs';
 import account from '../api/assistenz-account.mjs';
+import { CATALOGUE_CSP } from '../supabase/functions/assistance/catalog.mjs';
 
 const endpoint = 'https://synthetic.supabase.co/functions/v1/werktag-assistance';
 const origin = 'https://werk-tag.com';
@@ -16,6 +17,37 @@ function response() {
     end(bytes) { this.body = Buffer.isBuffer(bytes) ? bytes.toString('utf8') : bytes ?? ''; } };
 }
 const json = (value = {}, init = {}) => new Response(JSON.stringify(value), { ...init, headers: { 'content-type': 'application/json', ...init.headers } });
+
+test('protected catalogue HTML restores its fixed MIME and policy after Edge gateway sanitizing', async () => {
+  for (const route of ['map/components', 'map/components/view']) {
+    for (const status of [200, 401]) {
+      const html = '<!doctype html><h1>Synthetic catalogue or login</h1>';
+      const proxy = createCloudProxy({ endpoint, fetchImpl: async () => new Response(html, { status, headers: {
+        'content-type': 'text/plain', 'content-security-policy': "default-src 'none'; sandbox",
+      } }) });
+      const res = response(); await proxy(request(), res, route);
+      assert.equal(res.statusCode, status); assert.equal(res.body, html);
+      assert.equal(res.headers['content-type'], 'text/html; charset=utf-8');
+      assert.equal(res.headers['content-security-policy'], CATALOGUE_CSP);
+      assert.equal(res.headers['cache-control'], 'no-store');
+    }
+  }
+});
+
+test('catalogue errors stay JSON and ordinary cloud HTML never gains catalogue rendering', async () => {
+  for (const [route, status, type, policy] of [
+    ['map/components/view', 503, 'application/json', CATALOGUE_CSP],
+    ['map/data', 200, 'text/plain', "default-src 'none'; sandbox"],
+  ]) {
+    const proxy = createCloudProxy({ endpoint, fetchImpl: async () => new Response('{}', { status, headers: {
+      'content-type': type, 'content-security-policy': "default-src 'none'; sandbox",
+    } }) });
+    const res = response(); await proxy(request(), res, route);
+    assert.equal(res.statusCode, status); assert.equal(res.body, '{}');
+    assert.equal(res.headers['content-type'], type);
+    assert.equal(res.headers['content-security-policy'], policy);
+  }
+});
 
 test('cloud route and method allowlist rejects unsupported targets before any upstream call', async () => {
   let calls = 0;
