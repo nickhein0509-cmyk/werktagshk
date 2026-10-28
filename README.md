@@ -28,6 +28,12 @@ Fachwissen mit rein synthetischem Inhalt:
 [Reader](docs/screenshots/knowledge-reader-desktop-synthetic.png) und
 [Handy](docs/screenshots/knowledge-reader-mobile-synthetic.png).
 
+## Gemeinsame Projekte und parallele Arbeit
+
+`/projekte` bietet Lernen, private Assistenz und Komponentenliste. `/konto` ist der gemeinsame Anmeldeeinstieg. GPS und der geschützte Katalog werden über die bestehende Supabase-Cloud bereitgestellt; private Inhalte bleiben außerhalb dieses öffentlichen Repositorys. Details: [Cloud-Assistenz](docs/cloud-assistance.md) und [Komponentenliste](docs/components.md).
+
+Für verschiedene Chats/Works gilt: ein eigener Aufgabenbranch und eine eigene Arbeitskopie pro Auftrag, Übergabe über Pull Requests, gemeinsame Prüfung im Release-Branch. [Anleitung und Starthelfer](docs/parallel-work.md). `main` ist der geprüfte gemeinsame Veröffentlichungsstand.
+
 ## Was funktioniert
 
 - Übersicht mit echten Tageszielen, bearbeiteten Aufgaben und Lerntagen.

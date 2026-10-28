@@ -69,6 +69,9 @@ export function CloudAccount({
             onClick={async () => {
               setBusy(true);
               try {
+                await fetch('/assistenz/logout', {
+                  method: 'POST', credentials: 'same-origin', signal: AbortSignal.timeout(8000),
+                }).catch(() => undefined);
                 const { error } = await client.auth.signOut({ scope: 'local' });
                 if (error) setMessage('Abmelden fehlgeschlagen. Bitte erneut versuchen.');
               } catch {

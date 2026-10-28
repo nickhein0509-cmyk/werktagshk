@@ -1,0 +1,26 @@
+.account-page{min-height:100vh;background:#f4f1e9;color:#193c3a;font-family:var(--font-body,Inter,system-ui,sans-serif)}
+.account-header{display:flex;flex-wrap:wrap;justify-content:space-between;gap:1rem;padding:1rem max(1rem,calc((100vw - 1080px)/2));background:#123e3c}
+.account-header a{color:#fff;display:inline-flex;align-items:center;min-height:44px;font-weight:650}
+.account-main{width:min(100% - 2rem,800px);margin:0 auto;padding:clamp(2rem,6vw,4rem) 0}
+.account-main h1{font-size:clamp(2.5rem,7vw,4rem);letter-spacing:-.045em;margin:.4rem 0 1rem;line-height:1.1}
+.account-eyebrow{font-size:.76rem;font-weight:750;letter-spacing:.12em;color:#71523d}
+.account-intro{max-width:64ch;font-size:1.05rem;line-height:1.7;margin-bottom:2rem}
+.account-card{background:#fff;border:1px solid #d9ded6;border-radius:18px;padding:clamp(1.2rem,4vw,2rem);margin:1rem 0;overflow-wrap:anywhere}
+.account-card h2{font-size:1.35rem;margin:0 0 1rem;letter-spacing:-.025em}
+.account-card p{line-height:1.65;margin:.8rem 0}
+.account-card a{color:#174f49;text-decoration:underline;text-underline-offset:3px}
+.account-card label{display:grid;gap:.45rem;font-weight:650;margin:1rem 0}
+.account-card input{width:100%;box-sizing:border-box;min-width:0;padding:.8rem;border:1px solid #839990;border-radius:8px;background:#fff;color:#193c3a;font:inherit;min-height:48px}
+.account-card button,.account-card .account-primary{display:inline-flex;align-items:center;justify-content:center;min-height:44px;max-width:100%;padding:.7rem 1rem;border:1px solid #9bafa5;border-radius:9px;font:inherit;font-weight:650;background:#f6f8f4;color:#193c3a;cursor:pointer;text-align:center;line-height:1.4;text-decoration:none}
+.account-card .account-primary{background:#174f49;border-color:#174f49;color:#fff}
+.account-card button:disabled{opacity:.65;cursor:wait}
+.account-card button[aria-pressed=true]{background:#e4eee6;border-color:#174f49}
+.account-actions{display:flex;flex-wrap:wrap;gap:.75rem;margin:1rem 0}
+.account-email{overflow-wrap:anywhere}
+.account-health-state{font-weight:750}
+.account-times{display:grid;gap:.8rem;margin:1.5rem 0}
+.account-times div{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:.6rem;padding-bottom:.7rem;border-bottom:1px solid #e4e9e2}
+.account-times dt{font-weight:600}.account-times dd{margin:0;line-height:1.5}
+.account-page :focus-visible{outline:3px solid #a7653d;outline-offset:4px}
+.account-skip{position:absolute;left:1rem;top:-80px;background:#fff;padding:1rem;z-index:10}.account-skip:focus{top:1rem}
+@media(max-width:480px){.account-times div{grid-template-columns:1fr;gap:.3rem}.account-actions>*{flex:1 1 auto}.account-card .account-primary{width:100%;box-sizing:border-box}.account-header{gap:.25rem}.account-header a{font-size:.9rem}}

@@ -322,6 +322,7 @@ function App() {
           </button>
           <div className="breadcrumb">{navItems.find((x) => x.id === page)?.label}</div>
           <a className="project-switch" href="/projekte">Projekte</a>
+          <a className="project-switch" href="/konto">{user ? 'Mein Konto' : 'Konto / Anmelden'}</a>
           <button
             className="daily-progress"
             onClick={() => navigate('plan')}
