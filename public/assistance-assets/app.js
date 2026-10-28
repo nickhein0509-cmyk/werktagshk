@@ -9,7 +9,8 @@ const date=tst=>new Date(tst*1000).toLocaleDateString('de-DE',{timeZone:'Europe/
 const today=()=>new Intl.DateTimeFormat('en-CA',{timeZone:'Europe/Berlin',year:'numeric',month:'2-digit',day:'2-digit'}).format(new Date());
 const duration=seconds=>{const minutes=Math.floor(seconds/60);return minutes>=60?Math.floor(minutes/60)+' Std. '+minutes%60+' Min.':minutes+' Min.';};
 const distance=m=>m<1000?Math.round(m)+' m':fmt.format(m/1000)+' km';
-let map,layers,tileLayer,mapLibraryPromise=null,first=true,busy=false,active='today',lastView='',tilesFailed=false,generation=0,currentData,selected=null,pendingRefresh=false;
+let map,layers,basemap,mapLibraryPromise=null,first=true,busy=false,active='today',lastView='',generation=0,currentData,selected=null,pendingRefresh=false;
+let basemapRevision=0,basemapTimer,provider='openfreemap';
 let view='overview', contextReady=false, accessReady=false;
 const statistics=createStatistics({onDay:day=>changeDay(day),onLocked:()=>locked()});
 const context=createContext({onLocked:()=>locked(),onAccessChanged:()=>refresh(true),onChanged:()=>{statistics.invalidate(String(Date.now()));lastView='';workspace.invalidate();workspace.refresh();}});
@@ -18,7 +19,8 @@ function showView(next){
   view=next;document.body.classList.toggle('is-day-view',next==='day');$('day-view').hidden=next!=='day';statistics.show(next==='statistics');workspace.show(next);
   for(const name of ['overview','workspace','day','statistics']){const button=$('view-'+name);button.classList.toggle('chosen',next===name);button.setAttribute('aria-pressed',String(next===name));}
   $('day').closest('.date-control').hidden=next!=='day';
-  // A private route is sent to the tile service only after opening Mein Tag.
+  // The provider sees viewport requests only after opening Mein Tag. Measured
+  // routes, personal notes and Health records remain local to this private app.
   if(next==='day'&&accessReady){
     if(!map)initMap();if(currentData)draw(currentData,true);
     queueMicrotask(()=>{if(view==='day'&&accessReady){map?.invalidateSize();if(currentData)fit();}});
@@ -35,16 +37,66 @@ const status=(text,kind='')=>{$('connection').textContent=text;$('connection').c
 function mapFailure(message){
   $('map-message').hidden=false;$('map-message').textContent=message;$('map-retry').hidden=false;
 }
+function basemapState(state,revision=basemapRevision){
+  if(revision!==basemapRevision||!accessReady)return;
+  const label=$('basemap-status');label.dataset.state=state;label.dataset.provider=provider;
+  const messages=provider==='openfreemap'?{
+    loading:'Straßenkarte wird geladen …',ready:'Straßenkarte bereit · OpenFreeMap',
+    error:'Straßenkarte nicht erreichbar oder auf diesem Gerät nicht darstellbar. Erneut laden oder die Alternative wählen.'
+  }:{
+    loading:'Alternative wird geladen …',ready:'OpenStreetMap-Kacheln empfangen. Bei einem Sperrhinweis zur Straßenkarte wechseln.',
+    error:'Kartenhintergrund teilweise nicht erreichbar. Zur Straßenkarte wechseln oder erneut laden.'
+  };
+  label.textContent=messages[state]??'Karte noch nicht geöffnet.';$('map-retry').hidden=state!=='error';
+}
+function disposeBasemap(){
+  basemapRevision++;clearTimeout(basemapTimer);
+  try{basemap?.remove();}catch{}basemap=null;
+}
+async function loadBasemap(){
+  if(!map||!accessReady||view!=='day')return;
+  disposeBasemap();const revision=basemapRevision,host=map;
+  basemapState('loading',revision);
+  basemapTimer=setTimeout(()=>basemapState('error',revision),20000);
+  if(provider==='osm'){
+    // Only the public origin is sent, never the private path, query or fragment.
+    // Keep the document's no-referrer policy for every other external request.
+    const layer=L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png',{
+      maxZoom:19,referrerPolicy:'origin',
+      attribution:'© <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noopener noreferrer">OpenStreetMap</a>'
+    });
+    const failed=new Set();let loaded=0;
+    const settled=()=>{
+      if(revision!==basemapRevision)return;
+      clearTimeout(basemapTimer);
+      basemapState(failed.size||!loaded?'error':'ready',revision);
+    };
+    layer.on('tileerror',event=>{if(revision!==basemapRevision)return;failed.add(event.tile);clearTimeout(basemapTimer);basemapState('error',revision);});
+    layer.on('tileload',event=>{failed.delete(event.tile);loaded++;});
+    layer.on('tileunload',event=>{failed.delete(event.tile);if(!layer.isLoading())settled();});
+    layer.on('loading',()=>{if(revision!==basemapRevision)return;basemapState('loading',revision);clearTimeout(basemapTimer);basemapTimer=setTimeout(()=>basemapState('error',revision),20000);});
+    layer.on('load',settled);basemap=layer;layer.addTo(host);return;
+  }
+  try{
+    if(!window.werktagLoadBasemap)throw new Error('renderer-not-ready');
+    const engine=await window.werktagLoadBasemap();
+    if(revision!==basemapRevision||!accessReady||map!==host)return;
+    basemap=engine.createVectorLayer({L,onState:state=>{
+      if(revision!==basemapRevision)return;
+      if(state!=='loading')clearTimeout(basemapTimer);
+      basemapState(state,revision);
+    }});
+    basemap.addTo(host);
+  }catch{if(revision===basemapRevision){clearTimeout(basemapTimer);basemapState('error',revision);}}
+}
 function initMap(){
   if(view!=='day'||!accessReady)return false;
   if(!globalThis.L){mapFailure('Die Kartenbibliothek ist gerade nicht verfügbar. Deine Zeitachse und Einträge bleiben nutzbar.');return false;}
   try{
-    map=L.map('map',{zoomControl:true});map.setView([51,10],5);layers=L.layerGroup().addTo(map);
-    tileLayer=L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png',{maxZoom:19,attribution:'© <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noopener">OpenStreetMap</a>'}).addTo(map);
-    tileLayer.on('tileerror',()=>{tilesFailed=true;mapFailure('Kartenhintergrund teilweise nicht erreichbar. Gespeicherte Wege und Zeitachse bleiben sichtbar.');});
-    $('map-retry').hidden=true;return true;
+    map=L.map('map',{zoomControl:true,zoomAnimation:false,minZoom:1,maxZoom:19,maxBounds:[[-85.051129,-Infinity],[85.051129,Infinity]],maxBoundsViscosity:1});map.setView([51,10],5);layers=L.layerGroup().addTo(map);
+    $('map-provider').disabled=false;void loadBasemap();return true;
   }catch{
-    try{map?.remove();}catch{}map=null;layers=null;tileLayer=null;
+    disposeBasemap();try{map?.remove();}catch{}map=null;layers=null;
     // A constructor may fail after Leaflet stamps the container but before it
     // returns a map handle. Replace only this owned empty map host for retry.
     const container=$('map');container.replaceWith(container.cloneNode(false));
@@ -64,8 +116,8 @@ async function retryMap(){
       await mapLibraryPromise;
     }
     if(revision!==generation||!accessReady||view!=='day')return;
-    if(map){map.remove();map=null;layers=null;tileLayer=null;}tilesFailed=false;
-    if(initMap()&&currentData){draw(currentData,true);map.invalidateSize();}
+    if(map){await loadBasemap();map.invalidateSize();}
+    else if(initMap()&&currentData){draw(currentData,true);map.invalidateSize();}
   }catch{if(revision===generation)mapFailure('Kartenbibliothek weiterhin nicht erreichbar. Die Zeitachse funktioniert ohne Kartenhintergrund.');}
   finally{$('map-retry').disabled=false;}
 }
@@ -85,6 +137,9 @@ function stepDay(delta){
 }
 $('day-previous').addEventListener('click',()=>stepDay(-1));$('day-next').addEventListener('click',()=>stepDay(1));$('day-today').addEventListener('click',()=>changeDay('today'));
 $('map-retry').addEventListener('click',retryMap);
+$('map-provider').addEventListener('change',()=>{
+  provider=$('map-provider').value==='osm'?'osm':'openfreemap';void loadBasemap();
+});
 const ageText=seconds=>seconds<60?'vor '+Math.max(0,Math.floor(seconds))+' Sek.':seconds<3600?'vor '+Math.floor(seconds/60)+' Min.':'vor '+duration(seconds);
 const intervalText=seconds=>seconds===null?'Noch zu wenige Messungen':seconds<60?Math.round(seconds)+' Sek.':fmt.format(seconds/60)+' Min.';
 function renderFreshness(data){
@@ -196,11 +251,11 @@ function draw(data,force=false){
     const shown=model.segments.flat();
     if(shown.length){for(const[p,label,color,radius]of [[shown[0],'Start','#a3be59',7],[shown.at(-1),'Letzter Punkt','#183d36',9]]){const content=document.createElement('span');content.textContent=label+' · '+date(p.tst)+' · '+time(p.tst)+' Uhr'+(p.acc!==undefined?' · Genauigkeit ±'+Math.round(p.acc)+' m':'');L.circleMarker([p.lat,p.lon],{radius,color:'#fff',weight:3,fillColor:color,fillOpacity:1}).bindPopup(content).addTo(layers);}}
   }
-  if(!tilesFailed){$('map-message').hidden=layers.getLayers().length>0;$('map-message').textContent=pts.length?'Die vorhandenen Punkte sind für eine Route zu ungenau.':'Noch keine Punkte in diesem Zeitraum.';}
+  $('map-message').hidden=layers.getLayers().length>0;$('map-message').textContent=pts.length?'Die vorhandenen Punkte sind für eine Route zu ungenau.':'Noch keine Punkte in diesem Zeitraum.';
   if(force||first){fit();first=false;}
 }
 function locked(){
-  generation++;pendingRefresh=false;accessReady=false;if(map){map.remove();map=null;layers=null;tileLayer=null;}tilesFailed=false;$('map-retry').hidden=true;statistics.reset();context.reset();workspace.reset();contextReady=false;for(const name of ['workspace','day','statistics'])$('view-'+name).disabled=true;$('calendar-day').disabled=true;updateDayNavigation();$('timeline-date-label').textContent='Deine Zeitachse';$('timeline-day-summary').textContent='Melde dich an, um deine Wege und Aufenthalte zu sehen.';$('map-selection-summary').textContent='Deine privaten Abschnitte erscheinen nach der Anmeldung.';$('sensor-details').textContent='';showView('overview');
+  generation++;pendingRefresh=false;accessReady=false;disposeBasemap();if(map){map.remove();map=null;layers=null;}$('map-provider').disabled=true;$('basemap-status').dataset.state='idle';$('basemap-status').textContent='Karte nach der Anmeldung öffnen.';$('map-retry').hidden=true;statistics.reset();context.reset();workspace.reset();contextReady=false;for(const name of ['workspace','day','statistics'])$('view-'+name).disabled=true;$('calendar-day').disabled=true;updateDayNavigation();$('timeline-date-label').textContent='Deine Zeitachse';$('timeline-day-summary').textContent='Melde dich an, um deine Wege und Aufenthalte zu sehen.';$('map-selection-summary').textContent='Deine privaten Abschnitte erscheinen nach der Anmeldung.';$('sensor-details').textContent='';showView('overview');
   resetHealth('Melde dich über Mein Konto an oder öffne deinen privaten Kartenlink für deine Health-Werte.');
   status('Geschützter Zugriff');$('access').hidden=false;$('day').disabled=true;layers?.clearLayers();currentData=null;selected=null;$('timeline').replaceChildren();$('journal-summary').textContent='Zugriff erforderlich';$('archive-status').textContent='Melde dich über Mein Konto an oder öffne deinen privaten Kartenlink.';$('download-gpx').hidden=true;$('download-json').hidden=true;
   for(const id of ['distance','count','latest','received','range'])$(id).textContent='–';$('total').textContent='Zugriff erforderlich';$('map-message').hidden=false;$('map-message').textContent='Melde dich über Mein Konto an oder öffne deinen privaten Kartenlink.';

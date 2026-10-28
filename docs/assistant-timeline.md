@@ -1,6 +1,6 @@
 # Tageszeitachse und Freddy-Verbindung
 
-Produkt **ASSISTENT**, Version 0.12.0. Auftrag:
+Produkt **ASSISTENT**, Zeitachsenbasis 0.12.0; Kartenreparatur 0.13.0. Auftrag:
 [werktag-assistent #4](https://github.com/nickhein0509-cmyk/werktag-assistent/issues/4).
 Die bestehende gemeinsame Codebasis, Konten, Rohdaten und manuelle Einträge bleiben erhalten.
 
@@ -19,9 +19,11 @@ werden nicht erfunden. Aufenthalte beruhen weiterhin auf dem bestehenden Journal
 bereinigte GPS-Abstände sind Näherungen, keine berechneten Straßenstrecken.
 Lücken über 15 Minuten werden sichtbar markiert und nicht durch erfundene Wege ergänzt.
 
-Kartenkacheln werden erst nach berechtigtem Öffnen von „Mein Tag“ bei OpenStreetMap
-angefordert. Der Anbieter sieht dabei den angezeigten Kartenausschnitt. Fehlende
-Kacheln oder eine nicht geladene Kartenbibliothek zeigen eine Wiederholungsaktion;
+Der Kartenhintergrund wird erst nach berechtigtem Öffnen von „Mein Tag“
+angefordert. Standard ist OpenFreeMap; OpenStreetMap steht als Alternative zur
+Wahl. Der gewählte Anbieter sieht den angezeigten Kartenausschnitt. Siehe
+[Kartenbetrieb und Datenschutz](assistant-map.md). Fehlende Kacheln oder eine
+nicht geladene Kartenbibliothek zeigen eine Wiederholungsaktion;
 Zeitachse, Notizen und Aufgaben bleiben unabhängig davon nutzbar. Ein bestätigter
 GPS-Abruf wird als empfangener Stand bezeichnet. Messzeit, Empfangszeit und
 Kartenabruf bleiben voneinander getrennt.

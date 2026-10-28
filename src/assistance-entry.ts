@@ -1,5 +1,15 @@
 import { supabase } from './lib/supabase';
 
+declare global {
+  interface Window {
+    werktagLoadBasemap?: () => Promise<typeof import('./lib/assistant-basemap')>;
+  }
+}
+
+// The renderer and its worker are requested only after opening an authorized
+// day view. The catalogue and learning app never import this module.
+window.werktagLoadBasemap = () => import('./lib/assistant-basemap');
+
 // The map's capability flow stays independent. This bridge only exchanges the
 // existing account session for a permission-checked, HttpOnly map session.
 const explicitMapKey = Boolean(new URLSearchParams(location.hash.slice(1)).get('key'));
