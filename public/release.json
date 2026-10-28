@@ -1,6 +1,6 @@
 {
-  "release": "werktag-flow-knowledge-0.8.0",
-  "appVersion": "0.8.0",
+  "release": "werktag-flow-assistance-0.8.1",
+  "appVersion": "0.8.1",
   "design": "flow",
   "designVersion": 2,
   "learningSchemaVersion": 1,
@@ -37,6 +37,9 @@
     "article-and-term-reader",
     "knowledge-topic-and-learning-field-filters",
     "explicit-audited-knowledge-lookups",
-    "knowledge-policy-and-masking"
+    "knowledge-policy-and-masking",
+    "project-hub",
+    "private-assistance-proxy",
+    "owntracks-connection-guidance"
   ]
 }

@@ -1,6 +1,14 @@
 # AI Assistance auf WerkTag
 
-Stand: 27.10.2026. Der SHK Lernbuddy bleibt auf `/`. `/projekte` bietet zwei getrennte Einstiege. Die bestehende private GPS-/Health-/Statistikoberfläche wird unter `/assistenz` durch einen eng begrenzten Server-Proxy erreichbar. Es gibt keine Zusammenführung von Lernständen, Konten oder Gesundheitsdaten.
+Stand: 28.10.2026, Webapp 0.8.1. Der SHK Lernbuddy bleibt auf `/`. `/projekte` bietet zwei getrennte Einstiege. Die bestehende private GPS-/Health-/Statistikoberfläche wird unter `/assistenz` durch einen eng begrenzten Server-Proxy erreichbar. Es gibt keine Zusammenführung von Lernständen, Konten oder Gesundheitsdaten.
+
+## Änderung in 0.8.1
+
+Die vorhandene Verbindungshilfe erklärt den erhaltenden URL-Wechsel, die getrennte HTTP-/Intent-Authentifizierung und die Wiederverwendung der bestehenden Kurzbefehle. Unter `/owntracks/WerkTag-OwnTracks.otrc` liegt eine öffentliche Teilkonfiguration mit ausschließlich `_type` und der festen Zieladresse. Sie enthält keine Zugangsdaten oder Geräteinformationen. Die Website und ihre Versionskennung werden aktualisiert; ein iPhone-App-Update oder die Installation eines Kurzbefehls erfolgt dadurch nicht. Eine Korrektur im privaten PC-Launcher wird nicht durch diesen Webapp-Release verteilt.
+
+Vor einem Verbindungswechsel OwnTracks mindestens auf 27.0.1 aktualisieren; die am 28.10.2026 geprüfte aktuelle Version ist 27.1.2. Seit 27.0.1 bleiben Warteschlange und Wegpunkte beim Wechsel erhalten. Für den Dateiimport muss externe Konfiguration unter Remote Control am Gerät vorübergehend freigegeben werden. Der vorhandene Intent Auth Key und die Intent-Steuerung werden am Gerät verwaltet; die Teilkonfiguration kann sie nicht setzen. Im Importvergleich nur die URL-Änderung bestätigen. Bereits passende Einstellungen bleiben erhalten.
+
+Primärquellen: [OwnTracks-Versionshinweise](https://github.com/owntracks/ios/blob/master/CHANGELOG.md), [Sicherheit](https://owntracks.org/booklet/features/security/), [Teilkonfiguration](https://owntracks.org/booklet/features/remoteconfig/), [JSON-Vertrag](https://owntracks.org/booklet/tech/json/).
 
 ## Betrieb
 
