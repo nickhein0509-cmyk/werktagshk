@@ -1,4 +1,5 @@
 import { mkdir } from 'node:fs/promises';
+import { readFileSync } from 'node:fs';
 import { expect, test } from '@playwright/test';
 import type { Page } from '@playwright/test';
 import { selectPoints } from '../../supabase/functions/assistance/domain.mjs';
@@ -9,6 +10,32 @@ const today = '2026-10-28';
 const stamp = '2026-10-28T12:00:00.000Z';
 const csrf = 'synthetic-timeline-csrf';
 const pixel = Buffer.from('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAusB9Wl6Lz0AAAAASUVORK5CYII=', 'base64');
+const productionHeaders = JSON.parse(readFileSync('vercel.json', 'utf8')).headers
+  .find((rule: { source: string }) => rule.source === '/assistenz').headers as Array<{ key: string; value: string }>;
+const productionReferrerPolicy = productionHeaders.find(header => header.key.toLowerCase() === 'referrer-policy')!.value;
+
+// A real, tiny MVT polygon exercises MapLibre's worker/parser and renderer.
+// Every requested tile is synthetic; no live maps or locations leave the test.
+function varint(value: number): Buffer {
+  const bytes: number[] = [];
+  while (value > 127) { bytes.push((value & 127) | 128); value = Math.floor(value / 128); }
+  return Buffer.from([...bytes, value]);
+}
+const field = (number: number, value: Buffer) => Buffer.concat([varint((number << 3) | 2), varint(value.length), value]);
+const integer = (number: number, value: number) => Buffer.concat([varint(number << 3), varint(value)]);
+const geometry = Buffer.concat([9, 0, 0, 26, 8192, 0, 0, 8192, 8191, 0, 15].map(varint));
+const feature = Buffer.concat([integer(1, 1), integer(3, 3), field(4, geometry)]);
+const vectorTile = field(3, Buffer.concat([
+  field(1, Buffer.from('terrain')), field(2, feature), integer(5, 4096), integer(15, 2),
+]));
+const vectorStyle = {
+  version: 8, name: 'Synthetic isolated basemap',
+  sources: { fixture: { type: 'vector', tiles: ['https://tiles.openfreemap.org/synthetic/{z}/{x}/{y}.pbf'], minzoom: 0, maxzoom: 14 } },
+  layers: [
+    { id: 'background', type: 'background', paint: { 'background-color': '#c6dfe0' } },
+    { id: 'land', type: 'fill', source: 'fixture', 'source-layer': 'terrain', paint: { 'fill-color': '#ede9da', 'fill-outline-color': '#99aaa5' } },
+  ],
+};
 const start = Date.parse('2026-10-28T07:00:00Z') / 1000;
 const locations = [
   [0, 52.5, 13.4], [60, 52.501, 13.402], [120, 52.502, 13.404],
@@ -47,14 +74,26 @@ async function timelineFixture(page: Page, options: {
   noGPS?: boolean;
   leafletUnavailable?: boolean;
   tilesUnavailable?: boolean;
+  vectorUnavailable?: boolean;
+  emptyVectorStyle?: boolean;
+  holdVectorStyle?: boolean;
+  webglUnavailable?: boolean;
+  fullProductionCSP?: boolean;
   seeds?: Array<{ date: string; entry: ManualEntry }>;
 } = {}) {
   let authorized = true;
   let noGPS = options.noGPS ?? false;
   let leafletUnavailable = options.leafletUnavailable ?? false;
   let tilesUnavailable = options.tilesUnavailable ?? false;
+  let vectorUnavailable = options.vectorUnavailable ?? false;
+  let heldStyle: { release: () => void; requested: Promise<void> } | undefined;
+  let markStyleRequested: (() => void) | undefined;
+  let releaseStyle: (() => void) | undefined;
+  const styleRequested = new Promise<void>(resolve => { markStyleRequested = resolve; });
+  const styleReleased = new Promise<void>(resolve => { releaseStyle = resolve; });
+  if (options.holdVectorStyle) heldStyle = { release: () => releaseStyle!(), requested: styleRequested };
   let rangeFailures = 0;
-  const requestedDays: string[] = [], tileRequests: string[] = [];
+  const requestedDays: string[] = [], tileRequests: string[] = [], tileReferrers: Array<string | undefined> = [], vectorRequests: string[] = [];
   const documents = new Map<string, ReturnType<typeof emptyContext>>();
   for (const { date, entry } of options.seeds ?? []) {
     const document = documents.get(date) ?? emptyContext(date);
@@ -62,15 +101,37 @@ async function timelineFixture(page: Page, options: {
     document.revision++;
     documents.set(date, document);
   }
-  await page.clock.install({ time: new Date(stamp) });
+  // Keep the synthetic calendar deterministic while retaining native rAF and
+  // worker timing for the actual MapLibre renderer.
+  await page.clock.setFixedTime(new Date(stamp));
   await page.addInitScript(() => {
     localStorage.removeItem('werktag-learning-auth');
     sessionStorage.removeItem('werktag-assistance-clear-on-boot');
   });
+  if (options.webglUnavailable) await page.addInitScript(() => {
+    const original = HTMLCanvasElement.prototype.getContext;
+    HTMLCanvasElement.prototype.getContext = function (type: string, ...args: unknown[]) {
+      if (type.includes('webgl')) return null;
+      return original.apply(this, [type, ...args] as Parameters<typeof original>);
+    } as typeof original;
+  });
   await page.route('https://test-werktag.supabase.co/**', route => route.fulfill({ json: {} }));
-  await page.route('https://tile.openstreetmap.org/**', route => {
+  await page.route('https://tile.openstreetmap.org/**', async route => {
     tileRequests.push(route.request().url());
+    tileReferrers.push((await route.request().allHeaders()).referer);
     return tilesUnavailable ? route.abort('failed') : route.fulfill({ contentType: 'image/png', body: pixel });
+  });
+  await page.route('https://tiles.openfreemap.org/**', async route => {
+    const url = new URL(route.request().url());
+    vectorRequests.push(url.pathname);
+    if (url.pathname.startsWith('/styles/')) {
+      markStyleRequested!();
+      if (options.holdVectorStyle) await styleReleased;
+    }
+    if (vectorUnavailable) return route.fulfill({ status: 503, json: { error: 'Synthetic provider failure' } });
+    if (url.pathname.startsWith('/styles/')) return route.fulfill({ json: options.emptyVectorStyle ? { version: 8, sources: {}, layers: [] } : vectorStyle });
+    if (url.pathname.startsWith('/synthetic/')) return route.fulfill({ contentType: 'application/x-protobuf', body: vectorTile });
+    return route.abort('failed');
   });
   await page.route(url => url.pathname === '/assistance-assets/vendor/leaflet.js', async route => {
     if (leafletUnavailable) return route.abort('failed');
@@ -94,7 +155,13 @@ async function timelineFixture(page: Page, options: {
   });
   await page.route(url => url.pathname === '/assistenz', async route => {
     const response = await page.request.get('/assistance.html');
-    return route.fulfill({ response });
+    const headers: Record<string, string> = { ...response.headers(), 'referrer-policy': productionReferrerPolicy };
+    if (options.fullProductionCSP) {
+      // The fixture's account host replaces only the real project's host.
+      headers['content-security-policy'] = productionHeaders.find(header => header.key.toLowerCase() === 'content-security-policy')!.value
+        .replaceAll('https://hrqaxsbddpmphblmoyly.supabase.co', 'https://test-werktag.supabase.co');
+    }
+    return route.fulfill({ response, headers });
   });
   await page.route(url => /^\/assistenz\/(?:app-v\d+|route|health-v\d+|context-v\d+|statistics-v\d+)\.js$/.test(url.pathname), async route => {
     const name = new URL(route.request().url()).pathname.split('/').at(-1)!;
@@ -143,10 +210,12 @@ async function timelineFixture(page: Page, options: {
     } });
   });
   return {
-    requestedDays, tileRequests,
+    requestedDays, tileRequests, tileReferrers, vectorRequests, heldStyle,
     expire: () => { authorized = false; },
     recoverLeaflet: () => { leafletUnavailable = false; },
     recoverTiles: () => { tilesUnavailable = false; },
+    failTiles: () => { tilesUnavailable = true; },
+    recoverVector: () => { vectorUnavailable = false; },
     clearGPS: () => { noGPS = true; },
     restoreGPS: () => { noGPS = false; },
     failRangeOnce: () => { rangeFailures++; },
@@ -229,8 +298,9 @@ test('a missing map library has a recoverable error while personal drafts remain
 test('failed map tiles keep measured paths and can be retried without losing the selected section', async ({ page }) => {
   const state = await timelineFixture(page, { tilesUnavailable: true });
   await openDay(page);
+  await page.locator('#map-provider').selectOption('osm');
   await expect(page.locator('#map-retry')).toBeVisible();
-  await expect(page.locator('#map-message')).toContainText(/Kartenhintergrund/);
+  await expect(page.locator('#basemap-status')).toHaveAttribute('data-state', 'error');
   await page.locator('#timeline .event.trip').first().click();
   await expect(page.locator('#timeline .event.trip').first()).toHaveAttribute('aria-pressed', 'true');
   await expect(page.locator('.leaflet-overlay-pane path')).not.toHaveCount(0);
@@ -238,7 +308,166 @@ test('failed map tiles keep measured paths and can be retried without losing the
   state.recoverTiles();
   await page.locator('#map-retry').click();
   await expect.poll(() => state.tileRequests.length).toBeGreaterThan(requests);
+  await expect(page.locator('#basemap-status')).toHaveAttribute('data-state', 'ready');
+  await expect(page.locator('#map-retry')).toBeHidden();
   await expect(page.locator('#timeline .event.trip').first()).toHaveAttribute('aria-pressed', 'true');
+});
+
+test('new default basemap renders synthetic vector tiles with the production document policy', async ({ page, browserName }) => {
+  const state = await timelineFixture(page, { fullProductionCSP: true });
+  await page.goto('/assistenz');
+  await expect(page.locator('#view-day')).toBeEnabled();
+  expect(state.vectorRequests).toEqual([]);
+  expect(state.tileRequests).toEqual([]);
+  await page.locator('#view-day').click();
+  await expect(page.locator('#map-provider')).toHaveValue('openfreemap');
+  await expect(page.locator('#timeline .event')).toHaveCount(4);
+  const hasWebGL = await page.evaluate(() => {
+    const context = document.createElement('canvas').getContext('webgl2');
+    const supported = Boolean(context);
+    context?.getExtension('WEBGL_lose_context')?.loseContext();
+    return supported;
+  });
+  if (!hasWebGL && browserName === 'webkit') {
+    // Mobile WebKit on some CI hosts lacks WebGL. This is an error boundary,
+    // never presented as a successful vector render or a physical iPhone test.
+    await expect(page.locator('#basemap-status')).toHaveAttribute('data-state', 'error');
+    await page.locator('#map-provider').selectOption('osm');
+    await expect(page.locator('#basemap-status')).toHaveAttribute('data-state', 'ready');
+    return;
+  }
+  expect(hasWebGL).toBe(true);
+  await expect(page.locator('#basemap-status')).toHaveAttribute('data-state', 'ready');
+  await expect(page.locator('#map canvas.maplibregl-canvas')).toHaveCount(1);
+  await expect.poll(() => state.vectorRequests.some(path => path.startsWith('/synthetic/'))).toBe(true);
+  expect(state.tileRequests).toEqual([]);
+  await expect(page.locator('#map .leaflet-overlay-pane path')).not.toHaveCount(0);
+  await expect(page.locator('#map .leaflet-control-attribution')).toContainText(/OpenFreeMap/);
+});
+
+test('OSM receives only the real origin even under no-referrer and a private-looking URL', async ({ page }) => {
+  const state = await timelineFixture(page);
+  const response = await page.goto('/assistenz');
+  expect(response!.headers()['referrer-policy']).toBe('no-referrer');
+  await expect(page.locator('#view-day')).toBeEnabled();
+  await page.locator('#view-day').click();
+  await page.evaluate(() => history.replaceState(null, '', '/assistenz?private-fixture=query-do-not-send#fragment-do-not-send'));
+  // The document policy is taken from production, not Vite's permissive default.
+  expect(productionReferrerPolicy).toBe('no-referrer');
+  await page.locator('#map-provider').selectOption('osm');
+  await expect(page.locator('#basemap-status')).toHaveAttribute('data-state', 'ready');
+  await expect.poll(() => state.tileReferrers.length).toBeGreaterThan(0);
+  const origin = new URL(page.url()).origin + '/';
+  expect(state.tileReferrers.every(referrer => referrer === origin)).toBe(true);
+  expect(state.tileReferrers.some(referrer => /query-do-not-send|fragment-do-not-send|assistenz/.test(referrer ?? ''))).toBe(false);
+  await expect(page.locator('#map .leaflet-tile').first()).toHaveAttribute('referrerpolicy', 'origin');
+});
+
+test('an empty provider style is never reported as a ready street map', async ({ page }) => {
+  const state = await timelineFixture(page, { emptyVectorStyle: true });
+  await openDay(page);
+  await expect(page.locator('#basemap-status')).toHaveAttribute('data-state', 'error', { timeout: 25_000 });
+  expect(state.vectorRequests.some(path => path.startsWith('/synthetic/'))).toBe(false);
+  await expect(page.locator('#map-retry')).toBeVisible();
+  await expect(page.locator('#timeline .event')).toHaveCount(4);
+  await page.locator('#map-provider').selectOption('osm');
+  await expect(page.locator('#basemap-status')).toHaveAttribute('data-state', 'ready');
+});
+
+test('unsupported WebGL keeps routes and drafts available and offers a working manual alternative', async ({ page }) => {
+  await timelineFixture(page, { webglUnavailable: true });
+  await openDay(page);
+  await expect(page.locator('#basemap-status')).toHaveAttribute('data-state', 'error');
+  await expect(page.locator('#map-provider')).toHaveValue('openfreemap');
+  await expect(page.locator('#timeline .event')).toHaveCount(4);
+  await page.locator('#view-workspace').click();
+  await page.locator('#workspace-note').fill('Synthetischer Entwurf ohne WebGL');
+  await page.locator('#view-day').click();
+  await page.locator('#timeline .event.stay').click();
+  await page.locator('#map-provider').selectOption('osm');
+  await expect(page.locator('#basemap-status')).toHaveAttribute('data-state', 'ready');
+  await expect(page.locator('#timeline .event.stay')).toHaveAttribute('aria-pressed', 'true');
+  await expect(page.locator('#map-selection-summary')).toContainText('Aufenthalt');
+  await page.locator('#view-workspace').click();
+  await expect(page.locator('#workspace-note')).toHaveValue('Synthetischer Entwurf ohne WebGL');
+});
+
+test('a failed vector provider can recover without changing the selected day or measured section', async ({ page, browserName }) => {
+  const state = await timelineFixture(page, { vectorUnavailable: true });
+  await openDay(page);
+  await expect(page.locator('#basemap-status')).toHaveAttribute('data-state', 'error');
+  await page.locator('#timeline .event.trip').first().click();
+  state.recoverVector();
+  await page.locator('#map-retry').click();
+  const hasWebGL = await page.evaluate(() => {
+    const context = document.createElement('canvas').getContext('webgl2');
+    const supported = Boolean(context);
+    context?.getExtension('WEBGL_lose_context')?.loseContext();
+    return supported;
+  });
+  if (!hasWebGL && browserName === 'webkit') {
+    await expect(page.locator('#basemap-status')).toHaveAttribute('data-state', 'error');
+    await page.locator('#map-provider').selectOption('osm');
+  } else expect(hasWebGL).toBe(true);
+  await expect(page.locator('#basemap-status')).toHaveAttribute('data-state', 'ready');
+  await expect(page.locator('#map-retry')).toBeHidden();
+  await expect(page.locator('#calendar-day')).toHaveValue(today);
+  await expect(page.locator('#timeline .event.trip').first()).toHaveAttribute('aria-pressed', 'true');
+});
+
+test('a late vector response after lock cannot restore a private canvas, map or ready status', async ({ page, browserName }) => {
+  const state = await timelineFixture(page, { holdVectorStyle: true });
+  await openDay(page);
+  const hasWebGL = await page.evaluate(() => {
+    const context = document.createElement('canvas').getContext('webgl2');
+    const supported = Boolean(context);
+    context?.getExtension('WEBGL_lose_context')?.loseContext();
+    return supported;
+  });
+  if (hasWebGL) await state.heldStyle!.requested;
+  else if (browserName === 'chromium') expect(hasWebGL).toBe(true);
+  await page.locator('#logout').click();
+  state.heldStyle!.release();
+  await expect(page.locator('#access')).toBeVisible();
+  await expect(page.locator('#map > *')).toHaveCount(0);
+  await expect(page.locator('#timeline .event')).toHaveCount(0);
+  await expect(page.locator('#basemap-status')).toHaveAttribute('data-state', 'idle');
+  await expect(page.locator('#map-retry')).toBeHidden();
+  await expect(page.locator('#map-provider')).toBeDisabled();
+});
+
+test('a late vector response cannot overwrite the alternative provider or its selected section', async ({ page, browserName }) => {
+  const state = await timelineFixture(page, { holdVectorStyle: true });
+  await openDay(page);
+  const hasWebGL = await page.evaluate(() => {
+    const context = document.createElement('canvas').getContext('webgl2');
+    const supported = Boolean(context);
+    context?.getExtension('WEBGL_lose_context')?.loseContext();
+    return supported;
+  });
+  if (hasWebGL) await state.heldStyle!.requested;
+  else if (browserName === 'chromium') expect(hasWebGL).toBe(true);
+  await page.locator('#timeline .event.stay').click();
+  await page.locator('#map-provider').selectOption('osm');
+  await expect(page.locator('#basemap-status')).toHaveAttribute('data-state', 'ready');
+  state.heldStyle!.release();
+  await expect(page.locator('#basemap-status')).toHaveAttribute('data-provider', 'osm');
+  await expect(page.locator('#basemap-status')).toHaveAttribute('data-state', 'ready');
+  await expect(page.locator('#map canvas.maplibregl-canvas')).toHaveCount(0);
+  await expect(page.locator('#timeline .event.stay')).toHaveAttribute('aria-pressed', 'true');
+});
+
+test('raster recovery clears errors when failed tiles leave the visible view', async ({ page }) => {
+  const state = await timelineFixture(page, { tilesUnavailable: true });
+  await openDay(page);
+  await page.locator('#map-provider').selectOption('osm');
+  await expect(page.locator('#basemap-status')).toHaveAttribute('data-state', 'error');
+  state.recoverTiles();
+  const requests = state.tileRequests.length;
+  await page.locator('#map .leaflet-control-zoom-in').click();
+  await expect.poll(() => state.tileRequests.length).toBeGreaterThan(requests);
+  await expect(page.locator('#basemap-status')).toHaveAttribute('data-state', 'ready');
+  await expect(page.locator('#map-retry')).toBeHidden();
 });
 
 test('empty GPS remains an honest empty day and an expired session erases the private map and draft', async ({ page }) => {

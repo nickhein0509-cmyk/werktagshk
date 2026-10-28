@@ -6,3 +6,7 @@
 @media(prefers-reduced-motion:reduce){.timeline-layout .event{transition:none}}
 
 @media(max-width:360px){.timeline-layout .journey-heading{flex-direction:column}.timeline-layout .journey-heading button{width:100%;max-width:none}.day-title h2{font-size:23px}.timeline-layout #map{min-height:260px}.map-recovery{flex-wrap:wrap}.map-recovery button{width:100%}}
+
+/* Separate the background provider from the private GPS-data state. */
+.basemap-controls{display:grid;grid-template-columns:auto minmax(0,1fr);align-items:center;gap:8px 12px;padding:14px 16px;border-top:1px solid var(--line);background:#f7faf7}.basemap-controls label{font-size:11px;font-weight:700;margin:0}.basemap-controls select{min-height:44px;width:100%;min-width:0;font:inherit;font-size:12px;color:var(--ink);padding:9px 10px;border:1px solid var(--line);border-radius:8px;background:white}.basemap-controls p{grid-column:1/-1;font-size:12px;line-height:1.5;margin:0;overflow-wrap:anywhere;color:var(--muted)}.basemap-controls p[data-state=error]{color:#8b3b24;font-weight:650}.basemap-controls p[data-state=ready]{color:#315f54}.werktag-vector-basemap{position:absolute;pointer-events:none;overflow:hidden}.werktag-vector-basemap .maplibregl-canvas{outline:none}.basemap-controls select:focus-visible{outline:3px solid #956442;outline-offset:3px}
+@media(max-width:700px){.basemap-controls{grid-template-columns:minmax(0,1fr);padding:12px}.basemap-controls select{font-size:16px}.basemap-controls p{font-size:11px}}

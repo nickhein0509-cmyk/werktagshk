@@ -16,13 +16,16 @@ Die [Produkt- und Eigentümerkarte](docs/product-map.md) erklärt für jeden Cha
 wo er beginnen und welche Dateien er bearbeiten soll. `/projekte` und `/konto`
 sind gemeinsame Plattformdienste. Die bisherige Historie bleibt erhalten.
 
-Der [Assistent 0.12.0](docs/assistant-workspace.md) bietet eine eigene Übersicht,
+Der [Assistent 0.13.0](docs/assistant-workspace.md) bietet eine eigene Übersicht,
 private Notizen und Aufgaben mit Fälligkeit, Suche über gewählte Zeiträume und
 Bedienung auf Handy und Desktop. Manuelle Einträge funktionieren unabhängig von
 GPS. Die [verknüpfte Tageszeitachse](docs/assistant-timeline.md) zeigt Wege,
 Aufenthalte und Aufzeichnungslücken neben der Karte. Freddy lässt sich geschützt
 prüfen und bei bestehender Verbindung manuell abrufen; Einrichtung und tatsächlicher
 Import werden getrennt angezeigt. Bestehende Health-Werte und Tagesstatistik bleiben erhalten.
+Die [Kartenhintergründe](docs/assistant-map.md) lassen sich zwischen OpenFreeMap
+und OpenStreetMap wechseln. Der bisher fehlende Herkunftshinweis für OSM-Kacheln
+wird ausschließlich als Domain gesendet; private Links bleiben geschützt.
 
 ## Lernapp
 
