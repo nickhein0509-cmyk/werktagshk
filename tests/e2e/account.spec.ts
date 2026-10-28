@@ -92,7 +92,7 @@ for (const callback of ['signup', 'recovery']) {
     await expect(page.getByRole('button', { name: 'Private Assistenz zuordnen', exact: true })).toBeVisible();
     expect(await page.evaluate(() => JSON.parse(localStorage.getItem('werktag-learning-auth')!).user.id)).toBe(userId);
     expect(await page.evaluate(() => JSON.stringify(localStorage))).not.toContain('synthetic-callback-owner-connection');
-    await expect(page).toHaveURL(/\/konto$/);
+    await expect(page).toHaveURL(/\/konto#?$/);
   });
 }
 

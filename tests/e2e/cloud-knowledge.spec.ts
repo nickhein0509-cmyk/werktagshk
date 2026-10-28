@@ -552,6 +552,7 @@ test('blur invalidates an in-flight knowledge response and logout removes all pr
   expect(reads).toHaveLength(2);
   expect(reads[1]._request).toBe(reads[0]._request);
   await noPrivateStorage(page);
+  await page.route('**/assistenz/logout', route => route.fulfill({ json: { ok: true } }));
   await page.locator('.cloud-account summary').click();
   await page.getByRole('button', { name: 'Abmelden', exact: true }).click();
   await expect(page.getByRole('button', { name: 'Anmelden', exact: true })).toBeVisible();
