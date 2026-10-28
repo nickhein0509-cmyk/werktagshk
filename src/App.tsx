@@ -511,7 +511,7 @@ function App() {
         <footer className="workspace-footer">
           <span>WerkTag · Mit Kopf. Mit Hand. Mit dir.</span>
           <span>
-            WerkTag Flow <span className="footer-version">/ 0.8.0</span>
+            WerkTag Flow <span className="footer-version">/ 0.8.1</span>
           </span>
         </footer>
       </div>

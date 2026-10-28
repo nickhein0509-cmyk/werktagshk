@@ -31,7 +31,19 @@ function error(res,status,message,isPage) {
 }
 function chrome(html,publicOrigin) {
   const head='<style>.wt-project-bar{display:flex;flex-wrap:wrap;gap:1rem;align-items:center;justify-content:space-between;background:#123e3c;color:#fff;padding:1rem max(1rem,calc((100vw - 1440px)/2));font:600 15px system-ui}.wt-project-bar a{color:#fff;min-height:44px;display:inline-flex;align-items:center}.wt-project-bar a:focus-visible{outline:3px solid #e6b796;outline-offset:4px}.wt-connection{padding:.8rem 1rem;background:#f5f1e8;color:#193c3a;font:15px/1.65 system-ui}.wt-connection summary{cursor:pointer;min-height:44px;display:list-item;padding:.5rem 0}.wt-connection code{overflow-wrap:anywhere}.wt-connection li{margin:.5rem 0}</style>';
-  const nav='<nav class="wt-project-bar" aria-label="Projekte"><a href="/projekte">WerkTag · Projekte</a><span>AI Assistance · privat</span><a href="/">Zum SHK Lernbuddy</a></nav><details class="wt-connection"><summary>OwnTracks verbinden</summary><ol><li>OwnTracks öffnen und den Verbindungsmodus <strong>HTTP</strong> wählen.</li><li>Als Zieladresse <code>'+publicOrigin+'/api/assistenz/owntracks</code> eintragen. Den bereits eingerichteten Benutzernamen und das HTTP-Passwort beibehalten.</li><li>Aufzeichnungsmodus <strong>Move</strong> und am iPhone Standortzugriff <strong>Immer</strong> sowie <strong>Genauer Standort</strong> erlauben. Danach einmal aus OwnTracks senden.</li></ol><p>Der Intent Auth Key gehört zur Kurzbefehl-Steuerung. Für diese HTTP-Verbindung gelten die separaten Zugangsdaten. Wiederholtes Senden desselben Punkts kann ohne neue Position bleiben. Der Empfänger auf deinem PC muss eingeschaltet sein.</p></details>';
+  const nav=`<nav class="wt-project-bar" aria-label="Projekte"><a href="/projekte">WerkTag · Projekte</a><span>AI Assistance · privat</span><a href="/">Zum SHK Lernbuddy</a></nav>
+<details class="wt-connection"><summary>OwnTracks verbinden</summary>
+<p>Deine bestehende OwnTracks-Verbindung und deine Kurzbefehle weiterverwenden. Nur fehlende Einstellungen ändern.</p>
+<ol>
+<li>Vor einem Verbindungswechsel die OwnTracks-Version prüfen: mindestens <strong>27.0.1</strong>, empfohlen <strong>27.1.2</strong>. Seit 27.0.1 bleiben Warteschlange und Wegpunkte beim Wechsel erhalten. Ein App-Update erfolgt am iPhone über den App Store.</li>
+<li>Im Modus <strong>HTTP</strong> die Zieladresse <code>${publicOrigin}/api/assistenz/owntracks</code> verwenden. HTTP-Authentifizierung eingeschaltet lassen und bisherigen Benutzernamen, HTTP-Passwort sowie Gerätekennung beibehalten. Stimmt die Adresse bereits, ist kein Import nötig.</li>
+<li>Alternativ die <a href="/owntracks/WerkTag-OwnTracks.otrc" download>Konfiguration für die feste WerkTag-Adresse laden</a> und mit OwnTracks öffnen. Die Datei ändert nur die URL und enthält keine Zugangsdaten. Dafür unter <strong>Remote Control</strong> den Import über URL/Datei vorübergehend erlauben, im Vergleich nur die URL-Änderung bestätigen und die Importfreigabe danach wieder ausschalten.</li>
+<li>Am iPhone Standortzugriff <strong>Immer</strong>, <strong>Genauer Standort</strong>, mobile Daten und Hintergrundaktualisierung für OwnTracks erlauben. Für eine dichte Strecke den vorhandenen <strong>Move</strong>-Modus verwenden.</li>
+<li>Einmal den bestehenden Kurzbefehl <strong>Standort senden</strong> ausführen. Sein vorhandener <strong>Intent Auth Key</strong> bleibt getrennt vom HTTP-Passwort. Keine zweite Standortlösung nötig.</li>
+</ol>
+<p>Ein erfolgreicher Kurzbefehl oder Servercheck bestätigt noch keinen neuen iPhone-Standort. Dafür Quellzeit, Empfangszeit und Gerätekennung nach dem Senden abgleichen. Wiederholtes Senden desselben Punkts kann ohne neuen Eintrag bleiben.</p>
+<p>PC, Empfänger und Tunnel müssen laufen. Die iPhone-Adresse bleibt fest; nach einem Wechsel der temporären PC-Tunneladresse muss die WerkTag-Verbindung zum PC aktualisiert werden.</p>
+</details>`;
   return html.replace(/<title>[^<]*<\/title>/i,'<title>AI Assistance · WerkTag</title>').replace('</head>',head+'</head>').replace(/<body([^>]*)>/i,'<body$1>'+nav);
 }
 async function body(req) {
