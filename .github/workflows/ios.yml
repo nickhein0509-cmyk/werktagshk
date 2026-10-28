@@ -1,0 +1,74 @@
+name: Native iPhone
+on:
+  pull_request:
+    paths: ['ios/**', 'api/assistenz-native.mjs', 'supabase/functions/assistance-native/**', 'supabase/functions/assistance/native.mjs', 'supabase/migrations/20261029010000_assistance_native_ingestion.sql', '.github/workflows/ios.yml']
+  workflow_dispatch:
+permissions:
+  contents: read
+concurrency:
+  group: ios-${{ github.ref }}
+  cancel-in-progress: true
+jobs:
+  receiver:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_PASSWORD: synthetic
+          POSTGRES_DB: native_test
+        ports: ['5432:5432']
+        options: >-
+          --health-cmd pg_isready --health-interval 5s
+          --health-timeout 5s --health-retries 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+      - run: node --test supabase/functions/assistance-native/native.test.mjs
+      - name: Verify transaction, replay and ownership against PostgreSQL
+        env:
+          PGPASSWORD: synthetic
+        run: |
+          psql -h localhost -U postgres -d native_test -v ON_ERROR_STOP=1 -f ios/ci/database-bootstrap.sql
+          psql -h localhost -U postgres -d native_test -v ON_ERROR_STOP=1 -f supabase/migrations/20261028131907_assistance_cloud_storage.sql
+          psql -h localhost -U postgres -d native_test -v ON_ERROR_STOP=1 -f supabase/migrations/20261029010000_assistance_native_ingestion.sql
+          psql -h localhost -U postgres -d native_test -v ON_ERROR_STOP=1 -f ios/ci/database-tests.sql
+  ios:
+    runs-on: macos-15
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@v4
+      - name: Test durable queue
+        working-directory: ios
+        run: swift test
+      - name: Generate native project
+        working-directory: ios
+        run: |
+          brew install xcodegen
+          xcodegen generate
+      - name: Compile actual SwiftUI app without signing
+        working-directory: ios
+        run: xcodebuild -project WerkTag.xcodeproj -scheme WerkTag -sdk iphonesimulator -configuration Debug -derivedDataPath build CODE_SIGNING_ALLOWED=NO build
+      - name: Capture real simulator screen without accounts or personal data
+        working-directory: ios
+        run: |
+          SIM=$(xcrun simctl list devices available -j | python3 -c 'import json,sys; d=json.load(sys.stdin); print(next(x["udid"] for v in d["devices"].values() for x in v if "iPhone" in x["name"]))')
+          xcrun simctl boot "$SIM"
+          xcrun simctl bootstatus "$SIM" -b
+          xcrun simctl install "$SIM" build/Build/Products/Debug-iphonesimulator/WerkTag.app
+          xcrun simctl launch "$SIM" com.werktag.assistant
+          sleep 3
+          xcrun simctl io "$SIM" screenshot today-light.png
+          xcrun simctl ui "$SIM" appearance dark
+          sleep 2
+          xcrun simctl io "$SIM" screenshot today-dark.png
+          xcrun simctl shutdown "$SIM"
+      - uses: actions/upload-artifact@v4
+        with:
+          name: native-ios-screenshots
+          path: ios/*.png
+          retention-days: 7
+

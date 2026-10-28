@@ -1,0 +1,7 @@
+build/
+.build/
+.swiftpm/
+WerkTag.xcodeproj/
+*.png
+Local.xcconfig
+
