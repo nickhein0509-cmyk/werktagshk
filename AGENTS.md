@@ -1,8 +1,30 @@
 # WerkTag SHK Lernbuddy
 
 This is a new German-language SHK learning web app. The user explicitly requested
-a new implementation and design in `nickhein0509-cmyk/werktagshk`. Work in this
-checkout; each cloud task is isolated. Do not create a worktree unless requested.
+a new implementation and design in `nickhein0509-cmyk/werktagshk`.
+
+## Parallel work and releases
+
+Nick requested separate GitHub branches for independent chats/work tasks on
+28 October 2026. Start each implementation from freshly fetched `origin/main`
+on its own `feat/<task>`, `fix/<task>`, `chore/<task>` or `docs/<task>` branch and
+separate checkout/worktree. Use `node scripts/start-work.mjs <branch> <absolute-path>`
+for a local worktree. A different chat or a branch switch in a shared directory
+does not isolate edits. Preserve existing uncommitted work; never reset it or
+force a ref to make integration easier. Read [the workflow](docs/parallel-work.md).
+
+Before writing, record the actual base SHA, branch, owned files and dependencies.
+Publish task branches through a pull request; hand over the full result SHA,
+changed files, checks and open dependencies. Do not push directly to `main` or
+deploy merely because an implementation task started. For Nick's instruction to
+combine versions, the coordinator merges the named task branches into a fresh
+`release/<date>-<scope>` branch, resolves overlaps, runs the complete checks on the
+combined result and merges only the verified PR head into `main`. Recheck remote
+heads before publishing; never replace newer work with an older source snapshot.
+Reuse explicit release authorization already given for that result instead of
+asking again for routine push/merge steps. Verify Vercel's deployed SHA and live
+behavior separately from GitHub CI. Source publication never includes runtime
+credentials, private catalogues, protected learning content or personal records.
 
 ## Product priority confirmed on 23 October 2026
 
