@@ -74,6 +74,35 @@ test('a conflicting owner claim never opens private map access', async ({ page }
   await expect(page.getByRole('link', { name: 'Private Karte öffnen', exact: true })).toHaveCount(0);
 });
 
+for (const callback of ['signup', 'recovery']) {
+  test(`account ${callback} callback reaches Supabase before its fragment is consumed`, async ({ page }) => {
+    await accountFixture(page, { signedIn: false });
+    const token = [
+      Buffer.from(JSON.stringify({ alg: 'HS256', typ: 'JWT' })).toString('base64url'),
+      Buffer.from(JSON.stringify({ sub: userId, exp: Math.floor(Date.now() / 1000) + 3600 })).toString('base64url'),
+      'synthetic-callback',
+    ].join('.');
+    const fragment = new URLSearchParams({
+      access_token: token, refresh_token: 'synthetic-callback-refresh',
+      expires_in: '3600', token_type: 'bearer', type: callback,
+      connect: 'synthetic-callback-owner-connection',
+    });
+    await page.goto(`/konto#${fragment}`);
+    await expect(page.getByRole('heading', { name: 'Dein Profil', exact: true })).toBeVisible();
+    await expect(page.getByRole('button', { name: 'Private Assistenz zuordnen', exact: true })).toBeVisible();
+    expect(await page.evaluate(() => JSON.parse(localStorage.getItem('werktag-learning-auth')!).user.id)).toBe(userId);
+    expect(await page.evaluate(() => JSON.stringify(localStorage))).not.toContain('synthetic-callback-owner-connection');
+    await expect(page).toHaveURL(/\/konto$/);
+  });
+}
+
+test('an unrelated account anchor survives loading the account module', async ({ page }) => {
+  await accountFixture(page, { signedIn: false });
+  await page.goto('/konto#account-main');
+  await expect(page.getByRole('heading', { name: 'Anmelden', exact: true })).toBeVisible();
+  expect(new URL(page.url()).hash).toBe('#account-main');
+});
+
 test('Health activation separates cloud checks from source timestamps and never stores the API key', async ({ page }) => {
   const calls = await accountFixture(page, { linked: true });
   await page.goto('/konto');

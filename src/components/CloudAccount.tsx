@@ -68,14 +68,18 @@ export function CloudAccount({
             disabled={busy}
             onClick={async () => {
               setBusy(true);
+              setMessage('');
               try {
-                await fetch('/assistenz/logout', {
+                const cleared = await fetch('/assistenz/logout', {
                   method: 'POST', credentials: 'same-origin', signal: AbortSignal.timeout(8000),
-                }).catch(() => undefined);
+                });
+                // Keep the account signed in until its private session is revoked.
+                // Otherwise a failed request would leave a usable catalogue cookie.
+                if (!cleared.ok) throw new Error('Private session revocation failed');
                 const { error } = await client.auth.signOut({ scope: 'local' });
-                if (error) setMessage('Abmelden fehlgeschlagen. Bitte erneut versuchen.');
+                if (error) throw error;
               } catch {
-                setMessage('Abmelden fehlgeschlagen. Bitte erneut versuchen.');
+                setMessage('Abmelden nicht abgeschlossen. Bitte erneut versuchen.');
               } finally {
                 setBusy(false);
               }

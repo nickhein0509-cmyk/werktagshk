@@ -3,12 +3,17 @@ import type { Session } from '@supabase/supabase-js';
 import { supabase } from '../lib/supabase';
 import './account-page.css';
 
-// Remove the private fragment before rendering or loading account data. Keep it
-// only in memory; importing this module never writes a connection key to storage.
+// Remove only our private connection parameter. Supabase must still receive its
+// authentication callback fragment; keep the connection key only in memory.
 let pendingConnection = '';
 if (/^\/konto\/?$/.test(window.location.pathname) && window.location.hash) {
-  pendingConnection = new URLSearchParams(window.location.hash.slice(1)).get('connect') ?? '';
-  window.history.replaceState(null, '', window.location.pathname + window.location.search);
+  const fragment = new URLSearchParams(window.location.hash.slice(1));
+  if (fragment.has('connect')) {
+    pendingConnection = fragment.get('connect') ?? '';
+    fragment.delete('connect');
+    const remaining = fragment.toString();
+    window.history.replaceState(null, '', window.location.pathname + window.location.search + (remaining ? '#' + remaining : ''));
+  }
 }
 
 type LinkStatus = { linked: boolean; canRead: boolean };
