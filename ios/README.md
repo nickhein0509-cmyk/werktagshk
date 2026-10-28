@@ -21,11 +21,11 @@ Auf einem Mac mit Xcode und XcodeGen:
 cd ios
 swift test
 xcodegen generate
-xcodebuild -project WerkTag.xcodeproj -scheme WerkTag -sdk iphonesimulator -configuration Debug -derivedDataPath build CODE_SIGNING_ALLOWED=NO build
+xcodebuild -project WerkTag.xcodeproj -scheme WerkTag -sdk iphonesimulator -configuration Debug -derivedDataPath build CODE_SIGN_IDENTITY=- CODE_SIGNING_ALLOWED=YES build
 ```
 
-Der vorbereitete GitHub-Workflow führt genau diese Prüfung sowie PostgreSQL-Tests aus.
-Er veröffentlicht keine App und benötigt keine Apple-Zugangsdaten. Simulator-Screenshots
+Der GitHub-Workflow führt diese Prüfung, PostgreSQL-Tests und einen UI-Test aller drei Tabs aus.
+Die Ad-hoc-Signierung gilt nur für den Simulator und benötigt keine Apple-Zugangsdaten. Es wird keine iPhone-App veröffentlicht. Simulator-Screenshots
 werden ausschließlich aus einer frischen Installation ohne Konto oder persönliche Daten erzeugt.
 Der Workflow läuft bei Änderungen an der nativen App in Pull Requests.
 

@@ -21,8 +21,8 @@ die bestehende Freddy-Webstatistik zeigt sie noch nicht an.
 ## Prüfung
 
 Der Workflow `.github/workflows/ios.yml` prüft Empfängerverträge, echte PostgreSQL-
-Transaktionen, die portable Swift-Warteschlange und einen unsignierten Xcode-Build.
-Ein frischer iPhone-Simulator erzeugt Screenshots ohne Anmeldung oder persönliche Daten.
+Transaktionen, die portable Swift-Warteschlange und einen mit Ad-hoc-Signierung erstellten Xcode-Simulatorbuild.
+Ein frischer iPhone-Simulator prüft den fehlerfreien Start und die drei Tabs per UI-Test und erzeugt Screenshots ohne Anmeldung oder persönliche Daten.
 Der bestehende Web-Workflow prüft weiterhin die gesamte Plattform.
 
 Lokal bestanden 102 JavaScript-Tests, einschließlich zwölf neuer Vertrags-/Gatewaytests.

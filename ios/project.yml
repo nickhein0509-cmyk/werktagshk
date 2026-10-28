@@ -24,3 +24,16 @@ targets:
         GENERATE_INFOPLIST_FILE: NO
     scheme:
       gatherCoverageData: true
+      testTargets:
+        - WerkTagUITests
+  WerkTagUITests:
+    type: bundle.ui-testing
+    platform: iOS
+    sources:
+      - UITests
+    dependencies:
+      - target: WerkTag
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: com.werktag.assistant.uitests
+        GENERATE_INFOPLIST_FILE: YES

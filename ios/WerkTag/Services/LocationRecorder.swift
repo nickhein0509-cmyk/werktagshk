@@ -2,7 +2,8 @@ import CoreLocation
 import Foundation
 
 @MainActor
-final class LocationRecorder: NSObject, CLLocationManagerDelegate {
+// The manager is created on the main run loop, which Core Location uses for all delegate calls.
+final class LocationRecorder: NSObject, @preconcurrency CLLocationManagerDelegate {
  private let manager=CLLocationManager()
  var onRecord: ((LocationRecord)->Void)?
  var onStatus: ((String)->Void)?

@@ -24,12 +24,12 @@ import MapKit
    Section {
     VStack(alignment:.leading,spacing:8) {
      Text(Date(),format:.dateTime.weekday(.wide).day().month(.wide)).font(.subheadline).foregroundStyle(.secondary)
-     Text("Dein Tag. Gut verbunden.").font(.title2.bold())
+     Text("Dein Tag auf einen Blick.").font(.title2.bold())
      Text("Deine Wege und freigegebenen Health-Werte für WerkTag.").foregroundStyle(.secondary)
     }.padding(.vertical,8)
    }
    Section("Übertragung") {
-    Label(model.message,systemImage:model.pending>0 ? "icloud.and.arrow.up":"checkmark.icloud")
+    Label(model.message,systemImage:model.account==nil ? "person.crop.circle":(model.pending>0 ? "icloud.and.arrow.up":"checkmark.icloud"))
     LabeledContent("Auf dem iPhone ausstehend",value:"\(model.pending)")
     if let stamp=model.lastReceipt {
      LabeledContent("Zuletzt bestätigt",value:displayDate(stamp))
@@ -37,7 +37,7 @@ import MapKit
     Button {Task{await model.sync(force:true)}} label:{Label("Jetzt übertragen",systemImage:"arrow.triangle.2.circlepath")}
      .disabled(model.account==nil || model.isBusy || model.pending==0)
     if model.isBusy {ProgressView("Übertragung läuft")}
-    if let error=model.storageError {Label(error,systemImage:"exclamationmark.triangle").foregroundStyle(.red)}
+    if let error=model.storageError {Label(error,systemImage:"exclamationmark.triangle").foregroundStyle(.red).accessibilityIdentifier("storage-error")}
    }
    Section {
     if let today=model.healthDays.first {
@@ -51,7 +51,7 @@ import MapKit
     }
     if model.isReadingHealth {ProgressView("Health wird gelesen")}
    } header:{Text("Apple Health")} footer:{
-    Text("Tageswerte nach Europe/Berlin. Fehlende Werte sind keine Nullwerte. Health-Daten werden in WerkTag separat vom Freddy-Import gespeichert.")
+    Text("Tageswerte nach deutscher Zeit. Nur freigegebene Werte werden übertragen. Fehlende Angaben bedeuten nicht null.")
    }
    Section {Link(destination:URL(string:"https://werk-tag.com/assistenz")!){Label("WerkTag im Browser öffnen",systemImage:"arrow.up.right.square")}}
   }.navigationTitle("Heute")

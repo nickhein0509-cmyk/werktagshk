@@ -18,7 +18,8 @@ import BackgroundTasks
  var body:some Scene {
   WindowGroup {
    RootView().environment(model)
-    .tint(Color(red:0.07,green:0.40,blue:0.37))
+    .tint(.teal)
+    .environment(\.locale,Locale(identifier:"de_DE"))
     .task {await model.foreground()}
     .onChange(of:phase){_,new in
      if new == .active {Task {await model.foreground()}}
