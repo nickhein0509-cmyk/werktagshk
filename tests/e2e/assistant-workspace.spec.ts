@@ -67,6 +67,7 @@ async function workspaceFixture(page: Page, seeds: Array<{ date: string; entry: 
   const writes: Array<{ date: string; expectedRevision: number; operation: string; entry?: InputEntry; id?: string }> = [];
   const rangeRequests: Array<{ from: string; to: string }> = [];
   const tileRequests: string[] = [];
+  const vectorRequests: string[] = [];
   let authorized = true;
   let forceConflict = false;
   let loseResponse = false;
@@ -76,6 +77,8 @@ async function workspaceFixture(page: Page, seeds: Array<{ date: string; entry: 
     sessionStorage.removeItem('werktag-assistance-clear-on-boot');
   });
   await page.route('https://tile.openstreetmap.org/**', route => { tileRequests.push(route.request().url()); return route.abort(); });
+  // Workspace failure tests never contact either live basemap provider.
+  await page.route('https://tiles.openfreemap.org/**', route => { vectorRequests.push(route.request().url()); return route.abort(); });
   await page.route('https://test-werktag.supabase.co/**', route => route.fulfill({
     status: 200, contentType: 'application/json', body: '{}',
   }));
@@ -172,7 +175,7 @@ async function workspaceFixture(page: Page, seeds: Array<{ date: string; entry: 
     return route.fulfill({ json: document });
   });
   return {
-    documents, writes, rangeRequests, tileRequests,
+    documents, writes, rangeRequests, tileRequests, vectorRequests,
     conflictOnce: () => { forceConflict = true; },
     loseResponseOnce: () => { loseResponse = true; },
     updateExistingOnAnotherDevice: (id: string, values: Partial<InputEntry>) => {
@@ -207,9 +210,13 @@ test('personal note CRUD survives reload and GPS failure without storing private
   await openWorkspace(page);
   // Opening the assistant or its notes never initializes a location tile map.
   expect(state.tileRequests).toHaveLength(0);
+  expect(state.vectorRequests).toHaveLength(0);
   await expect(page.locator('.leaflet-container')).toHaveCount(0);
   await page.locator('#view-day').click();
   await expect(page.locator('#map')).toHaveClass(/leaflet-container/);
+  // Exercise the raster failure boundary explicitly; the default street map
+  // uses vector resources and may be unavailable without WebGL on this host.
+  await page.locator('#map-provider').selectOption('osm');
   await expect.poll(() => state.tileRequests.length).toBeGreaterThan(0);
   await page.locator('#view-workspace').click();
   await enterNote(page, 'Mein synthetischer Tagesplan', 'Privater Fixture-Text: Teile abholen.');
