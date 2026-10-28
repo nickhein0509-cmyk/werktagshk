@@ -236,6 +236,7 @@ test('sign-out removes private content and mobile cloud fields fit the viewport'
   page,
 }) => {
   await fixture(page);
+  await page.route('**/assistenz/logout', route => route.fulfill({ json: { ok: true } }));
   await page.setViewportSize({ width: 320, height: 844 });
   expect(
     await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth + 1),
@@ -248,6 +249,44 @@ test('sign-out removes private content and mobile cloud fields fit the viewport'
     await page.evaluate(() => JSON.parse(localStorage.getItem('werktag-learning-v1')!)),
   ).toEqual(guest);
 });
+
+for (const failure of ['http', 'network'] as const) {
+  test(`sign-out waits for private session revocation after a ${failure} failure`, async ({ page }) => {
+    await fixture(page);
+    let revokeFails = true;
+    let accountSignOuts = 0;
+    const events: string[] = [];
+    await page.route('**/assistenz/logout', async route => {
+      events.push('private:revoke');
+      if (revokeFails) {
+        if (failure === 'network') return route.abort('failed');
+        return route.fulfill({ status: 503, json: { error: 'Synthetischer Fehler' } });
+      }
+      events.push('private:revoked');
+      return route.fulfill({ json: { ok: true } });
+    });
+    await page.route('https://test-werktag.supabase.co/auth/v1/logout**', async route => {
+      accountSignOuts++;
+      events.push('account:signout');
+      await route.fulfill({ json: {} });
+    });
+    await page.locator('.cloud-account summary').click();
+    const signOut = page.getByRole('button', { name: 'Abmelden', exact: true });
+    await signOut.click();
+    await expect(page.getByText('Abmelden nicht abgeschlossen. Bitte erneut versuchen.', { exact: true })).toBeVisible();
+    await expect(signOut).toBeEnabled();
+    expect(accountSignOuts).toBe(0);
+    expect(await page.evaluate(() => JSON.parse(localStorage.getItem('werktag-learning-auth')!).user.id)).toBe(userId);
+
+    revokeFails = false;
+    await signOut.click();
+    await expect(page.getByRole('button', { name: 'Anmelden', exact: true })).toBeVisible();
+    expect(accountSignOuts).toBe(1);
+    expect(events.indexOf('private:revoked')).toBeLessThan(events.indexOf('account:signout'));
+    expect(await page.evaluate(() => localStorage.getItem('werktag-learning-auth'))).toBeNull();
+    expect(await page.evaluate(() => JSON.parse(localStorage.getItem('werktag-learning-v1')!))).toEqual(guest);
+  });
+}
 
 test('reloading a question with the same raster figure keeps answer submission available', async ({
   page,

@@ -76,6 +76,9 @@ export function createContext({ onLocked, onChanged }) {
     formFeedback(state.conflict ? 'Der gespeicherte Stand hat sich geändert. Prüfe die Einträge oben; dein Entwurf ist erhalten. Bestätige den aktuellen Stand vor erneutem Speichern.' : state.dirty ? 'Entwurf für diesen Tag erhalten.' : '');
   }
   function refUncertain(entry) {
+    // The server also checks the original segment ID and point fingerprint.
+    // Equal timestamps alone cannot override its stale/unverified verdict.
+    if (entry.needsReview === true) return true;
     const ref = entry.segmentRef;
     if (!ref || !journal) return false;
     return ![...(journal.trips ?? []), ...(journal.stays ?? [])].some(part => part.kind === ref.segmentKind && part.startTimestamp === ref.startTimestamp && part.endTimestamp === ref.endTimestamp);
