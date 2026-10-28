@@ -4,7 +4,25 @@ const userId = '22222222-2222-4222-8222-222222222222';
 const user = { id: userId, email: 'account-fixture@example.invalid', aud: 'authenticated', role: 'authenticated' };
 const guest = { version: 1, attempts: [], bookmarks: [], dailyGoal: 8 };
 
-async function accountFixture(page: Page, options: { signedIn?: boolean; linked?: boolean; claimDenied?: boolean; claimUnavailable?: boolean; passwordUpdateFails?: boolean } = {}) {
+interface HealthFixture {
+  ok: boolean;
+  status: string;
+  configured: boolean;
+  enabled: boolean;
+  cronActive: boolean;
+  intervalMinutes: number;
+  lastAttemptAt: string | null;
+  lastSuccessAt: string | null;
+  sourceLastSyncAt: string | null;
+  sourceLastDataAt: string | null;
+  nextCheckAt: string | null;
+  errorCode: string | null;
+}
+
+async function accountFixture(page: Page, options: {
+  signedIn?: boolean; linked?: boolean; claimDenied?: boolean; claimUnavailable?: boolean; passwordUpdateFails?: boolean;
+  healthState?: Partial<HealthFixture>; healthCheckError?: string;
+} = {}) {
   let linked = options.linked ?? false;
   const calls: { route: string; body?: Record<string, unknown>; authorization?: string }[] = [];
   await page.addInitScript(({ user, guest, signedIn }) => {
@@ -36,7 +54,7 @@ async function accountFixture(page: Page, options: { signedIn?: boolean; linked?
     }
     await route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify(path.endsWith('/user') ? user : {}) });
   });
-  const health = { ok: true, status: 'not_configured', configured: false, enabled: false, cronActive: false, intervalMinutes: 15, lastAttemptAt: null, lastSuccessAt: null, sourceLastSyncAt: null, sourceLastDataAt: null, nextCheckAt: null, errorCode: null };
+  const health: HealthFixture = { ok: true, status: 'not_configured', configured: false, enabled: false, cronActive: false, intervalMinutes: 15, lastAttemptAt: null, lastSuccessAt: null, sourceLastSyncAt: null, sourceLastDataAt: null, nextCheckAt: null, errorCode: null, ...options.healthState };
   await page.route('**/api/assistenz-account?**', async (route) => {
     const request = route.request();
     const name = new URL(request.url()).searchParams.get('route')!;
@@ -56,7 +74,13 @@ async function accountFixture(page: Page, options: { signedIn?: boolean; linked?
     const request = route.request();
     const name = new URL(request.url()).searchParams.get('route')!;
     calls.push({ route: `health:${name}`, body: request.postDataJSON() ?? undefined, authorization: request.headers().authorization });
+    if (name === 'check') {
+      if (options.healthCheckError) return route.fulfill({ status: 400, json: { error: options.healthCheckError } });
+      return route.fulfill({ json: { ok: true, sourceConnected: true, metricsAvailable: 16, historyWindowDays: 7,
+        historyFloor: '2026-10-22', sourceLastSyncAt: '2026-10-28T09:47:00Z', sourceLastDataAt: '2026-10-28T09:40:00Z' } });
+    }
     if (name === 'configure') Object.assign(health, { status: 'active', configured: true, enabled: true, cronActive: true, lastAttemptAt: '2026-10-28T10:00:00Z', lastSuccessAt: '2026-10-28T10:00:00Z', sourceLastSyncAt: '2026-10-28T09:47:00Z', sourceLastDataAt: '2026-10-28T09:40:00Z', nextCheckAt: '2026-10-28T10:15:00Z' });
+    if (name === 'refresh') Object.assign(health, { status: 'active', lastAttemptAt: '2026-10-28T10:05:00Z', lastSuccessAt: '2026-10-28T10:05:00Z', sourceLastSyncAt: '2026-10-28T09:47:00Z', sourceLastDataAt: '2026-10-28T09:40:00Z', errorCode: null });
     if (name === 'disable') Object.assign(health, { status: 'disabled', enabled: false, cronActive: false });
     await route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify(health) });
   });
@@ -139,6 +163,71 @@ test('Health activation separates cloud checks from source timestamps and never 
   await page.getByRole('button', { name: 'Automatischen Health-Abgleich ausschalten', exact: true }).click();
   await expect(page.getByText('Automatischer Health-Abgleich ausgeschaltet. Gespeicherte Daten bleiben erhalten.')).toBeVisible();
   expect(calls.find((entry) => entry.route === 'health:disable')?.body).toEqual({});
+});
+
+test('Freddy connection check is explicit and does not activate or persist the supplied key', async ({ page }) => {
+  const calls = await accountFixture(page, { linked: true });
+  await page.setViewportSize({ width: 320, height: 844 });
+  await page.goto('/konto');
+  await expect(page.getByText('Noch nicht aktiviert', { exact: true })).toBeVisible();
+  const key = 'synthetic-check-only-personal-api-key';
+  const input = page.getByLabel('Persönlicher Freddy-API-Schlüssel', { exact: true });
+  await input.fill(key);
+  expect(calls.some(entry => entry.route === 'health:check')).toBe(false);
+  await page.getByRole('button', { name: 'Verbindung prüfen', exact: true }).click();
+  await expect(page.getByLabel('Ergebnis der Verbindungsprüfung', { exact: true })).toContainText('16 unterstützte Tagesmetriken');
+  await expect(page.getByText(/Dein Freddy-Tarif erlaubt den Abruf der letzten 7 Tage/)).toBeVisible();
+  await expect(page.getByText('Noch nicht aktiviert', { exact: true })).toBeVisible();
+  await expect(input).toHaveValue(key);
+  expect(calls.filter(entry => entry.route === 'health:check')).toHaveLength(1);
+  expect(calls.find(entry => entry.route === 'health:check')?.body).toEqual({ apiKey: key });
+  expect(calls.find(entry => entry.route === 'health:check')?.authorization).toMatch(/^Bearer /);
+  expect(calls.some(entry => entry.route === 'health:configure')).toBe(false);
+  expect(await page.evaluate(() => JSON.stringify(localStorage) + JSON.stringify(sessionStorage))).not.toContain(key);
+  expect(await page.locator('body').innerText()).not.toContain(key);
+  expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth + 1)).toBe(true);
+});
+
+test('a stored Health connection is not called active before a successful import and can be refreshed without reentering its key', async ({ page }) => {
+  const calls = await accountFixture(page, { linked: true, healthState: {
+    status: 'active', configured: true, enabled: true, cronActive: true, lastSuccessAt: null,
+  } });
+  await page.goto('/konto');
+  await expect(page.getByText('Erster vollständiger Abruf steht aus', { exact: true })).toBeVisible();
+  await expect(page.getByText('Automatischer Abgleich aktiv', { exact: true })).toHaveCount(0);
+  await expect(page.getByLabel('Persönlicher Freddy-API-Schlüssel', { exact: true })).toHaveValue('');
+  await page.getByRole('button', { name: 'Jetzt Health-Daten abrufen', exact: true }).click();
+  await expect(page.getByText('Automatischer Abgleich aktiv', { exact: true })).toBeVisible();
+  await expect(page.getByText(/Das erzwingt keine neue Messung auf dem iPhone/)).toBeVisible();
+  expect(calls.filter(entry => entry.route === 'health:refresh')).toHaveLength(1);
+  expect(calls.find(entry => entry.route === 'health:refresh')?.body).toEqual({});
+  expect(calls.some(entry => entry.route === 'health:configure')).toBe(false);
+});
+
+for (const variant of ['missing-schedule', 'source-error'] as const) {
+  test(`Health status gives an actionable ${variant} instead of claiming a working connection`, async ({ page }) => {
+    await accountFixture(page, { linked: true, healthState: {
+      status: 'active', configured: true, enabled: true,
+      cronActive: variant === 'source-error', lastSuccessAt: '2026-10-28T09:00:00Z',
+      errorCode: variant === 'source-error' ? 'HEALTH_SOURCE_NOT_CONNECTED' : null,
+    } });
+    await page.goto('/konto');
+    await expect(page.getByText(variant === 'source-error' ? 'Health-Abgleich braucht Aufmerksamkeit' : 'Zeitplan nicht aktiv', { exact: true })).toBeVisible();
+    await expect(page.getByText('Automatischer Abgleich aktiv', { exact: true })).toHaveCount(0);
+    await expect(page.getByText(variant === 'source-error' ? /Apple Health ist bei Freddy pausiert/ : /der automatische Zeitplan läuft nicht/)).toBeVisible();
+    await expect(page.getByRole('button', { name: 'Health-Abgleich einrichten', exact: true })).toBeVisible();
+  });
+}
+
+test('a rejected Freddy check reports the provider diagnosis without enabling a schedule', async ({ page }) => {
+  const calls = await accountFixture(page, { linked: true, healthCheckError: 'HEALTH_KEY_INVALID' });
+  await page.goto('/konto');
+  await page.getByLabel('Persönlicher Freddy-API-Schlüssel', { exact: true }).fill('synthetic-rejected-key');
+  await page.getByRole('button', { name: 'Verbindung prüfen', exact: true }).click();
+  await expect(page.getByText(/Freddy hat den Schlüssel abgewiesen/)).toBeVisible();
+  await expect(page.getByText('Noch nicht aktiviert', { exact: true })).toBeVisible();
+  expect(calls.some(entry => entry.route === 'health:configure')).toBe(false);
+  expect(await page.evaluate(() => JSON.stringify(localStorage) + JSON.stringify(sessionStorage))).not.toContain('synthetic-rejected-key');
 });
 
 test('visible account entry works on a narrow phone and signed-out accounts cannot claim a map', async ({ page }) => {

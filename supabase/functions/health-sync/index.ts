@@ -5,4 +5,5 @@ import { createHealthSyncHandler } from './handler.mjs';
 Deno.serve(createHealthSyncHandler({
   supabaseUrl: Deno.env.get('SUPABASE_URL') ?? '',
   serviceKey: Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? '',
+  publicOrigin: Deno.env.get('ASSISTANCE_PUBLIC_ORIGIN') ?? 'https://werk-tag.com',
 }));

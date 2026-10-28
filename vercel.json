@@ -108,6 +108,9 @@
   "functions": {
     "api/assistenz.mjs": {
       "maxDuration": 30
+    },
+    "api/assistenz-health.mjs": {
+      "maxDuration": 60
     }
   },
   "headers": [

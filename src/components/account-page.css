@@ -19,6 +19,14 @@
 .account-actions{display:flex;flex-wrap:wrap;gap:.75rem;margin:1rem 0}
 .account-email{overflow-wrap:anywhere}
 .account-health-state{font-weight:750}
+.account-health-state{display:inline-flex;padding:.6rem .8rem;border-radius:9px;border:1px solid #d5dfd5}
+.account-health-ready{background:#e5f0e5;color:#215338}.account-health-pending{background:#fff2df;color:#70441f}
+.account-health-explanation{padding:.85rem 1rem;border-left:3px solid #a7653d;background:#faf5ed;border-radius:0 8px 8px 0}
+.account-health-steps{padding:0;list-style:none;counter-reset:health-step;display:grid;gap:.8rem;margin:1.5rem 0}
+.account-health-steps li{counter-increment:health-step;position:relative;padding:.2rem 0 .2rem 2.7rem;min-width:0}
+.account-health-steps li::before{content:counter(health-step);position:absolute;left:0;top:.1rem;display:grid;place-items:center;width:1.8rem;height:1.8rem;background:#e8eee7;border:1px solid #cbd6ca;border-radius:50%;font-weight:750}
+.account-health-steps strong,.account-health-steps span{display:block;line-height:1.55}.account-health-steps span{font-size:.94rem;color:#4b6258}
+.account-health-check{padding:.4rem 1rem;background:#edf4ec;border:1px solid #ccdcca;border-radius:10px;font-size:.94rem}
 .account-times{display:grid;gap:.8rem;margin:1.5rem 0}
 .account-times div{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:.6rem;padding-bottom:.7rem;border-bottom:1px solid #e4e9e2}
 .account-times dt{font-weight:600}.account-times dd{margin:0;line-height:1.5}
