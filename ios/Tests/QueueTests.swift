@@ -57,4 +57,3 @@ final class QueueTests:XCTestCase {
   XCTAssertEqual(DurableQueue.retryDelay(attempt:1,retryAfter:120),120)
  }
 }
-

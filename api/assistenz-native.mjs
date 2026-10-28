@@ -36,4 +36,3 @@ export function createNativeGateway({env=process.env,fetchImpl=fetch}={}){
  };
 }
 export default createNativeGateway();
-

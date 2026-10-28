@@ -26,4 +26,3 @@ export function createNativeHandler({store,installationId,now=()=>Date.now()}){
   }catch(e){return response(e.status===400?400:503,{error:e.status===400?'Ungültige Daten.':'Speicherung vorübergehend nicht möglich.'});}
  };
 }
-

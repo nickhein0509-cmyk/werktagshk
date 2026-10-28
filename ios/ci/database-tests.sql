@@ -33,4 +33,3 @@ begin
  if has_table_privilege('authenticated','public.assistance_native_events','SELECT') or has_function_privilege('authenticated','public.assistance_native_ingest(uuid,uuid,jsonb)','EXECUTE') then raise exception 'DIRECT_ACCESS_GRANTED'; end if;
 end $$;
 rollback;
-

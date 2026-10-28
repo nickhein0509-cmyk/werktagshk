@@ -150,5 +150,3 @@ import MapKit
    } message:{Text("Ausstehende Daten bleiben diesem Konto zugeordnet und werden erst nach erneuter Anmeldung damit übertragen.")}
  }
 }
-
-

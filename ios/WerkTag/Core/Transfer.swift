@@ -132,4 +132,3 @@ public final class DurableQueue {
   max(min(3600, pow(2, Double(min(max(attempt,0),10)))*5), min(max(retryAfter ?? 0,0),86400))
  }
 }
-

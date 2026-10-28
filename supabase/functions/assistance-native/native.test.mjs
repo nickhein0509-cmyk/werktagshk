@@ -73,5 +73,3 @@ test('gateway rejects cookie only and prevents redirects',async()=>{
  let r=res();await gateway({url:'/?action=status',method:'GET',headers:{cookie:'x=y'}},r);assert.equal(r.statusCode,401);assert.equal(calls,0);
  r=res();await gateway({url:'/?action=status',method:'GET',headers:{authorization:'Bearer valid'}},r);assert.equal(r.statusCode,502);
 });
-
-

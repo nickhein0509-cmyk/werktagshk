@@ -16,4 +16,3 @@
 <key>UIBackgroundModes</key><array><string>location</string><string>fetch</string></array>
 <key>BGTaskSchedulerPermittedIdentifiers</key><array><string>com.werktag.assistant.upload</string></array>
 </dict></plist>
-

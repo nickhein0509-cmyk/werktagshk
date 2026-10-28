@@ -44,4 +44,3 @@ final class LocationRecorder: NSObject, CLLocationManagerDelegate {
  func locationManagerDidPauseLocationUpdates(_ manager:CLLocationManager) {onStatus?("iOS hat die Standortaufzeichnung vorübergehend pausiert.")}
  func locationManagerDidResumeLocationUpdates(_ manager:CLLocationManager) {onStatus?("Weg wird aufgezeichnet.")}
 }
-

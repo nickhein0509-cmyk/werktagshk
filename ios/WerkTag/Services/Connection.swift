@@ -101,5 +101,3 @@ final class Connection {
  func cancelRequests() { client.getAllTasks { tasks in tasks.forEach { $0.cancel() } } }
  func logout() throws {try Keychain.remove();session=nil}
 }
-
-

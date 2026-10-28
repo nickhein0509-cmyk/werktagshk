@@ -15,4 +15,3 @@ const store={
  }
 };
 Deno.serve(createNativeHandler({store,installationId}));
-

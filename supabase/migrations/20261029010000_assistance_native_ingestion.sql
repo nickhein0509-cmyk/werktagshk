@@ -41,4 +41,3 @@ begin
 end $$;
 revoke all on function public.assistance_native_ingest(uuid,uuid,jsonb) from public,anon,authenticated;
 grant execute on function public.assistance_native_ingest(uuid,uuid,jsonb) to service_role;
-

@@ -24,4 +24,3 @@ targets:
         GENERATE_INFOPLIST_FILE: NO
     scheme:
       gatherCoverageData: true
-

@@ -53,8 +53,11 @@ jobs:
         working-directory: ios
         run: xcodebuild -project WerkTag.xcodeproj -scheme WerkTag -sdk iphonesimulator -configuration Debug -derivedDataPath build CODE_SIGNING_ALLOWED=NO build
       - name: Capture real simulator screen without accounts or personal data
+        timeout-minutes: 8
         working-directory: ios
         run: |
+          set -x
+          xcrun simctl list runtimes
           SIM=$(xcrun simctl list devices available -j | python3 -c 'import json,sys; d=json.load(sys.stdin); print(next(x["udid"] for v in d["devices"].values() for x in v if "iPhone" in x["name"]))')
           xcrun simctl boot "$SIM"
           xcrun simctl bootstatus "$SIM" -b
@@ -71,4 +74,3 @@ jobs:
           name: native-ios-screenshots
           path: ios/*.png
           retention-days: 7
-

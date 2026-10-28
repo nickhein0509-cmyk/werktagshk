@@ -37,4 +37,3 @@ final class HealthReader {
   return days
  }
 }
-

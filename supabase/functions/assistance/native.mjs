@@ -34,4 +34,3 @@ export async function validateNativeBatch(body,{now,normalizeLocation,sha256}){
  }
  return rows;
 }
-

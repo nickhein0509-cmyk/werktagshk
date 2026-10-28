@@ -49,7 +49,7 @@ Neue Integration lässt bestehende Web-/OwnTracks-/Freddy-Routen unverändert.
 
 ## Grenzen
 
-Noch kein durchgeführter Xcode-/Simulator-/iPhone-Test; Windows prüft nur die JS-Empfängerseite.
+Swift-Tests und Xcode-Simulatorbuild werden im macOS-CI geprüft. Die Abnahme auf einem echten iPhone steht noch aus.
 iOS entscheidet über Hintergrundzeiten; keine Zusage für einen festen 15-Minuten-Takt.
 Standortaufzeichnung nach erzwungenem Beenden muss bewusst erneut gestartet werden.
 Health wird manuell, beim Öffnen und bei von iOS gewährter Hintergrundaktualisierung gelesen.
@@ -70,5 +70,3 @@ Karte: nur letzte 1.000 Punkte der Sitzung/ausstehenden Queue, kein vollständig
 - Abmelden/anderes Konto: keine Übertragung fremder Restdaten.
 - Gesundheit leer/gesperrt: keine falsche Erfolgs- oder Nullwertanzeige.
 - Große Schrift, VoiceOver, Hell/Dunkel und 44-Punkt-Systembedienelemente prüfen.
-
-
