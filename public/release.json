@@ -1,6 +1,6 @@
 {
-  "release": "werktag-flow-assistance-0.8.1",
-  "appVersion": "0.8.1",
+  "release": "werktag-cloud-assistance-0.9.0",
+  "appVersion": "0.9.0",
   "design": "flow",
   "designVersion": 2,
   "learningSchemaVersion": 1,
@@ -40,6 +40,11 @@
     "knowledge-policy-and-masking",
     "project-hub",
     "private-assistance-proxy",
-    "owntracks-connection-guidance"
+    "owntracks-connection-guidance",
+    "visible-account-page",
+    "account-linked-assistance",
+    "supabase-owntracks-ingestion",
+    "gps-route-analysis",
+    "cloud-health-sync-setup"
   ]
 }

@@ -5,6 +5,7 @@ export default defineConfig({
   plugins: [react()],
   build: {
     rolldownOptions: {
+      input: { main: 'index.html', assistance: 'assistance.html' },
       output: {
         codeSplitting: {
           groups: [

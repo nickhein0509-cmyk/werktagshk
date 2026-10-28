@@ -1,4 +1,5 @@
 import { Buffer } from 'node:buffer';
+import { cloudProxy } from '../server/assistance-cloud.mjs';
 
 const files = ['app-v4.js','app-v4.css','app-v3.js','app-v3.css','app-v2.js','app-v2.css','app.js','app.css','route.js','health-v2.js','health-v2.css','health-v1.js','health-v1.css','statistics-v1.js','context-v1.js','vendor/leaflet.js','vendor/leaflet.css'];
 const reads = new Set(['/map','/map/','/map/data','/map/archive','/map/statistics','/map/context','/map/session',...files.map(f=>'/map/'+f)]);
@@ -69,6 +70,7 @@ export function createGateway(options={}) {
     const isPage=route==='map'||route==='map/';
     if(typeof route!=='string'||route.includes('%')||route.includes('..')||route.includes('\\'))return json(res,404,{error:'Nicht gefunden.'});
     const targetPath='/'+route;
+    if(process.env.ASSISTANCE_CLOUD_URL && !options.upstreamOrigin) return cloudProxy(req,res,route);
     const ingestion=targetPath==='/pub';
     if(ingestion?req.method!=='POST':!((req.method==='GET'&&reads.has(targetPath))||(req.method==='POST'&&writes.has(targetPath))))return json(res,ingestion?405:404,{error:'Anfrage nicht unterstützt.'});
     if(!ingestion&&req.method==='POST') {

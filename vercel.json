@@ -10,7 +10,71 @@
     },
     {
       "source": "/assistenz",
-      "destination": "/api/assistenz?path=map"
+      "destination": "/assistance.html"
+    },
+    {
+      "source": "/assistenz/",
+      "destination": "/assistance.html"
+    },
+    {
+      "source": "/assistenz/app-v4.js",
+      "destination": "/assistance-assets/app.js"
+    },
+    {
+      "source": "/assistenz/app-v4.css",
+      "destination": "/assistance-assets/app.css"
+    },
+    {
+      "source": "/assistenz/app-v3.js",
+      "destination": "/assistance-assets/app.js"
+    },
+    {
+      "source": "/assistenz/app-v3.css",
+      "destination": "/assistance-assets/app.css"
+    },
+    {
+      "source": "/assistenz/app-v2.js",
+      "destination": "/assistance-assets/app.js"
+    },
+    {
+      "source": "/assistenz/app-v2.css",
+      "destination": "/assistance-assets/app.css"
+    },
+    {
+      "source": "/assistenz/health-v2.js",
+      "destination": "/assistance-assets/health.js"
+    },
+    {
+      "source": "/assistenz/health-v2.css",
+      "destination": "/assistance-assets/health.css"
+    },
+    {
+      "source": "/assistenz/health-v1.js",
+      "destination": "/assistance-assets/health.js"
+    },
+    {
+      "source": "/assistenz/health-v1.css",
+      "destination": "/assistance-assets/health.css"
+    },
+    {
+      "source": "/assistenz/statistics-v1.js",
+      "destination": "/assistance-assets/statistics.js"
+    },
+    {
+      "source": "/assistenz/context-v1.js",
+      "destination": "/assistance-assets/context.js"
+    },
+    {
+      "source": "/assistenz/route.js",
+      "destination": "/assistance-assets/route.js"
+    },
+    {
+      "source": "/assistenz/vendor/leaflet.js",
+      "destination": "/assistance-assets/vendor/leaflet.js"
+    },
+    {
+      "source": "/assistenz/vendor/leaflet.css",
+      "destination": "/assistance-assets/vendor/leaflet.css"
     },
     {
       "source": "/assistenz/:path*",
@@ -23,11 +87,121 @@
     {
       "source": "/projekte/",
       "destination": "/index.html"
+    },
+    {
+      "source": "/konto",
+      "destination": "/index.html"
+    },
+    {
+      "source": "/konto/",
+      "destination": "/index.html"
     }
   ],
   "functions": {
     "api/assistenz.mjs": {
       "maxDuration": 30
     }
-  }
+  },
+  "headers": [
+    {
+      "source": "/assistenz",
+      "headers": [
+        {
+          "key": "Cache-Control",
+          "value": "no-store"
+        },
+        {
+          "key": "Referrer-Policy",
+          "value": "no-referrer"
+        },
+        {
+          "key": "X-Content-Type-Options",
+          "value": "nosniff"
+        },
+        {
+          "key": "X-Frame-Options",
+          "value": "DENY"
+        },
+        {
+          "key": "Content-Security-Policy",
+          "value": "default-src 'none'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data: https://tile.openstreetmap.org; connect-src 'self' https://hrqaxsbddpmphblmoyly.supabase.co; form-action 'self'; base-uri 'none'; frame-ancestors 'none'"
+        }
+      ]
+    },
+    {
+      "source": "/assistenz/:path*",
+      "headers": [
+        {
+          "key": "Cache-Control",
+          "value": "no-store"
+        },
+        {
+          "key": "Referrer-Policy",
+          "value": "no-referrer"
+        },
+        {
+          "key": "X-Content-Type-Options",
+          "value": "nosniff"
+        },
+        {
+          "key": "X-Frame-Options",
+          "value": "DENY"
+        },
+        {
+          "key": "Content-Security-Policy",
+          "value": "default-src 'none'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data: https://tile.openstreetmap.org; connect-src 'self' https://hrqaxsbddpmphblmoyly.supabase.co; form-action 'self'; base-uri 'none'; frame-ancestors 'none'"
+        }
+      ]
+    },
+    {
+      "source": "/assistance-assets/:path*",
+      "headers": [
+        {
+          "key": "Cache-Control",
+          "value": "no-store"
+        },
+        {
+          "key": "Referrer-Policy",
+          "value": "no-referrer"
+        },
+        {
+          "key": "X-Content-Type-Options",
+          "value": "nosniff"
+        },
+        {
+          "key": "X-Frame-Options",
+          "value": "DENY"
+        },
+        {
+          "key": "Content-Security-Policy",
+          "value": "default-src 'none'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data: https://tile.openstreetmap.org; connect-src 'self' https://hrqaxsbddpmphblmoyly.supabase.co; form-action 'self'; base-uri 'none'; frame-ancestors 'none'"
+        }
+      ]
+    },
+    {
+      "source": "/assistance.html",
+      "headers": [
+        {
+          "key": "Cache-Control",
+          "value": "no-store"
+        },
+        {
+          "key": "Referrer-Policy",
+          "value": "no-referrer"
+        },
+        {
+          "key": "X-Content-Type-Options",
+          "value": "nosniff"
+        },
+        {
+          "key": "X-Frame-Options",
+          "value": "DENY"
+        },
+        {
+          "key": "Content-Security-Policy",
+          "value": "default-src 'none'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data: https://tile.openstreetmap.org; connect-src 'self' https://hrqaxsbddpmphblmoyly.supabase.co; form-action 'self'; base-uri 'none'; frame-ancestors 'none'"
+        }
+      ]
+    }
+  ]
 }

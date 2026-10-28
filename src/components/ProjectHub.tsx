@@ -17,7 +17,7 @@ export function ProjectHub() {
             WerkTag<span className="project-hub__brand-dot">.</span>
           </span>
         </a>
-        <span className="project-hub__header-label">Projektübersicht</span>
+        <a className="project-hub__header-label" href="/konto">Konto &amp; Anmeldung</a>
       </header>
 
       <main className="project-hub__main" id="project-hub-main" tabIndex={-1}>
@@ -79,8 +79,8 @@ export function ProjectHub() {
         <aside className="project-hub__separation" aria-label="Getrennte Projektbereiche">
           <LockKeyhole size={19} aria-hidden="true" />
           <p>
-            Der SHK-Lernstand gehört zum Lernbuddy. Die persönliche Assistenz nutzt einen eigenen
-            geschützten Zugang.
+            Dein Konto verbindet deine Anmeldung. Der SHK-Lernstand und die persönliche Assistenz
+            bleiben getrennt. Deine private Karte ordnest du einmalig im Profil zu.
           </p>
         </aside>
       </main>
