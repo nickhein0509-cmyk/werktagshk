@@ -1,5 +1,6 @@
 import {selectPoints,berlinDay,healthView,validateHealthDay,emptyContext,updateContextValue,validateContextValue,contextView,validateContextRange,contextRange,statisticsFromData,gpxForDay} from './domain.mjs';
 import {cataloguePath,catalogueResponse,catalogueUnauthorized,validateCatalogueResource} from './catalog.mjs';
+import {recorderCount,validateRecorderSelection} from './semantics/recorders.js';
 export const COOKIE='__Secure-werktag-assistance';
 const MSG=new Set(['location','status','transition','waypoint','waypoints','steps','beacon','card','lwt','cmd','request','encrypted']);
 const enc=new TextEncoder();
@@ -37,6 +38,7 @@ const cookieValue=req=>(req.headers.get('cookie')??'').split(';').map(x=>x.trim(
 const cookie=(token,age=604800)=>`${COOKIE}=${token}; Path=/assistenz; Max-Age=${age}; Secure; HttpOnly; SameSite=Strict`;
 const reply=(body,status=200,extra={})=>new Response(JSON.stringify(body),{status,headers:{'Content-Type':'application/json; charset=utf-8','Cache-Control':'no-store','X-Content-Type-Options':'nosniff','Referrer-Policy':'same-origin',...extra}});
 function query(url,allowed){if([...url.searchParams.keys()].some(k=>k!=='route'&&(!allowed.includes(k)||url.searchParams.getAll(k).length!==1)))error(400,'Ungültige Anfrage.');if(url.searchParams.getAll('route').length!==1)error(400,'Ungültige Route.');}
+const recorderQuery=url=>validateRecorderSelection({source:url.searchParams.get('source')??undefined,device:url.searchParams.get('device')??undefined})??{};
 export function createAssistance({store,installationId,publicOrigin='https://werk-tag.com',now=()=>Date.now()}){
  const origin=req=>{if(req.headers.get('origin')!==publicOrigin||req.headers.get('sec-fetch-site')==='cross-site')error(403,'Ungültiger Ursprung.');};
  const verify=async (installation,secret,field)=>typeof secret==='string'&&secret.length<=512&&safeEqual(await hashSecret(installation.salt,secret),installation[field]);
@@ -49,18 +51,23 @@ export function createAssistance({store,installationId,publicOrigin='https://wer
  // A saved note or task must not depend on the availability of GPS history.
  // References stay explicitly unverified when their optional journal is absent.
  if(!value.entries.some(entry=>entry.kind==='activity'&&entry.segmentRef))return contextView(value,null);
- try{return contextView(value,selectPoints(await store.points(installationId),date,Number.MAX_SAFE_INTEGER).journal);}
+ try{const points=await store.points(installationId);return contextView(value,recorderCount(points.filter(p=>berlinDay(p.tst)===date))>1?null:selectPoints(points,date,Number.MAX_SAFE_INTEGER).journal);}
  catch{return contextView(value,null);}
  }
  async function archiveCompleted(points,known){
- const today=berlinDay(now()/1000),present=new Set(known.map(a=>a.date)),ordered=[...points].sort((a,b)=>a.tst-b.tst||a.receivedAt.localeCompare(b.receivedAt));
+ const today=berlinDay(now()/1000),present=new Set(known.map(a=>a.date)),ordered=[...points].sort((a,b)=>a.tst-b.tst||a.receivedAt.localeCompare(b.receivedAt)),deferredDates=[];
  for(const date of [...new Set(ordered.map(p=>berlinDay(p.tst)))].filter(d=>d<today&&!present.has(d))){
- const selected=ordered.filter(p=>berlinDay(p.tst)===date),journal=selectPoints(ordered,date,Number.MAX_SAFE_INTEGER).journal,stamp=new Date(now()).toISOString();
+ const selected=ordered.filter(p=>berlinDay(p.tst)===date);
+ // Archive v1 contains one journal for the entire day. Persisting mixed devices
+ // would either invent connecting legs or silently omit a source. Until a
+ // versioned multi-recorder archive exists, retain all raw points live instead.
+ if(recorderCount(selected)>1){deferredDates.push(date);continue;}
+ const journal=selectPoints(ordered,date,Number.MAX_SAFE_INTEGER).journal,stamp=new Date(now()).toISOString();
  const contentHash=await sha256(JSON.stringify({points:selected,journal}));
  const payload={schemaVersion:1,date,revision:1,pointCount:selected.length,tripCount:journal.trips.length,stayCount:journal.stays.length,firstTimestamp:selected[0].tst,lastTimestamp:selected.at(-1).tst,archivedAt:stamp,updatedAt:stamp,contentHash,timeZone:'Europe/Berlin',journal,points:selected};
  await store.ensureArchive(installationId,date,payload,gpxForDay(date,selected));
  }
- return store.archives(installationId);
+ return {archives:await store.archives(installationId),deferredDates};
  }
  return async req=>{
  let isPub=false;
@@ -129,15 +136,24 @@ export function createAssistance({store,installationId,publicOrigin='https://wer
  }
  if(req.method!=='GET')error(405,'Methode nicht unterstützt.');
  if(route==='map/data'){
- query(url,['date']);const date=url.searchParams.get('date')??berlinDay(now()/1000);if(date!=='all'&&!dateOK(date))error(400,'Ungültiges Datum.');
+ query(url,['date','source','device']);const selection=recorderQuery(url),date=url.searchParams.get('date')??berlinDay(now()/1000);if(date!=='all'&&!dateOK(date))error(400,'Ungültiges Datum.');
  const [points,health,knownArchives,ingestion]=await Promise.all([store.points(installationId),store.health(installationId),store.archives(installationId),store.receipts(installationId)]);
- const archives=await archiveCompleted(points,knownArchives);
- const olderDates=[];const days=archives.map(a=>{const {date,pointCount,tripCount,stayCount,revision,updatedAt}=a.payload;const current=points.filter(p=>berlinDay(p.tst)===date).sort((a,b)=>a.tst-b.tst||a.receivedAt.localeCompare(b.receivedAt)),journal=selectPoints(points,date,Number.MAX_SAFE_INTEGER).journal;const archiveSnapshotOlder=JSON.stringify(current.map(p=>p.id))!==JSON.stringify(a.payload.points.map(p=>p.id))||JSON.stringify(journal)!==JSON.stringify(a.payload.journal);if(archiveSnapshotOlder)olderDates.push(date);return{date,pointCount,tripCount,stayCount,revision,updatedAt,archiveSnapshotOlder,livePointCount:current.length};});
- return reply({...selectPoints(points,date),health:healthView(health,date),archive:{enabled:true,days,status:{ok:true,mode:'on-demand',checkedAt:new Date(now()).toISOString(),archiveSnapshotOlder:olderDates.length>0,olderDates}},ingestion:ingestion??null,refreshedAt:new Date(now()).toISOString()});
+ const view=selectPoints(points,date,20000,selection),{archives,deferredDates}=await archiveCompleted(points,knownArchives);
+ const olderDates=[];const days=archives.map(a=>{const {date,pointCount,tripCount,stayCount,revision,updatedAt}=a.payload;const current=points.filter(p=>berlinDay(p.tst)===date).sort((a,b)=>a.tst-b.tst||a.receivedAt.localeCompare(b.receivedAt)),journal=selectPoints(points,date,Number.MAX_SAFE_INTEGER).journal,multipleRecorders=recorderCount(current)>1;const archiveSnapshotOlder=multipleRecorders||JSON.stringify(current.map(p=>p.id))!==JSON.stringify(a.payload.points.map(p=>p.id))||JSON.stringify(journal)!==JSON.stringify(a.payload.journal);if(archiveSnapshotOlder)olderDates.push(date);return{date,pointCount,tripCount,stayCount,revision,updatedAt,archiveSnapshotOlder,multipleRecorders,livePointCount:current.length};});
+ return reply({...view,health:healthView(health,date),archive:{enabled:true,days,status:{ok:true,mode:'on-demand',checkedAt:new Date(now()).toISOString(),archiveSnapshotOlder:olderDates.length>0,olderDates,deferredDates}},ingestion:ingestion??null,refreshedAt:new Date(now()).toISOString()});
  }
  if(route==='map/context'){query(url,['date']);const date=url.searchParams.get('date');if(!dateOK(date))error(400,'Ungültiges Datum.');const value=await store.context(installationId,date)??emptyContext(date);validateContextValue(value,date);return reply(await manualView(value,date));}
  if(route==='map/context-range'){query(url,['from','to']);const {from,to}=validateContextRange(url.searchParams.get('from'),url.searchParams.get('to'));return reply(contextRange(await store.contexts(installationId,from,to),from,to));}
- if(route==='map/statistics'){query(url,['from','to','bucket']);const [points,healthDays,contexts,knownArchives]=await Promise.all([store.points(installationId),store.health(installationId),store.contexts(installationId),store.archives(installationId)]);const archives=await archiveCompleted(points,knownArchives);return reply(statisticsFromData({points,healthDays,contexts,archives:archives.map(a=>a.payload),from:url.searchParams.get('from')??undefined,to:url.searchParams.get('to')??undefined,bucket:url.searchParams.get('bucket')??'day',now:now()}));}
+ if(route==='map/statistics'){
+ query(url,['from','to','bucket','source','device']);const selection=recorderQuery(url);
+ const [points,healthDays,contexts,knownArchives]=await Promise.all([store.points(installationId),store.health(installationId),store.contexts(installationId),store.archives(installationId)]);
+ const input={points,healthDays,contexts,from:url.searchParams.get('from')??undefined,to:url.searchParams.get('to')??undefined,bucket:url.searchParams.get('bucket')??'day',now:now(),...selection};
+ // Compute/validate once before this read can create any completed-day archive.
+ // A newly archived day is already represented by the same live-derived data.
+ const statistics=statisticsFromData({...input,archives:knownArchives.map(a=>a.payload)});
+ const {deferredDates}=await archiveCompleted(points,knownArchives);
+ return reply({...statistics,archive:{deferredDates}});
+ }
  if(route==='map/archive'){
  query(url,['date','format']);const date=url.searchParams.get('date'),format=url.searchParams.get('format')??'gpx';if(!dateOK(date)||!['gpx','json'].includes(format))error(400,'Ungültiges Archivdatum.');let saved=await store.archive(installationId,date);if(!saved){await archiveCompleted(await store.points(installationId),await store.archives(installationId));saved=await store.archive(installationId,date);}if(!saved)error(404,'Dieser Tag ist noch nicht archiviert.');
  const body=format==='gpx'?(saved.gpx??gpxForDay(date,saved.payload.points)):JSON.stringify({...saved.payload,health:healthView(await store.health(installationId),date)},null,2)+'\n';return new Response(body,{headers:{'Content-Type':format==='gpx'?'application/gpx+xml; charset=utf-8':'application/json; charset=utf-8','Cache-Control':'no-store','Content-Disposition':`attachment; filename="Nick-GPS-${date}.${format}"`}});

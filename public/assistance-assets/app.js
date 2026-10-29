@@ -3,6 +3,7 @@ import { renderHealth, resetHealth } from '/assistenz/health-v2.js';
 import { createStatistics } from '/assistenz/statistics-v1.js';
 import { createContext } from '/assistenz/context-v1.js';
 import { createWorkspace } from '/assistance-assets/workspace.js';
+import { renderJourneyMap, recorderKey, recorderLabel, recorderQuery } from '/assistance-assets/map-presentation.js';
 const $=id=>document.getElementById(id),fmt=new Intl.NumberFormat('de-DE',{maximumFractionDigits:1});
 const time=tst=>new Date(tst*1000).toLocaleTimeString('de-DE',{timeZone:'Europe/Berlin',hour:'2-digit',minute:'2-digit'});
 const date=tst=>new Date(tst*1000).toLocaleDateString('de-DE',{timeZone:'Europe/Berlin'});
@@ -12,7 +13,8 @@ const distance=m=>m<1000?Math.round(m)+' m':fmt.format(m/1000)+' km';
 let map,layers,basemap,mapLibraryPromise=null,first=true,busy=false,active='today',lastView='',generation=0,currentData,selected=null,pendingRefresh=false;
 let basemapRevision=0,basemapTimer,provider='openfreemap';
 let view='overview', contextReady=false, accessReady=false;
-const statistics=createStatistics({onDay:day=>changeDay(day),onLocked:()=>locked()});
+let mapBounds=null,requestedRecorder=null,recorderChoices=[],dataController;
+const statistics=createStatistics({onDay:(day,recorder)=>{requestedRecorder=recorderKey(recorder)?recorder:null;changeDay(day);},onLocked:()=>locked()});
 const context=createContext({onLocked:()=>locked(),onAccessChanged:()=>refresh(true),onChanged:()=>{statistics.invalidate(String(Date.now()));lastView='';workspace.invalidate();workspace.refresh();}});
 const workspace=createWorkspace({onLocked:()=>locked(),onChanged:()=>{statistics.invalidate(String(Date.now()));lastView='';context.refresh();},onDay:day=>changeDay(day),onOwner:()=>{showView('day');$('context-owner-details').open=true;$('context-owner-token').focus();$('context-owner').scrollIntoView({block:'nearest'});}});
 function showView(next){
@@ -27,10 +29,31 @@ function showView(next){
   }
 }
 function changeDay(value){
-  generation++;active=value;updateDayNavigation();selected=null;first=true;currentData=null;lastView='';showView('day');resetHealth('Health-Daten für diesen Tag werden geladen.');layers?.clearLayers();$('map-title').textContent='Tag wird geladen …';$('map-selection-summary').textContent='Deine gespeicherten Messungen werden abgerufen.';$('map-message').hidden=false;$('map-message').textContent='Tag wird geladen …';$('timeline').replaceChildren();$('journal-summary').textContent='Tag wird geladen …';$('timeline-empty').hidden=true;
+  dataController?.abort();
+  generation++;active=value;updateDayNavigation();selected=null;first=true;currentData=null;lastView='';mapBounds=null;showView('day');resetHealth('Health-Daten für diesen Tag werden geladen.');layers?.clearLayers();$('map-title').textContent='Tag wird geladen …';$('map-selection-summary').textContent='Deine gespeicherten Messungen werden abgerufen.';$('map-message').hidden=false;$('map-message').textContent='Tag wird geladen …';$('timeline').replaceChildren();$('journal-summary').textContent='Tag wird geladen …';$('timeline-empty').hidden=true;$('recorder').disabled=true;$('map-mode').textContent='Wird geladen';
   $('calendar-day').value=active==='today'?today():active==='all'?'':active;
   context.setDay({date:active==='today'?today():active});workspace.setDay(active==='today'?today():active);refresh(true);
 }
+function renderRecorders(data){
+  const control=$('recorder'),hasMetadata=Array.isArray(data.recorders);
+  recorderChoices=hasMetadata?data.recorders.filter(recorder=>recorderKey(recorder)):[];
+  const resolved=recorderKey(data.selectedRecorder)?data.selectedRecorder:null;
+  // Legacy servers and isolated fixtures do not expose recorder metadata.
+  // Their measurements remain usable without inventing a source label.
+  const available=hasMetadata&&Boolean(recorderChoices.length||resolved||requestedRecorder);
+  $('recorder-control').hidden=!available;
+  statistics.setRecorder(resolved);
+  if(!available)return;
+  const automatic=document.createElement('option');automatic.value='';automatic.textContent='Automatisch'+(resolved?' · '+recorderLabel(resolved):' · keine Aufzeichnung');
+  const options=recorderChoices.map(recorder=>{const option=document.createElement('option');option.value=recorderKey(recorder);option.textContent=recorderLabel(recorder)+' · '+fmt.format(recorder.pointCount)+' Punkte';return option;});
+  if(requestedRecorder&&!options.some(option=>option.value===recorderKey(requestedRecorder))){const option=document.createElement('option');option.value=recorderKey(requestedRecorder);option.textContent=recorderLabel(requestedRecorder)+' · keine Punkte im Zeitraum';options.push(option);}
+  control.replaceChildren(automatic,...options);control.value=recorderKey(requestedRecorder);control.disabled=!accessReady;
+  $('recorder-note').textContent=resolved?'Angezeigt: '+recorderLabel(resolved)+'. Wege verschiedener Geräte bleiben getrennt.':'Für diesen Zeitraum liegen keine Messungen der gewählten Aufzeichnung vor.';
+}
+$('recorder').addEventListener('change',()=>{
+  requestedRecorder=recorderChoices.find(recorder=>recorderKey(recorder)===$('recorder').value)??null;
+  statistics.setRecorder(requestedRecorder);changeDay(active);
+});
 for(const name of ['overview','workspace','day','statistics'])$('view-'+name).addEventListener('click',()=>showView(name));
 $('calendar-day').addEventListener('change',()=>{if($('calendar-day').value)changeDay($('calendar-day').value);});
 const status=(text,kind='')=>{$('connection').textContent=text;$('connection').className='connection '+kind;};
@@ -122,9 +145,7 @@ async function retryMap(){
   finally{$('map-retry').disabled=false;}
 }
 function fit(){
-  if(!map||!layers)return;
-  const bounds=L.latLngBounds(layers.getLayers().flatMap(layer=>layer.getLatLngs?layer.getLatLngs():layer.getLatLng?[layer.getLatLng()]:[]));
-  if(bounds.isValid())map.fitBounds(bounds,{padding:[35,35],maxZoom:17});
+  if(map&&mapBounds?.isValid())map.fitBounds(mapBounds,{paddingTopLeft:[48,42],paddingBottomRight:[48,44],maxZoom:17,animate:false});
 }
 function updateDayNavigation(){
   const chosen=active==='today'?today():active;
@@ -172,6 +193,7 @@ function selectSegment(id,{focus=false}={}){
   if(focus){const button=[...$('timeline').querySelectorAll('.event')].find(node=>node.dataset.segmentId===id);button?.focus({preventScroll:true});}
 }
 function renderTimeline(data,models){
+  const focusedId=$('timeline').contains(document.activeElement)?document.activeElement.dataset.segmentId:null;
   const journal=data.journal,events=[...journal.trips,...journal.stays].sort((a,b)=>a.startTimestamp-b.startTimestamp||(a.kind==='trip'?-1:1));
   $('journal-summary').textContent=journal.trips.length+' Teilstrecken · '+journal.stays.length+' Aufenthalte';
   $('timeline-day-summary').textContent=data.points.length?data.totalSelected+' gespeicherte Messpunkte · '+journal.trips.length+' Wege · '+journal.stays.length+' Aufenthalte':'Keine GPS-Messungen an diesem Tag. Eigene Einträge kannst du trotzdem festhalten.';
@@ -193,23 +215,27 @@ function renderTimeline(data,models){
     }
     const button=document.createElement('button');button.type='button';button.className='event '+entry.kind+(selected===entry.id?' chosen':'');button.dataset.segmentId=entry.id;button.setAttribute('aria-pressed',String(selected===entry.id));
     const entries=entry.kind==='trip'?journal.trips:journal.stays,number=entries.findIndex(e=>e.id===entry.id)+1;
-    const label=document.createElement('strong');label.textContent=(entry.kind==='trip'?'↗ Teilstrecke ':'◉ Aufenthalt ')+number;
+    const label=document.createElement('strong');label.textContent=(entry.kind==='trip'?'Teilstrecke ':'Aufenthalt ')+number;button.dataset.number=String(number);
     const timing=document.createElement('span');timing.textContent=(active==='all'?date(entry.startTimestamp)+' · ':'')+time(entry.startTimestamp)+' – '+time(entry.endTimestamp)+' Uhr';
     const detail=document.createElement('small'),analysis=models.get(entry.id);detail.textContent=entry.kind==='trip'?distance(analysis.distanceMetres)+' · '+duration(entry.durationSeconds)+(analysis.averageSpeedKmh===null?'':' · Ø '+fmt.format(analysis.averageSpeedKmh)+' km/h'):(entry.crossesMidnight?'Über Mitternacht · ':'Mind. ')+duration(entry.durationSeconds)+' · im Bereich von ca. 100 m';
     const hint=document.createElement('small');hint.className='event-hint';hint.textContent=selected===entry.id?'Auf der Karte ausgewählt':'Auf der Karte ansehen';
     button.append(label,timing,detail,hint);button.addEventListener('click',()=>selectSegment(entry.id,{focus:true}));return button;
   });
   $('timeline').replaceChildren(...nodes);
+  if(focusedId)(nodes.find(node=>node.dataset.segmentId===focusedId)??$('whole-day')).focus({preventScroll:true});
 }
 function renderArchive(data){
   const day=active==='today'?today():active,archive=data.archive,entry=archive?.days.find(e=>e.date===day);
   $('archive-status').textContent=archive?.status?.ok===false?'Archivierung braucht Aufmerksamkeit. Die GPS-Rohdaten bleiben gespeichert.':day==='all'?'Alle vorhandenen Aufzeichnungen bleiben gespeichert. Wähle einen Tag für den Tagesexport.':entry?'Tagesarchiv gespeichert · '+entry.pointCount+' Punkte · GPX und vollständige Tagesdatei':day===today()?'Heute wird fortlaufend gespeichert. Tagesarchiv automatisch nach Mitternacht.':data.totalSelected===0&&data.health?.status==='ok'?'Health-Tageswerte gespeichert. Für diesen Tag gibt es keine GPS-Aufzeichnung.':data.totalSelected===0?'Für diesen Tag ist keine GPS-Aufzeichnung gespeichert.':'Tagesarchiv wird beim nächsten automatischen Abgleich erstellt.';
   $('download-gpx').hidden=!entry;$('download-json').hidden=!entry;
   if(entry?.archiveSnapshotOlder)$('archive-status').textContent='Weitere Messungen sind nach dem Archiv eingetroffen. Tagesansicht und Statistik berücksichtigen sie; die Downloads erhalten den ursprünglichen Archivstand.';
+  if(archive?.status?.deferredDates?.includes(day)&&!entry)$('archive-status').textContent='Mehrere Geräte zeichnen diesen Tag auf. Die Tagesansicht zeigt das gewählte Gerät; ein gemeinsames Tagesarchiv wird nicht erzeugt.';
+  if(entry?.multipleRecorders)$('archive-status').textContent='Mehrere Geräte zeichnen diesen Tag auf. Downloads enthalten den ursprünglichen Archivstand und entsprechen nicht zwingend der gewählten Geräteansicht.';
   if(entry){$('download-gpx').href='/assistenz/archive?date='+day+'&format=gpx';$('download-json').href='/assistenz/archive?date='+day+'&format=json';}
 }
 function draw(data,force=false){
   currentData=data;
+  renderRecorders(data);
   const journal=data.journal,selection=[...journal.trips,...journal.stays].find(e=>e.id===selected);
   if(selected&&!selection)selected=null;
   const pts=selection?data.points.slice(selection.startIndex,selection.endIndex+1):data.points;
@@ -225,7 +251,10 @@ function draw(data,force=false){
   const knownDays=[...new Set([...(active!=='today'&&active!=='all'?[active]:[]),...data.days,...(data.archive?.days.map(e=>e.date)??[]),...(data.health?.days??[])])].filter(d=>d!==today()).sort().reverse();
   const options=[['today','Heute'],...knownDays.map(d=>[d,new Date(d+'T12:00:00Z').toLocaleDateString('de-DE',{day:'numeric',month:'long',year:'numeric',timeZone:'Europe/Berlin'})+(data.archive?.days.some(e=>e.date===d)?' · archiviert':'')]),['all','Alle Aufzeichnungen']];
   $('day').replaceChildren(...options.map(([value,label])=>{const option=document.createElement('option');option.value=value;option.textContent=label;return option;}));$('day').value=active;updateDayNavigation();$('day').disabled=false;$('calendar-day').disabled=false;$('calendar-day').value=active==='today'?today():active==='all'?'':active;
-  $('map-selection-summary').textContent=selection?(selection.kind==='trip'?'Ausgewählte Teilstrecke':'Ausgewählter Aufenthalt')+' · '+time(selection.startTimestamp)+'–'+time(selection.endTimestamp)+' Uhr · '+duration(selection.durationSeconds):'Gesamter Zeitraum · Wähle einen Weg oder Aufenthalt in der Zeitachse.';
+  $('map-selection-summary').textContent=selection?(selection.kind==='trip'?'Ausgewählte Teilstrecke':'Ausgewählter Aufenthalt')+' · '+time(selection.startTimestamp)+'–'+time(selection.endTimestamp)+' Uhr · '+duration(selection.durationSeconds)+(selection.kind==='trip'?' · '+distance(distanceMetres):''):'Gemessene Wege und nummerierte Aufenthalte. Wähle einen Abschnitt für die Details.';
+  $('map-mode').textContent=selection?(selection.kind==='trip'?'Teilstrecke ':'Aufenthalt ')+(journal[selection.kind==='trip'?'trips':'stays'].findIndex(entry=>entry.id===selection.id)+1):'Tagesübersicht';
+  $('fit').textContent=selection?'Auswahl einpassen ↗':'Wege einpassen ↗';
+  $('map-route-note').textContent='GPS-Näherung'+(model.gapCount?' · '+model.gapCount+' unterbrochene Übergänge':'')+' · Aufzeichnungslücken bleiben offen.';
   $('map-title').textContent=selection?(selection.kind==='trip'?'Deine Teilstrecke':'Dein Aufenthalt'):active==='today'?'Dein Weg heute':active==='all'?'Alle Aufzeichnungen':'Dein Weg · '+new Date(active+'T12:00:00Z').toLocaleDateString('de-DE');
   $('range').textContent=pts.length?date(pts[0].tst)+' · '+time(pts[0].tst)+' bis '+date(pts.at(-1).tst)+' · '+time(pts.at(-1).tst)+' Uhr':'Für diesen Zeitraum sind noch keine Standortpunkte vorhanden.';
   $('quality').textContent='Bereinigte GPS-Näherung, keine berechnete Straßenstrecke. '+model.poorFixCount+' ungenaue Punkte · '+model.outlierCount+' isolierte Sprünge · '+model.suppressedJitterCount+' kleine GPS-Bewegungen geglättet. '+model.gapCount+' Lücken oder unplausible Übergänge werden nicht verbunden.'+(model.unknownAccuracyCount?' Bei '+model.unknownAccuracyCount+' Punkten fehlt die Genauigkeitsangabe.':'')+' Aufenthalte sind eine Näherung ab 10 Minuten im Bereich von ca. 100 m, nur bis zur letzten passenden Messung.'+(data.truncated?' Anzeige auf die neuesten 20.000 Punkte gekürzt. Bitte wähle einen einzelnen Tag.':'');
@@ -237,24 +266,14 @@ function draw(data,force=false){
   if(Number.isFinite(latestFix?.alt))sensor.push('Höhe '+fmt.format(latestFix.alt)+' m ü. M.');
   if(Number.isFinite(latestFix?.vel))sensor.push('Geschwindigkeit '+fmt.format(latestFix.vel)+' km/h');
   $('sensor-details').textContent=sensor.length?'Letzter gewählter Messpunkt · '+time(latestFix.tst)+' Uhr: '+sensor.join(' · '):'Keine zusätzlichen GPS-Sensorwerte am letzten gewählten Messpunkt.';
-  if(!map||view!=='day')return;layers.clearLayers();
-  const drawPart=(part,entry)=>{if(part.length>1){const line=L.polyline(part.map(p=>[p.lat,p.lon]),{color:'#20674f',weight:selection?6:5,opacity:.88,lineJoin:'round'}).addTo(layers);if(entry)line.on('click',()=>selectSegment(entry.id,{focus:true}));}};
-  if(selection?.kind==='stay'){
-    L.circle([selection.center.lat,selection.center.lon],{radius:journal.settings.radiusMetres,color:'#a9782e',weight:2,fillColor:'#dfbc6f',fillOpacity:.18}).addTo(layers);
-    L.circleMarker([selection.center.lat,selection.center.lon],{radius:9,color:'#fff',weight:3,fillColor:'#a9782e',fillOpacity:1}).bindPopup('Aufenthalt · '+time(selection.startTimestamp)+'–'+time(selection.endTimestamp)+' Uhr').addTo(layers);
-  }else{
-    if(selection)model.segments.forEach(part=>drawPart(part,selection));
-    else{
-      journal.trips.forEach(t=>models.get(t.id).segments.forEach(part=>drawPart(part,t)));
-      journal.stays.forEach(s=>L.circleMarker([s.center.lat,s.center.lon],{radius:6,color:'#fff',weight:2,fillColor:'#a9782e',fillOpacity:1}).bindPopup('Aufenthalt · '+time(s.startTimestamp)+'–'+time(s.endTimestamp)+' Uhr').on('click',()=>selectSegment(s.id,{focus:true})).addTo(layers));
-    }
-    const shown=model.segments.flat();
-    if(shown.length){for(const[p,label,color,radius]of [[shown[0],'Start','#a3be59',7],[shown.at(-1),'Letzter Punkt','#183d36',9]]){const content=document.createElement('span');content.textContent=label+' · '+date(p.tst)+' · '+time(p.tst)+' Uhr'+(p.acc!==undefined?' · Genauigkeit ±'+Math.round(p.acc)+' m':'');L.circleMarker([p.lat,p.lon],{radius,color:'#fff',weight:3,fillColor:color,fillOpacity:1}).bindPopup(content).addTo(layers);}}
-  }
-  $('map-message').hidden=layers.getLayers().length>0;$('map-message').textContent=pts.length?'Die vorhandenen Punkte sind für eine Route zu ungenau.':'Noch keine Punkte in diesem Zeitraum.';
+  if(!map||view!=='day')return;
+  const presentation=renderJourneyMap({L,layers,data,models,selection,onSelect:id=>selectSegment(id,{focus:true}),time,date});mapBounds=presentation.bounds;
+  $('map-message').hidden=mapBounds.isValid();$('map-message').textContent=pts.length?'Die gewählten Punkte sind für eine Route zu ungenau.':'Noch keine Punkte in diesem Zeitraum.';
   if(force||first){fit();first=false;}
 }
 function locked(){
+  dataController?.abort();
+  mapBounds=null;requestedRecorder=null;recorderChoices=[];$('recorder').replaceChildren();$('recorder').disabled=true;$('recorder-control').hidden=true;$('recorder-note').textContent='';$('map-mode').textContent='Geschützt';$('map-route-note').textContent='';
   generation++;pendingRefresh=false;accessReady=false;disposeBasemap();if(map){map.remove();map=null;layers=null;}$('map-provider').disabled=true;$('basemap-status').dataset.state='idle';$('basemap-status').textContent='Karte nach der Anmeldung öffnen.';$('map-retry').hidden=true;statistics.reset();context.reset();workspace.reset();contextReady=false;for(const name of ['workspace','day','statistics'])$('view-'+name).disabled=true;$('calendar-day').disabled=true;updateDayNavigation();$('timeline-date-label').textContent='Deine Zeitachse';$('timeline-day-summary').textContent='Melde dich an, um deine Wege und Aufenthalte zu sehen.';$('map-selection-summary').textContent='Deine privaten Abschnitte erscheinen nach der Anmeldung.';$('sensor-details').textContent='';showView('overview');
   resetHealth('Melde dich über Mein Konto an oder öffne deinen privaten Kartenlink für deine Health-Werte.');
   status('Geschützter Zugriff');$('access').hidden=false;$('day').disabled=true;layers?.clearLayers();currentData=null;selected=null;$('timeline').replaceChildren();$('journal-summary').textContent='Zugriff erforderlich';$('archive-status').textContent='Melde dich über Mein Konto an oder öffne deinen privaten Kartenlink.';$('download-gpx').hidden=true;$('download-json').hidden=true;
@@ -277,10 +296,11 @@ async function refresh(force=false){
   try{
     if(!await authorizeAccess(revision))return;
     context.refresh();if(force)workspace.refresh();
-    const d=active==='today'?today():active,r=await fetch('/assistenz/data?date='+encodeURIComponent(d),{cache:'no-store',signal:AbortSignal.timeout(10000)});
+    dataController=new AbortController();
+    const d=active==='today'?today():active,r=await fetch('/assistenz/data?'+recorderQuery(d,requestedRecorder),{cache:'no-store',signal:AbortSignal.any([dataController.signal,AbortSignal.timeout(10000)])});
     if(revision!==generation)return;if(r.status===401){locked();return;}if(!r.ok)throw new Error('gps-unavailable');
     const data=await r.json();if(revision!==generation)return;renderFreshness(data);currentData=data;status('Assistent verbunden · Aufzeichnungen geladen','ok');
-    const key=JSON.stringify([d,data.totalStored,data.totalSelected,data.latestReceivedAt,data.archive,data.health]);
+    const key=JSON.stringify([d,data.totalStored,data.totalSelected,data.latestReceivedAt,data.archive,data.health,data.recorders,data.selectedRecorder]);
     if(force||lastView!==key){draw(data,force);lastView=key;statistics.invalidate(key);}statistics.refresh();
   }catch(error){
     if(revision===generation){
@@ -288,7 +308,7 @@ async function refresh(force=false){
       $('map-message').hidden=false;$('map-message').textContent=currentData?'Gerade kein neuer Abgleich. Der zuletzt geladene Stand bleibt sichtbar.':'GPS-Daten sind gerade nicht erreichbar. Notizen und Aufgaben bleiben unabhängig davon verfügbar.';
       if(!currentData){$('total').textContent='GPS-Dienst nicht erreichbar';$('journal-summary').textContent='GPS-Daten gerade nicht verfügbar';$('archive-status').textContent='Archivstatus gerade nicht abrufbar.';resetHealth('Health-Daten sind gerade nicht abrufbar. Gespeicherte Werte bleiben erhalten.');}
     }
-  }finally{busy=false;if(pendingRefresh){pendingRefresh=false;queueMicrotask(()=>refresh(true));}}
+  }finally{busy=false;if(revision===generation&&accessReady)$('recorder').disabled=false;if(pendingRefresh){pendingRefresh=false;queueMicrotask(()=>refresh(true));}}
 }
 document.addEventListener('werktag:assistance-lock',()=>locked());
 async function unlock(key){const r=await fetch('/assistenz/auth',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({key}),signal:AbortSignal.timeout(8000)});if(!r.ok)throw new Error(r.status===429?'Bitte warte eine Minute und versuche es erneut.':'Der Kartenlink ist ungültig.');$('access').hidden=true;lastView='';await refresh(true);}

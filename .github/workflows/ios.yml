@@ -1,7 +1,10 @@
 name: Native iPhone
 on:
+  push:
+    branches: [main]
+    paths: ['ios/**', 'api/assistenz-native.mjs', 'supabase/functions/assistance-native/**', 'supabase/functions/assistance/**', 'supabase/migrations/*_assistance_native_*.sql', '.github/workflows/ios*.yml']
   pull_request:
-    paths: ['ios/**', 'api/assistenz-native.mjs', 'supabase/functions/assistance-native/**', 'supabase/functions/assistance/native.mjs', 'supabase/migrations/20261029010000_assistance_native_ingestion.sql', '.github/workflows/ios.yml']
+    paths: ['ios/**', 'api/assistenz-native.mjs', 'supabase/functions/assistance-native/**', 'supabase/functions/assistance/**', 'supabase/migrations/*_assistance_native_*.sql', '.github/workflows/ios*.yml']
   workflow_dispatch:
 permissions:
   contents: read
@@ -28,6 +31,7 @@ jobs:
         with:
           node-version: '24'
       - run: node --test supabase/functions/assistance-native/native.test.mjs
+      - run: python3 ios/ci/test-profile.py
       - name: Verify transaction, replay and ownership against PostgreSQL
         env:
           PGPASSWORD: synthetic
@@ -35,6 +39,7 @@ jobs:
           psql -h localhost -U postgres -d native_test -v ON_ERROR_STOP=1 -f ios/ci/database-bootstrap.sql
           psql -h localhost -U postgres -d native_test -v ON_ERROR_STOP=1 -f supabase/migrations/20261028131907_assistance_cloud_storage.sql
           psql -h localhost -U postgres -d native_test -v ON_ERROR_STOP=1 -f supabase/migrations/20261029010000_assistance_native_ingestion.sql
+          psql -h localhost -U postgres -d native_test -v ON_ERROR_STOP=1 -f supabase/migrations/20261029020000_assistance_native_journey.sql
           psql -h localhost -U postgres -d native_test -v ON_ERROR_STOP=1 -f ios/ci/database-tests.sql
   ios:
     runs-on: macos-15
@@ -85,6 +90,18 @@ jobs:
           if [ -d build/Smoke.xcresult ]; then
             xcrun xcresulttool export attachments --path build/Smoke.xcresult --output-path screenshots
           fi
+      - name: Package verified simulator app with source identity
+        working-directory: ios
+        run: |
+          printf 'Simulator build only; not installable on an iPhone.\nSource: %s\n' "$GITHUB_SHA" > build/SIMULATOR-ONLY.txt
+          ditto -c -k --keepParent build/Build/Products/Debug-iphonesimulator/WerkTag.app build/WerkTag-Simulator.zip
+      - uses: actions/upload-artifact@v4
+        with:
+          name: werktag-ios-simulator
+          path: |
+            ios/build/WerkTag-Simulator.zip
+            ios/build/SIMULATOR-ONLY.txt
+          retention-days: 14
       - uses: actions/upload-artifact@v4
         if: always()
         with:

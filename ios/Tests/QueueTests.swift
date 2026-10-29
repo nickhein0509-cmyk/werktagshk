@@ -56,4 +56,53 @@ final class QueueTests:XCTestCase {
   XCTAssertEqual(DurableQueue.retryDelay(attempt:100),3600)
   XCTAssertEqual(DurableQueue.retryDelay(attempt:1,retryAfter:120),120)
  }
+ func testRepeatedEventsWithinOneAppendAreStoredOnce() throws {
+  let q=try DurableQueue(directory:directory,accountId:owner),e=event()
+  try q.append([e,e]);try q.append([e])
+  XCTAssertEqual(q.state.events,[e])
+  XCTAssertEqual(try DurableQueue(directory:directory,accountId:owner).state.events,[e])
+ }
+ func testConflictingEventIDsNeverDiscardOrPartiallyWriteData() throws {
+  let q=try DurableQueue(directory:directory,accountId:owner),e=event()
+  var changed=e;changed.location?.lat=49
+  XCTAssertThrowsError(try q.append([e,changed]))
+  XCTAssertTrue(q.state.events.isEmpty)
+  try q.append([e])
+  XCTAssertThrowsError(try q.append([event(),changed]))
+  XCTAssertEqual(q.state.events,[e])
+  XCTAssertEqual(try DurableQueue(directory:directory,accountId:owner).state.events,[e])
+ }
+ func testAReceiptCannotConfirmAnAmbiguousBatch() throws {
+  let q=try DurableQueue(directory:directory,accountId:owner),e=event()
+  try q.append([e])
+  let batch=TransferBatch(deviceId:q.state.deviceId,events:[e,e])
+  XCTAssertThrowsError(try q.acknowledge(Receipt(accepted:[e.id],receivedAt:"2026-10-29T12:00:00Z"),batch:batch,account:owner))
+  XCTAssertEqual(q.state.events,[e])
+ }
+ func testRestartRepairsIdenticalLegacyDuplicatesDurably() throws {
+  let original=try DurableQueue(directory:directory,accountId:owner),e=event(),other=event()
+  var legacy=original.state;legacy.events=[e,e,other,e]
+  let file=directory.appendingPathComponent(owner.uuidString+".json")
+  try JSONEncoder().encode(legacy).write(to:file)
+  let restored=try DurableQueue(directory:directory,accountId:owner)
+  XCTAssertEqual(restored.state.events,[e,other])
+  XCTAssertEqual(restored.state.deviceId,original.state.deviceId)
+  XCTAssertEqual(restored.state.acknowledgedCount,0)
+  XCTAssertEqual(try DurableQueue(directory:directory,accountId:owner).state.events,[e,other])
+ }
+ func testLegacyConflictOrFailedRepairLeavesOriginalFileUntouched() throws {
+  let original=try DurableQueue(directory:directory,accountId:owner),e=event()
+  var changed=e;changed.location?.lon=9
+  var legacy=original.state;legacy.events=[e,e,changed]
+  let file=directory.appendingPathComponent(owner.uuidString+".json")
+  let conflicting=try JSONEncoder().encode(legacy)
+  try conflicting.write(to:file)
+  XCTAssertThrowsError(try DurableQueue(directory:directory,accountId:owner))
+  XCTAssertEqual(try Data(contentsOf:file),conflicting)
+  legacy.events=[e,e]
+  let repairable=try JSONEncoder().encode(legacy)
+  try repairable.write(to:file)
+  XCTAssertThrowsError(try DurableQueue(directory:directory,accountId:owner,writer:{_,_ in throw TransferError.storage("disk")}))
+  XCTAssertEqual(try Data(contentsOf:file),repairable)
+ }
 }

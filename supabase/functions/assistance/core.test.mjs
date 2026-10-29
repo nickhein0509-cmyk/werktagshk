@@ -1,7 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {createAssistance,hashSecret,sha256,normalizeLocation,COOKIE} from './core.mjs';
-import {updateContextValue} from './domain.mjs';
+import {updateContextValue,selectPoints} from './domain.mjs';
 const NOW=Date.parse('2026-10-28T12:00:00Z'),ID='b4f2aa0a-c752-42f4-9b9d-10aecf7c9420';
 async function fixture(){
  const secrets={username:'iphone',password:'p'.repeat(40),map:'m'.repeat(43),owner:'o'.repeat(43)};
@@ -139,4 +139,63 @@ test('context range rejects bad/oversized query bounds before reads and never ex
  let r=await f.request('map/context-range&from=2026-10-28&to=2026-10-28',{cookie:c});assert.equal(r.status,503);assert.ok(!(await r.text()).includes('private synthetic'));
  f.store.contexts=async()=>[{date:'2026-10-28',revision:1,entries:[]}];
  r=await f.request('map/context-range&from=2026-10-28&to=2026-10-28',{cookie:c});assert.equal(r.status,503);assert.equal((await r.json()).documents,undefined);
+});
+
+async function recorderPoints(source,device,offset=0) {
+  const base=Date.parse('2026-10-27T09:00:00Z')/1000;
+  return Promise.all([0,60].map(async seconds=>({...await normalizeLocation({...loc,tst:base+seconds+offset,lat:52,lon:13+seconds/60000},source,device,NOW),receivedAt:new Date(NOW).toISOString()})));
+}
+
+test('map and statistics reject incomplete, duplicate and oversized recorder parameters before sensor reads',async()=>{
+  const f=await fixture(),cookie=await f.unlock();let reads=0;f.store.points=async()=>{reads++;return [];};
+  for(const route of ['map/data&date=2026-10-27','map/statistics&from=2026-10-27&to=2026-10-27']){
+    for(const query of ['&source=iphone','&device=d','&source=&device=d','&source=bad%20source&device=d','&source=iphone&device=','&source=iphone&device=a%00b','&source=iphone&device=a%09b','&source=iphone&device=a%0Ab','&source='+('a'.repeat(65))+'&device=d','&source=iphone&device='+('a'.repeat(257)),'&source=iphone&source=other&device=d','&source=iphone&device=a&device=b']){
+      assert.equal((await f.request(route+query,{cookie})).status,400,route+query);
+    }
+  }
+  assert.equal(reads,0);assert.equal(f.archives.length,0);
+});
+
+test('map and statistics expose recorder provenance and never fall back from an explicit missing selection',async()=>{
+  const f=await fixture(),cookie=await f.unlock(),owntracks=await recorderPoints('iphone','d'),native=await recorderPoints('werktag_ios','native',30);
+  f.points.push(...owntracks,...native);
+  let response=await f.request('map/data&date=2026-10-27',{cookie}),value=await response.json();
+  assert.equal(response.status,200);assert.deepEqual(value.selectedRecorder,{source:'werktag_ios',device:'native'});assert.equal(value.points.length,2);assert.equal(value.recorders.length,2);
+  assert.ok(value.points.every(point=>point.source==='werktag_ios'&&point.device==='native'));
+  response=await f.request('map/data&date=2026-10-27&source=iphone&device=d',{cookie});value=await response.json();assert.equal(response.status,200);assert.deepEqual(value.points.map(p=>p.id),owntracks.map(p=>p.id));
+  response=await f.request('map/statistics&from=2026-10-27&to=2026-10-27&source=iphone&device=d',{cookie});value=await response.json();
+  assert.equal(response.status,200);assert.deepEqual(value.selectedRecorder,{source:'iphone',device:'d'});assert.equal(value.summary.gps.pointCount,2);assert.ok(value.summary.gps.distanceMetres<70);
+  response=await f.request('map/data&date=2026-10-28&source=iphone&device=d',{cookie});value=await response.json();assert.equal(response.status,200);assert.deepEqual(value.points,[]);assert.deepEqual(value.selectedRecorder,{source:'iphone',device:'d'});
+  for(const route of ['map/data&date=2026-10-27','map/statistics&from=2026-10-27&to=2026-10-27'])assert.equal((await f.request(route+'&source=iphone&device=missing',{cookie})).status,404);
+  assert.equal(f.points.length,4);
+});
+
+test('mixed recorder days remain live without inventing a v1 archive and unknown selections have no archive side effects',async()=>{
+  const f=await fixture(),cookie=await f.unlock();f.points.push(...await recorderPoints('iphone','d'),...await recorderPoints('werktag_ios','native',30));
+  const earlier=(await recorderPoints('iphone','d')).map(p=>({...p,id:'earlier-'+p.id,tst:p.tst-86400}));f.points.push(...earlier);
+  assert.equal((await f.request('map/data&date=2026-10-26&source=iphone&device=missing',{cookie})).status,404);assert.equal(f.archives.length,0);
+  let response=await f.request('map/data&date=2026-10-27',{cookie}),value=await response.json();
+  assert.equal(response.status,200);assert.deepEqual(value.archive.status.deferredDates,['2026-10-27']);assert.deepEqual(f.archives.map(a=>a.date),['2026-10-26']);
+  const before=JSON.stringify(f.archives);
+  response=await f.request('map/statistics&from=2026-10-26&to=2026-10-27',{cookie});value=await response.json();assert.equal(response.status,200);assert.deepEqual(value.archive.deferredDates,['2026-10-27']);assert.equal(JSON.stringify(f.archives),before);
+  assert.equal((await f.request('map/archive&date=2026-10-27&format=gpx',{cookie})).status,404);assert.equal(f.points.length,6);
+});
+
+test('a preserved archive stays byte-identical after a second recorder appears',async()=>{
+  const f=await fixture(),cookie=await f.unlock();f.points.push(...await recorderPoints('iphone','d'));
+  await f.request('map/data&date=2026-10-27',{cookie});assert.equal(f.archives.length,1);
+  const before=JSON.stringify(f.archives),gpx=f.archives[0].gpx;
+  f.points.push(...await recorderPoints('werktag_ios','native',30));
+  const response=await f.request('map/data&date=2026-10-27&source=werktag_ios&device=native',{cookie}),value=await response.json();
+  assert.equal(response.status,200);assert.equal(value.archive.days[0].multipleRecorders,true);assert.equal(value.archive.status.archiveSnapshotOlder,true);assert.deepEqual(value.archive.status.deferredDates,[]);
+  assert.equal(await(await f.request('map/archive&date=2026-10-27&format=gpx',{cookie})).text(),gpx);assert.equal(JSON.stringify(f.archives),before);
+});
+
+test('context references with colliding recorder segment IDs stay explicitly unverified',async()=>{
+  const f=await fixture(),cookie=await f.unlock(),owntracks=await recorderPoints('iphone','d');f.points.push(...owntracks);
+  const segment=selectPoints(owntracks,'2026-10-27').journal.trips[0];
+  f.contexts.push(updateContextValue(null,{date:'2026-10-27',expectedRevision:0,operation:'upsert',entry:{id:'11111111-1111-4111-8111-111111111111',kind:'activity',label:'Eigene Fahrt',startAt:new Date(segment.startTimestamp*1000).toISOString(),endAt:new Date(segment.endTimestamp*1000).toISOString(),segmentRef:{journalIdAtCreation:segment.id,archiveRevisionAtCreation:null,algorithmVersion:1,startTimestamp:segment.startTimestamp,endTimestamp:segment.endTimestamp,segmentKind:segment.kind}}},new Date(NOW).toISOString()));
+  let value=await(await f.request('map/context&date=2026-10-27',{cookie})).json();assert.equal(value.entries[0].segmentStatus,'matched');
+  f.points.push(...await recorderPoints('werktag_ios','native'));
+  value=await(await f.request('map/context&date=2026-10-27',{cookie})).json();assert.equal(value.entries[0].segmentStatus,'unverified');assert.equal(value.entries[0].needsReview,true);assert.equal(f.contexts[0].revision,1);
 });

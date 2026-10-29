@@ -1,20 +1,26 @@
-# WerkTag für iPhone · 0.1
+# WerkTag für iPhone · 0.2
 
-Native SwiftUI-App ab iOS 17. Apple-Systemschrift, native Tabs/Navigation/Formulare,
-SF Symbols, Dynamic Type und Hell-/Dunkelmodus. Native MapKit-Karte.
+Native SwiftUI-App ab iOS 17 mit Heute, Wege und Verbindung. Apple-Systemschrift,
+Dynamic Type, Hell-/Dunkelmodus und MapKit mit Petrol-/Kupfergestaltung. Der
+gewünschte Verteilungsweg ist zunächst internes **TestFlight**; Einrichtung und
+Upload: [TESTFLIGHT.md](TESTFLIGHT.md).
 
 ## Enthalten
 
-- Anmeldung mit dem bestehenden, der Assistenz zugeordneten WerkTag-Konto.
-- Standortaufzeichnung nach bewusstem Start, inklusive erlaubter Hintergrundaufzeichnung.
-- Apple Health: Schritte, aktive Energie und mittlerer Puls der letzten sieben Tage.
-- Atomare lokale Warteschlange je Konto, stabile Ereignis-IDs, Serverquittung vor Entfernung.
-- Exponentielle Wiederholung bei Netzfehlern/429/5xx, sichtbare Auth-/Datenkonflikte.
-- Nach Abmeldung bleiben ausstehende Daten ausschließlich dem ursprünglichen Konto zugeordnet.
-- Health-Werte fehlen bei fehlender Lesefreigabe oder fehlenden Daten; niemals erfundene Nullwerte.
-  Der Server behält je Tageswert den letzten bekannten Messwert, wenn spätere Freigaben fehlen.
+- Bestehendes WerkTag-Konto mit serverseitiger Besitzerprüfung. Gespeicherte
+  Anmeldung, aktuell bestätigte Verbindung und Übertragungsquittung bleiben unterscheidbar.
+- Dauerhafte lokale Warteschlange je Konto; Standortaufnahme erst mit bereitgestelltem
+  Speicher. Identische Ereignisse werden dedupliziert, widersprüchliche IDs abgelehnt.
+- Bestätigten Tagesverlauf des eigenen Recorders vom Server laden und mit lokalen
+  ausstehenden Punkten zusammenführen. Keine Vermischung mit OwnTracks-Geräten.
+- Getrennte Wegabschnitte bei schlechter GPS-Genauigkeit, Zeitlücken oder unmöglichen
+  Sprüngen. Keine erfundenen Straßenverläufe oder durch Lücken gezogenen Linien.
+- Bewusst gestartete Standortaufnahme und getrennte Health-Freigabe für Schritte,
+  aktive Energie und mittleren Puls. Fehlende Werte bleiben fehlend.
+- Wiederholungen bei Netzfehlern/429/5xx; sichtbare Anmelde-/Datenkonflikte und
+  Erhalt nicht quittierter Ereignisse auch bei Abmeldung.
 
-## Bauen
+## Bauen und prüfen
 
 Auf einem Mac mit Xcode und XcodeGen:
 
@@ -25,49 +31,54 @@ xcodegen generate
 xcodebuild -project WerkTag.xcodeproj -scheme WerkTag -sdk iphonesimulator -configuration Debug -derivedDataPath build CODE_SIGN_IDENTITY=- CODE_SIGNING_ALLOWED=YES build
 ```
 
-Der GitHub-Workflow führt diese Prüfung, PostgreSQL-Tests und einen UI-Test aller drei Tabs aus.
-Die Ad-hoc-Signierung gilt nur für den Simulator und benötigt keine Apple-Zugangsdaten. Es wird keine iPhone-App veröffentlicht. Simulator-Screenshots
-werden ausschließlich aus einer frischen Installation ohne Konto oder persönliche Daten erzeugt.
-Der Workflow läuft bei Änderungen an der nativen App in Pull Requests.
+`.github/workflows/ios.yml` prüft die portable Swift-Logik, Empfänger-/Gateway-
+Verträge, PostgreSQL-Transaktionen, Signing-Profilvalidierung und die native
+Oberfläche auf einem frischen iPhone-Simulator. Screenshots verwenden ausschließlich
+synthetische oder leere Daten. Das Artefakt `werktag-ios-simulator` enthält den
+Quell-SHA; es ist **nicht auf einem iPhone installierbar**. Der getrennte
+TestFlight-Workflow benötigt Apple-Konfiguration und einen geprüften Release-Tag.
 
-Für ein echtes iPhone eigene Apple-Team-ID/Signierung und HealthKit-Capability einrichten.
-TestFlight benötigt die bezahlte Apple-Mitgliedschaft. Ein Produktionsicon und
-App-Store-Datenschutzangaben fehlen noch; dies ist ein Entwicklungsstand.
+## Backend bereitstellen
 
-## Backend zuerst bereitstellen
-
-1. Neue SQL-Migration nach den vorhandenen Assistance-Migrationen prüfen/anwenden.
-2. Neue Supabase Edge-Funktion `assistance-native` mit `verify_jwt=false` deployen.
+1. `20261029010000_assistance_native_ingestion.sql` nach den vorhandenen Assistance-
+   Migrationen prüfen und anwenden; danach
+   `20261029020000_assistance_native_journey.sql` für konsistente Tagesabfragen.
+   Bestehende RLS-/Ownergrenzen erhalten.
+2. Aktualisierte Funktion `assistance` einschließlich `semantics/recorders.js`
+   bereitstellen, bevor native Recorder live Daten hinzufügen. Dadurch werden
+   parallele Quellen in der Webkarte/Statistik nicht als ein Weg kombiniert.
+3. Neue Edge-Funktion `assistance-native` mit `verify_jwt=false` bereitstellen.
    Sie validiert JWTs selbst mit `auth.getUser` und prüft die Besitzerzuordnung.
-3. `ASSISTANCE_INSTALLATION_ID` muss auf die bestehende Installation zeigen.
-4. Vercel: `ASSISTANCE_NATIVE_URL=https://<projekt>.supabase.co/functions/v1/assistance-native`.
-   Bestehende öffentliche `VITE_SUPABASE_URL` und `VITE_SUPABASE_PUBLISHABLE_KEY` verwenden.
-5. Neuen Gateway `api/assistenz-native.mjs` veröffentlichen.
-6. App installieren, anmelden, Health und Standort einzeln freigeben.
+   `ASSISTANCE_INSTALLATION_ID` muss auf die bestehende Installation zeigen.
+4. Vercel nutzt `ASSISTANCE_NATIVE_URL`, falls gesetzt. Sonst wird der feste
+   Schwesterpfad `/functions/v1/assistance-native` aus der validierten bestehenden
+   `ASSISTANCE_CLOUD_URL` mit Pfad `/functions/v1/assistance` abgeleitet.
+   Bestehende `VITE_SUPABASE_URL` und `VITE_SUPABASE_PUBLISHABLE_KEY` weiterverwenden.
+5. Gateway veröffentlichen; Konfiguration, Besitzeranmeldung, idempotenten Upload
+   und anschließenden Tagesabruf prüfen. Ohne gültige Anmeldung keine Wegdaten.
 
-Kein Service-Role-Schlüssel, privater Apple-Schlüssel oder Passwort gehört in diese App oder Git.
-Neue Integration lässt bestehende Web-/OwnTracks-/Freddy-Routen unverändert.
+Native Journey-API: GET `?action=journey&date=YYYY-MM-DD&deviceId=UUID`; Datum in
+Europe/Berlin. Nur `werktag_ios` und das gewählte Gerät, maximal 10.000 Punkte und
+4 MiB. Größere Tage liefern 413, niemals eine unbemerkte Teilroute. Der Webverlauf
+bleibt der Ausweg für solche Tage.
 
-## Grenzen
-
-Swift-Tests und Xcode-Simulatorbuild werden im macOS-CI geprüft. Die Abnahme auf einem echten iPhone steht noch aus.
-iOS entscheidet über Hintergrundzeiten; keine Zusage für einen festen 15-Minuten-Takt.
-Standortaufzeichnung nach erzwungenem Beenden muss bewusst erneut gestartet werden.
-Health wird manuell, beim Öffnen und bei von iOS gewährter Hintergrundaktualisierung gelesen.
-Keine HealthKit-Observer-Hintergrundzusage.
-Kalender, Erinnerungen, Watch und externe AI sind in dieser Version nicht enthalten.
-Standorte fließen nach Freischaltung in den bestehenden WerkTag-Wegverlauf.
-Health-Snapshots werden separat aufbewahrt und über die native API gelesen; die vorhandene
-Freddy-Webstatistik zeigt sie noch nicht an. Keine Summierung paralleler Quellen.
-Karte: nur letzte 1.000 Punkte der Sitzung/ausstehenden Queue, kein vollständiges Archiv.
+Kein Service-Role-Schlüssel, Apple-Schlüssel oder Passwort gehört in die App oder
+Git. Native Health-Snapshots bleiben getrennt von Freddy und werden nicht in dessen
+Webstatistik addiert. Vorhandene GPS-Rohdaten und Archivstände bleiben erhalten.
 
 ## Geräteabnahme
 
 - Berechtigung ablehnen/widerrufen; keine automatische Wiederfreigabe.
-- Flugmodus: echte eigene Daten erfassen, App neu öffnen, Queue unverändert.
-- Netz wieder einschalten: Serverquittung kontrollieren; Wiederholung ohne Doppelzählung.
+- Flugmodus: eigene Messung erfassen, neu öffnen, Queue unverändert erhalten.
+- Netz wieder einschalten: Quittung kontrollieren, Wiederholung ohne Doppelzählung.
+- Nach Upload App neu öffnen: bestätigten Tagesverlauf erneut laden können.
 - Während Upload neue Punkte erfassen: nur quittierte IDs verschwinden.
-- Gesperrtes iPhone und abgelaufene Anmeldung; keine Löschung der Queue bei Fehlern.
-- Abmelden/anderes Konto: keine Übertragung fremder Restdaten.
-- Gesundheit leer/gesperrt: keine falsche Erfolgs- oder Nullwertanzeige.
-- Große Schrift, VoiceOver, Hell/Dunkel und 44-Punkt-Systembedienelemente prüfen.
+- Abgelaufene Anmeldung/gesperrtes Gerät: keine stille Löschung der Queue.
+- Konto wechseln: keine Übertragung fremder Restdaten oder falsche Verbunden-Anzeige.
+- Health leer/gesperrt: keine falschen Nullwerte oder Erfolgsmeldungen.
+- Tages-/Abschnittswahl, große Schrift, VoiceOver, Hell/Dunkel und Treffflächen prüfen.
+
+Ein erfolgreicher Simulatorbuild ersetzt diese Abnahme nicht. iOS bestimmt
+Hintergrundlaufzeiten; nach erzwungenem Beenden muss die Aufzeichnung bewusst erneut
+gestartet werden. Health wird manuell, beim Öffnen und bei erlaubter Hintergrundzeit
+gelesen. Kalender, Erinnerungen, Watch und externe AI sind nicht Teil dieses Releases.

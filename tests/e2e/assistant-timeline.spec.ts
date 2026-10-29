@@ -2,7 +2,7 @@ import { mkdir } from 'node:fs/promises';
 import { readFileSync } from 'node:fs';
 import { expect, test } from '@playwright/test';
 import type { Page } from '@playwright/test';
-import { selectPoints } from '../../supabase/functions/assistance/domain.mjs';
+import { selectPoints, statisticsFromData } from '../../supabase/functions/assistance/domain.mjs';
 
 // The real document, modules and bundled Leaflet are exercised. Every account,
 // location and record below is synthetic; external tiles never leave the test.
@@ -48,6 +48,12 @@ const points = locations.map(([offset, lat, lon], index) => ({
   tst: start + offset, lat, lon, acc: 8,
   receivedAt: new Date((start + offset) * 1000 + 2000).toISOString(),
 }));
+type TimelinePoint = typeof points[number] & { source?: string; device?: string };
+const deferred = () => {
+  let resolve!: () => void;
+  const promise = new Promise<void>(done => { resolve = done; });
+  return { promise, resolve };
+};
 interface ManualEntry {
   id: string;
   kind: 'note' | 'task';
@@ -71,6 +77,8 @@ const emptyContext = (date: string) => ({
 });
 
 async function timelineFixture(page: Page, options: {
+  points?: TimelinePoint[];
+  omitRecorderMetadata?: boolean;
   noGPS?: boolean;
   leafletUnavailable?: boolean;
   tilesUnavailable?: boolean;
@@ -93,6 +101,9 @@ async function timelineFixture(page: Page, options: {
   const styleReleased = new Promise<void>(resolve => { releaseStyle = resolve; });
   if (options.holdVectorStyle) heldStyle = { release: () => releaseStyle!(), requested: styleRequested };
   let rangeFailures = 0;
+  let recordedPoints = options.points ?? points;
+  let delayedStatistics: { started: ReturnType<typeof deferred>; pause: ReturnType<typeof deferred>; finished: ReturnType<typeof deferred> } | null = null;
+  const dataRequests: URL[] = [], statisticsRequests: URL[] = [];
   const requestedDays: string[] = [], tileRequests: string[] = [], tileReferrers: Array<string | undefined> = [], vectorRequests: string[] = [];
   const documents = new Map<string, ReturnType<typeof emptyContext>>();
   for (const { date, entry } of options.seeds ?? []) {
@@ -140,6 +151,8 @@ async function timelineFixture(page: Page, options: {
     const probe = `\n;(() => {
       window.__timelinePolylines = [];
       window.__timelineFits = 0;
+      const createMap = L.map;
+      L.map = function (...args) { window.__timelineMap = createMap.apply(this, args); return window.__timelineMap; };
       const polyline = L.polyline;
       L.polyline = function (coordinates, ...args) {
         window.__timelinePolylines.push(coordinates);
@@ -182,15 +195,30 @@ async function timelineFixture(page: Page, options: {
   });
   await page.route(url => url.pathname === '/assistenz/data', route => {
     if (!authorized) return route.fulfill({ status: 401, json: { error: 'Gesperrt' } });
-    const date = new URL(route.request().url()).searchParams.get('date') ?? today;
+    const url = new URL(route.request().url()), date = url.searchParams.get('date') ?? today;
+    dataRequests.push(url);
     requestedDays.push(date);
-    const data = selectPoints(noGPS ? [] : points, date);
+    const recorder = url.searchParams.has('source') ? { source: url.searchParams.get('source'), device: url.searchParams.get('device') } : {};
+    const data = selectPoints(noGPS ? [] : recordedPoints, date, 20000, recorder);
+    if (options.omitRecorderMetadata) { delete data.recorders; delete data.selectedRecorder; }
     return route.fulfill({ json: {
       ...data, refreshedAt: stamp,
       health: { date, status: 'empty', metrics: {}, days: [], fetchedAt: stamp },
       archive: { enabled: true, days: [], status: { ok: true } },
       ingestion: { lastMessageAt: stamp, observedSince: stamp },
     } });
+  });
+  await page.route(url => url.pathname === '/assistenz/statistics', async route => {
+    if (!authorized) return route.fulfill({ status: 401, json: { error: 'Gesperrt' } });
+    const url = new URL(route.request().url()); statisticsRequests.push(url);
+    const recorder = url.searchParams.has('source') ? { source: url.searchParams.get('source'), device: url.searchParams.get('device') } : {};
+    const json = statisticsFromData({ points: noGPS ? [] : recordedPoints,
+      from: url.searchParams.get('from'), to: url.searchParams.get('to'), bucket: url.searchParams.get('bucket'),
+      now: Date.parse(stamp), ...recorder,
+    });
+    const held = delayedStatistics; delayedStatistics = null;
+    if (held) { held.started.resolve(); await held.pause.promise; }
+    try { return await route.fulfill({ json }); } finally { held?.finished.resolve(); }
   });
   await page.route(url => url.pathname === '/assistenz/context', route => {
     if (!authorized) return route.fulfill({ status: 401, json: { error: 'Gesperrt' } });
@@ -210,8 +238,14 @@ async function timelineFixture(page: Page, options: {
     } });
   });
   return {
-    requestedDays, tileRequests, tileReferrers, vectorRequests, heldStyle,
+    requestedDays, tileRequests, tileReferrers, vectorRequests, heldStyle, dataRequests, statisticsRequests,
+    replacePoints: (next: TimelinePoint[]) => { recordedPoints = next; },
+    holdNextStatistics: () => {
+      const held = { started: deferred(), pause: deferred(), finished: deferred() }; delayedStatistics = held;
+      return { requested: held.started.promise, release: held.pause.resolve, finished: held.finished.promise };
+    },
     expire: () => { authorized = false; },
+    reauthorize: () => { authorized = true; },
     recoverLeaflet: () => { leafletUnavailable = false; },
     recoverTiles: () => { tilesUnavailable = false; },
     failTiles: () => { tilesUnavailable = true; },
@@ -255,6 +289,114 @@ test('timeline preserves real gaps, selects measured sections and fits the selec
   await page.locator('#whole-day').click();
   await expect(page.locator('#timeline .event[aria-pressed="true"]')).toHaveCount(0);
   await expect(page.locator('#quality')).toContainText(/keine.*Straßenstrecke/i);
+});
+
+test('map selection keeps quiet context and keyboard stay markers fit the complete radius on a phone', async ({ page }) => {
+  await page.setViewportSize({ width: 320, height: 740 });
+  await timelineFixture(page);
+  await openDay(page);
+  await page.locator('#timeline .event.trip').first().click();
+  await expect(page.locator('.journey-route.is-selected')).toHaveCount(1);
+  expect(await page.locator('.journey-route.is-context').count()).toBeGreaterThan(0);
+  await expect(page.locator('.journey-route-halo').first()).toBeAttached();
+  const stay = page.getByRole('button', { name: /^Aufenthalt 1 ·/ });
+  await stay.focus();
+  await stay.press('Space');
+  await expect(page.locator('#timeline .event.stay')).toBeFocused();
+  await expect(page.locator('#timeline .event.stay')).toHaveAttribute('aria-pressed', 'true');
+  await expect(page.locator('#map-mode')).toHaveText('Aufenthalt 1');
+  const circle = await page.locator('.journey-stay-area').boundingBox();
+  const map = await page.locator('#map').boundingBox();
+  expect(circle).not.toBeNull(); expect(map).not.toBeNull();
+  expect(circle!.x).toBeGreaterThan(map!.x + 20);
+  expect(circle!.y).toBeGreaterThan(map!.y + 20);
+  expect(circle!.x + circle!.width).toBeLessThan(map!.x + map!.width - 20);
+  expect(circle!.y + circle!.height).toBeLessThan(map!.y + map!.height - 20);
+  const target = await stay.boundingBox();
+  expect(target!.width).toBeGreaterThanOrEqual(44); expect(target!.height).toBeGreaterThanOrEqual(44);
+});
+
+test('smoothed terminal fixes retain the actual last marker and legacy metadata remains optional', async ({ page }) => {
+  const measured = [
+    { ...points[0] }, { ...points[1] },
+    { ...points[2], lat: points[1].lat + .00001, lon: points[1].lon },
+  ];
+  await timelineFixture(page, { points: measured, omitRecorderMetadata: true });
+  await openDay(page);
+  await expect(page.locator('.journey-marker--start')).toHaveAttribute('aria-label', /08:00 Uhr/);
+  await expect(page.locator('.journey-marker--end')).toHaveAttribute('aria-label', /08:02 Uhr/);
+  await page.locator('.journey-marker--end').focus();
+  await page.locator('.journey-marker--end').press('Space');
+  await expect(page.locator('.leaflet-popup-content')).toContainText('08:02 Uhr');
+  await expect(page.locator('#recorder-control')).toBeHidden();
+});
+
+test('incoming measurements preserve the timeline keyboard focus', async ({ page }) => {
+  const state = await timelineFixture(page);
+  await openDay(page);
+  const trip = page.locator('#timeline .event.trip').first();
+  await trip.focus();
+  state.replacePoints([...points, { ...points.at(-1)!, id: 'synthetic-new-point', lat: 52.512, tst: start + 3120, receivedAt: '2026-10-28T12:01:00.000Z' }]);
+  await page.evaluate(() => document.dispatchEvent(new Event('visibilitychange')));
+  await expect(page.locator('#count')).toHaveText('12');
+  await expect(trip).toBeFocused();
+});
+
+test('recorder selection keeps source and device together through map, statistics and return to a day', async ({ page }) => {
+  const own = { source: 'iphone', device: 'iPhone & Familie / +1' };
+  const native = { source: 'werktag_ios', device: 'WerkTag Testgerät' };
+  const records = [
+    ...points.map(point => ({ ...point, ...own })),
+    ...points.map(point => ({ ...point, ...native, id: point.id + '-native', tst: point.tst + 60, lat: point.lat + .2 })),
+  ];
+  const state = await timelineFixture(page, { points: records });
+  await openDay(page);
+  await expect(page.locator('#recorder-note')).toContainText('WerkTag iPhone');
+  await expect(page.locator('#count')).toHaveText(String(points.length));
+  await page.locator('#recorder').selectOption(JSON.stringify([own.source, own.device]));
+  await expect(page.locator('#recorder-note')).toContainText(own.device);
+  expect(state.dataRequests.at(-1)!.searchParams.get('source')).toBe(own.source);
+  expect(state.dataRequests.at(-1)!.searchParams.get('device')).toBe(own.device);
+  await expect(page.locator('#count')).toHaveText(String(points.length));
+  await page.locator('#view-statistics').click();
+  await expect(page.locator('#statistics-source')).toContainText(own.device);
+  expect(state.statisticsRequests.at(-1)!.searchParams.get('source')).toBe(own.source);
+  expect(state.statisticsRequests.at(-1)!.searchParams.get('device')).toBe(own.device);
+  await page.locator('#statistics-days button').last().click();
+  await expect(page.locator('#recorder')).toHaveValue(JSON.stringify([own.source, own.device]));
+  expect(state.dataRequests.at(-1)!.searchParams.get('device')).toBe(own.device);
+  await page.locator('#logout').click();
+  await expect(page.locator('#recorder-control')).toBeHidden();
+  await expect(page.locator('.journey-marker')).toHaveCount(0);
+  await expect(page.locator('#statistics-source')).toBeEmpty();
+  state.reauthorize();
+  await page.evaluate(() => document.dispatchEvent(new Event('visibilitychange')));
+  await expect(page.locator('#view-day')).toBeEnabled();
+  await page.locator('#view-day').click();
+  await expect(page.locator('#recorder')).toHaveValue('');
+  await expect(page.locator('#recorder-note')).toContainText('WerkTag iPhone');
+});
+
+test('a delayed statistic from the previous recorder cannot replace the newly selected source', async ({ page }) => {
+  const own = { source: 'iphone', device: 'OwnTracks Testgerät' }, native = { source: 'werktag_ios', device: 'WerkTag Testgerät' };
+  const records = [...points.map(point => ({ ...point, ...own })),
+    ...points.map(point => ({ ...point, ...native, id: point.id + '-native', tst: point.tst + 60, lat: point.lat + .2 }))];
+  const state = await timelineFixture(page, { points: records });
+  await openDay(page);
+  await page.locator('#recorder').selectOption(JSON.stringify([own.source, own.device]));
+  await expect(page.locator('#recorder-note')).toContainText(own.device);
+  const held = state.holdNextStatistics();
+  await page.locator('#view-statistics').click();
+  await held.requested;
+  await page.locator('#view-day').click();
+  await page.locator('#recorder').selectOption(JSON.stringify([native.source, native.device]));
+  await expect(page.locator('#recorder-note')).toContainText(native.device);
+  await page.locator('#view-statistics').click();
+  await expect(page.locator('#statistics-source')).toContainText(native.device);
+  held.release(); await held.finished;
+  await page.evaluate(() => new Promise<void>(resolve => requestAnimationFrame(() => requestAnimationFrame(() => resolve()))));
+  await expect(page.locator('#statistics-source')).toContainText(native.device);
+  await expect(page.locator('#statistics-source')).not.toContainText(own.device);
 });
 
 test('previous, next and today controls load explicit dates without inventing data on empty days', async ({ page }) => {

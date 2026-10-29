@@ -11,6 +11,7 @@ struct LoginSession: Codable {
  var auth: AuthReply
  var expiresAt: Date
 }
+private struct LinkStatus: Decodable { let schemaVersion: Int; let linked: Bool; let userId: UUID }
 enum Keychain {
  static let service="com.werktag.assistant.session"
  static func load() throws -> LoginSession? {
@@ -52,6 +53,8 @@ final class Connection {
   return URLSession(configuration:c,delegate:NoRedirect(),delegateQueue:nil)
  }()
  private(set) var session: LoginSession?
+ private var refreshTask: Task<String, Error>?
+ private var generation = UUID()
  init() throws { session=try Keychain.load() }
  var account: Account? { session?.auth.user }
  private func request<T:Decodable>(_ type:T.Type,url:URL,body:Data?=nil,headers:[String:String]=[:]) async throws -> T {
@@ -62,7 +65,9 @@ final class Connection {
   let (data,response)=try await client.data(for:r)
   guard let h=response as? HTTPURLResponse else { throw TransferError.invalidServer }
   guard (200...299).contains(h.statusCode) else { throw HTTPFailure(status:h.statusCode,retryAfter:h.value(forHTTPHeaderField:"Retry-After").flatMap(Double.init)) }
-  guard data.count < 2_000_000 else { throw TransferError.invalidServer }
+  guard data.count <= 4 * 1024 * 1024,
+   h.value(forHTTPHeaderField:"Content-Type")?.lowercased().contains("application/json") == true
+  else { throw TransferError.invalidServer }
   return try JSONDecoder().decode(type,from:data)
  }
  static func endpoint(_ action:String)->URL { base.appending(queryItems:[URLQueryItem(name:"action",value:action)]) }
@@ -73,31 +78,63 @@ final class Connection {
    u.path=="" || u.path=="/",!config.publishableKey.isEmpty else { throw TransferError.invalidServer }
   return u.appending(path:"auth/v1/token").appending(queryItems:[URLQueryItem(name:"grant_type",value:grant)])
  }
- func login(email:String,password:String) async throws {
+ // Authentication does not alter Keychain. AppModel first prepares the durable
+ // queue, then accepts this session, so a storage failure cannot enable capture.
+ func authenticate(email:String,password:String) async throws -> LoginSession {
   let config=try await request(PublicConfig.self,url:Self.endpoint("config"))
   let auth=try await request(AuthReply.self,url:authURL(config,grant:"password"),
    body:JSONEncoder().encode(["email":email,"password":password]),headers:["apikey":config.publishableKey])
-  struct Status:Decodable {let schemaVersion:Int;let linked:Bool;let userId:UUID}
-  let status=try await request(Status.self,url:Self.endpoint("status"),headers:["Authorization":"Bearer "+auth.access_token])
+  let status=try await request(LinkStatus.self,url:Self.endpoint("status"),headers:["Authorization":"Bearer "+auth.access_token])
   guard status.schemaVersion==1,status.linked,status.userId==auth.user.id else {throw TransferError.wrongAccount}
-  let s=LoginSession(config:config,auth:auth,expiresAt:Date().addingTimeInterval(auth.expires_in))
-  try Keychain.save(s);session=s
+  return LoginSession(config:config,auth:auth,expiresAt:Date().addingTimeInterval(auth.expires_in))
+ }
+ func accept(_ authenticated: LoginSession) throws {
+  try Keychain.save(authenticated)
+  refreshTask?.cancel(); refreshTask=nil; generation=UUID(); session=authenticated
+ }
+ func verifyLink() async throws {
+  guard let owner=account?.id else { throw TransferError.http(401) }
+  let access=try await token()
+  let status=try await request(LinkStatus.self,url:Self.endpoint("status"),headers:["Authorization":"Bearer "+access])
+  guard status.schemaVersion==1,status.linked,status.userId==owner,account?.id==owner else {
+   throw TransferError.wrongAccount
+  }
  }
  func token() async throws -> String {
-  guard var s=session else {throw TransferError.http(401)}
-  if s.expiresAt.timeIntervalSinceNow<60 {
-   let auth=try await request(AuthReply.self,url:authURL(s.config,grant:"refresh_token"),
-    body:JSONEncoder().encode(["refresh_token":s.auth.refresh_token]),headers:["apikey":s.config.publishableKey])
-   guard auth.user.id==s.auth.user.id else {throw TransferError.wrongAccount}
-   s.auth=auth;s.expiresAt=Date().addingTimeInterval(auth.expires_in)
-   try Keychain.save(s);session=s
+  guard let saved=session else {throw TransferError.http(401)}
+  if saved.expiresAt.timeIntervalSinceNow>=60 { return saved.auth.access_token }
+  if let refreshTask { return try await refreshTask.value }
+  let expectedGeneration=generation
+  let task=Task { @MainActor [self] () throws -> String in
+   let auth=try await request(AuthReply.self,url:authURL(saved.config,grant:"refresh_token"),
+    body:JSONEncoder().encode(["refresh_token":saved.auth.refresh_token]),headers:["apikey":saved.config.publishableKey])
+   try Task.checkCancellation()
+   guard generation==expectedGeneration,session?.auth.user.id==saved.auth.user.id else { throw CancellationError() }
+   guard auth.user.id==saved.auth.user.id else {throw TransferError.wrongAccount}
+   let updated=LoginSession(config:saved.config,auth:auth,expiresAt:Date().addingTimeInterval(auth.expires_in))
+   try Keychain.save(updated);session=updated
+   return auth.access_token
   }
-  return s.auth.access_token
+  refreshTask=task
+  defer { if generation==expectedGeneration { refreshTask=nil } }
+  return try await task.value
  }
  func send(_ batch:TransferBatch) async throws -> Receipt {
   let access=try await token()
   return try await request(Receipt.self,url:Self.endpoint("ingest"),body:JSONEncoder().encode(batch),headers:["Authorization":"Bearer "+access])
  }
+ func journey(day: String, deviceId: UUID) async throws -> [LocationRecord] {
+  guard JourneyDay.interval(day) != nil else { throw TransferError.invalidServer }
+  let access=try await token()
+  let url=Self.endpoint("journey").appending(queryItems:[
+   URLQueryItem(name:"date",value:day),URLQueryItem(name:"deviceId",value:deviceId.uuidString.lowercased())
+  ])
+  let result=try await request(JourneyResponse.self,url:url,headers:["Authorization":"Bearer "+access])
+  return try result.validated(for:day,device:deviceId)
+ }
  func cancelRequests() { client.getAllTasks { tasks in tasks.forEach { $0.cancel() } } }
- func logout() throws {try Keychain.remove();session=nil}
+ func logout() throws {
+  try Keychain.remove()
+  generation=UUID();refreshTask?.cancel();refreshTask=nil;cancelRequests();session=nil
+ }
 }

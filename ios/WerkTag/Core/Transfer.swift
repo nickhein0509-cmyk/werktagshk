@@ -50,11 +50,12 @@ public struct Receipt: Codable, Sendable {
  }
 }
 public enum TransferError: Error, LocalizedError {
- case wrongAccount, invalidReceipt, storageFull, invalidServer, http(Int), storage(String)
+ case wrongAccount, invalidReceipt, conflictingEvent, storageFull, invalidServer, http(Int), storage(String)
  public var errorDescription: String? {
   switch self {
   case .wrongAccount: return "Diese Daten gehören zu einem anderen Konto."
   case .invalidReceipt: return "WerkTag hat die Speicherung nicht eindeutig bestätigt."
+  case .conflictingEvent: return "Ein Ereignis enthält widersprüchliche Daten. Deine gespeicherten Daten bleiben erhalten."
   case .storageFull: return "Der lokale Speicher ist voll. Bitte zuerst synchronisieren."
   case .invalidServer: return "Die sichere App-Verbindung ist noch nicht eingerichtet."
   case .http(let status):
@@ -62,6 +63,8 @@ public enum TransferError: Error, LocalizedError {
    if status == 403 { return "Dieses Konto ist noch nicht mit deiner Assistenz verbunden." }
    if status == 404 || status == 405 { return "Die native WerkTag-Verbindung ist noch nicht veröffentlicht." }
    if status == 409 { return "WerkTag meldet einen Datenkonflikt. Die Daten bleiben auf dem iPhone." }
+   if status == 413 { return "Dieser Tag enthält zu viele Punkte für die iPhone-Ansicht. Öffne den vollständigen Verlauf in WerkTag." }
+   if status == 503 { return "Die WerkTag-Verbindung ist gerade nicht bereit. Bitte später erneut prüfen." }
    return "Übertragung fehlgeschlagen (\(status)). Die Daten bleiben auf dem iPhone."
   case .storage: return "Daten konnten nicht sicher auf dem iPhone gespeichert werden."
   }
@@ -94,6 +97,21 @@ public final class DurableQueue {
   if FileManager.default.fileExists(atPath: file.path) {
    state=try JSONDecoder().decode(QueueState.self, from: Data(contentsOf: file))
    guard state.accountId==accountId else { throw TransferError.wrongAccount }
+   // Early builds could persist an identical ID twice in one append. Repair
+   // only byte-equivalent events after validating the entire file. Conflicting
+   // content blocks startup and leaves the original file untouched.
+   var known: [UUID: TransferEvent] = [:]
+   var unique: [TransferEvent] = []
+   for event in state.events {
+    if let previous=known[event.id] {
+     guard previous == event else { throw TransferError.conflictingEvent }
+    } else { known[event.id]=event; unique.append(event) }
+   }
+   if unique.count != state.events.count {
+    var repaired=state; repaired.events=unique
+    try write(JSONEncoder().encode(repaired),file)
+    state=repaired
+   }
   } else {
    state=QueueState(accountId:accountId,deviceId:UUID())
    try write(JSONEncoder().encode(state),file)
@@ -103,10 +121,24 @@ public final class DurableQueue {
   try write(JSONEncoder().encode(next),file); state=next
  }
  public func append(_ events: [TransferEvent]) throws {
-  guard state.events.count+events.count<=50000 else { throw TransferError.storageFull }
   var next=state
-  let existing=Set(state.events.map(\.id))
-  next.events += events.filter { !existing.contains($0.id) }
+  var known: [UUID: TransferEvent] = [:]
+  // Validate both stored and incoming IDs before committing any change. A retry
+  // may repeat an identical event; an ID must never silently replace its content.
+  for event in state.events {
+   if let previous=known[event.id], previous != event { throw TransferError.conflictingEvent }
+   known[event.id]=event
+  }
+  for event in events {
+   if let previous=known[event.id] {
+    guard previous == event else { throw TransferError.conflictingEvent }
+   } else {
+    known[event.id]=event
+    next.events.append(event)
+   }
+  }
+  guard next.events.count<=50000 else { throw TransferError.storageFull }
+  guard next.events != state.events else { return }
   try commit(next)
  }
  public func batch(for account: UUID) throws -> TransferBatch {
@@ -116,7 +148,7 @@ public final class DurableQueue {
  public func acknowledge(_ receipt: Receipt, batch: TransferBatch, account: UUID) throws {
   guard account==state.accountId, batch.deviceId==state.deviceId else { throw TransferError.wrongAccount }
   let sent=Set(batch.events.map(\.id)), received=Set(receipt.accepted)
-  guard receipt.schemaVersion==1, received==sent, receipt.accepted.count==sent.count,
+  guard receipt.schemaVersion==1, batch.events.count==sent.count, received==sent, receipt.accepted.count==sent.count,
    ISO8601DateFormatter().date(from:receipt.receivedAt) != nil || Self.fractionalDate(receipt.receivedAt) != nil
   else { throw TransferError.invalidReceipt }
   var next=state
