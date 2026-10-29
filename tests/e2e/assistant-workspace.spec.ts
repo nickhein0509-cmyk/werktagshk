@@ -55,7 +55,7 @@ const entryInput = (entry: Entry | InputEntry) => ({
   ...(entry.at !== undefined ? { at: entry.at } : {}),
 });
 
-async function workspaceFixture(page: Page, seeds: Array<{ date: string; entry: Entry }> = []) {
+async function workspaceFixture(page: Page, seeds: Array<{ date: string; entry: Entry }> = [], canWrite = true) {
   const documents = new Map<string, ContextDocument>();
   for (const { date, entry } of seeds) {
     const document = documents.get(date) ?? emptyDocument(date);
@@ -98,7 +98,7 @@ async function workspaceFixture(page: Page, seeds: Array<{ date: string; entry: 
   await page.route(url => url.pathname === '/assistenz/session', route => route.fulfill({
     status: authorized ? 200 : 401, contentType: 'application/json',
     body: JSON.stringify(authorized
-      ? { canRead: true, canWrite: true, csrfToken: csrf, accountBound: false }
+      ? { canRead: true, canWrite, csrfToken: csrf, accountBound: false }
       : { error: 'Synthetische Sitzung gesperrt' }),
   }));
   await page.route(url => url.pathname === '/assistenz/logout', route => {
@@ -494,4 +494,47 @@ test('late overview responses cannot restore health data after locking', async (
   await expect(page.locator('#today-message')).toContainText('Melde dich an');
   await expect(page.locator('#today-content')).toBeEmpty();
   await expect(page.locator('body')).not.toContainText('987.654');
+});
+
+test('glass workspace keeps direct navigation, editor and existing storage together', async ({ page }) => {
+  const state = await workspaceFixture(page, [
+    { date: today, entry: seededEntry('77777777-7777-4777-8777-777777777777', {
+      kind: 'task', title: 'Werkstatt für morgen vorbereiten', status: 'open',
+      dueDate: '2026-10-29', note: 'Werkzeug zusammenstellen.\nOffene Rückfragen notieren.\nMaterialbedarf abgleichen.',
+    }) },
+    { date: today, entry: seededEntry('55555555-5555-4555-8555-555555555555', {
+      title: 'Für das nächste Gespräch', note: 'Was hat gut funktioniert?\nWelche Absprache fehlt noch?',
+    }) },
+  ]);
+  await page.goto('/assistenz');
+  await expect(page.locator('.view-switch #view-workspace')).toBeVisible();
+  await page.locator('#view-workspace').click();
+  const task = page.locator('.workspace-card').filter({ hasText: 'Werkstatt für morgen vorbereiten' });
+  await task.getByRole('button', { name: 'Bearbeiten', exact: true }).click();
+  await expect(page.locator('#workspace-title')).toBeFocused();
+  await page.locator('#workspace-note').fill('Geprüfter Entwurf für die nächste Schicht.');
+  await page.locator('#workspace-save').click();
+  await expect(task).toContainText('Geprüfter Entwurf für die nächste Schicht.');
+  expect(state.writes.at(-1)?.entry?.id).toBe('77777777-7777-4777-8777-777777777777');
+  await task.getByRole('button', { name: 'Bearbeiten', exact: true }).click();
+  await page.evaluate(() => window.scrollTo(0, 0));
+  await page.evaluate(() => document.fonts.ready);
+  await page.screenshot({ path: 'test-results/assistant-ui/glass-integrated-desktop.png', fullPage: true });
+  await page.setViewportSize({ width: 390, height: 844 });
+  await page.evaluate(() => window.scrollTo(0, 0));
+  expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
+  await page.screenshot({ path: 'test-results/assistant-ui/glass-integrated-mobile.png', fullPage: true });
+});
+
+
+test('glass workspace exposes records but no write actions for read-only access', async ({ page }) => {
+  await workspaceFixture(page, [{ date: today, entry: seededEntry('55555555-5555-4555-8555-555555555555', {
+    title: 'Nur lesen', note: 'Synthetische private Aufzeichnung.',
+  }) }], false);
+  await page.goto('/assistenz');
+  await page.locator('#view-workspace').click();
+  await expect(page.locator('.workspace-card')).toContainText('Nur lesen');
+  await expect(page.locator('#workspace-save')).toBeDisabled();
+  await expect(page.locator('.workspace-card').getByRole('button', { name: 'Bearbeiten', exact: true })).toHaveCount(0);
+  await expect(page.locator('#workspace-permission')).toContainText('Bearbeitungsfreigabe');
 });
