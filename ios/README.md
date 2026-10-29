@@ -40,6 +40,12 @@ TestFlight-Workflow benötigt Apple-Konfiguration und einen geprüften Release-T
 
 ## Backend bereitstellen
 
+**Projektwechsel beauftragt:** Vor diesen Schritten den
+[Migrationsstand](../docs/supabase-project-migration.md) prüfen. Ziel ist
+`mvkksfecimpjnytvbrrb`; die bisherigen Konto-UUIDs und Installationsdaten müssen
+aus `hrqaxsbddpmphblmoyly` übernommen und geprüft sein. Aktuell ist noch kein
+Transfer bestätigt. Diese Anleitung allein richtet das neue Projekt nicht ein.
+
 1. `20261029010000_assistance_native_ingestion.sql` nach den vorhandenen Assistance-
    Migrationen prüfen und anwenden; danach
    `20261029020000_assistance_native_journey.sql` für konsistente Tagesabfragen.
@@ -53,7 +59,9 @@ TestFlight-Workflow benötigt Apple-Konfiguration und einen geprüften Release-T
 4. Vercel nutzt `ASSISTANCE_NATIVE_URL`, falls gesetzt. Sonst wird der feste
    Schwesterpfad `/functions/v1/assistance-native` aus der validierten bestehenden
    `ASSISTANCE_CLOUD_URL` mit Pfad `/functions/v1/assistance` abgeleitet.
-   Bestehende `VITE_SUPABASE_URL` und `VITE_SUPABASE_PUBLISHABLE_KEY` weiterverwenden.
+   `VITE_SUPABASE_URL` und `VITE_SUPABASE_PUBLISHABLE_KEY` müssen zum selben
+   geprüften Projekt gehören wie die Funktionsziele. Erst beim abgenommenen
+   Projektumzug gemeinsam auf die Zielwerte umstellen und den Webbuild erneuern.
 5. Gateway veröffentlichen; Konfiguration, Besitzeranmeldung, idempotenten Upload
    und anschließenden Tagesabruf prüfen. Ohne gültige Anmeldung keine Wegdaten.
 
