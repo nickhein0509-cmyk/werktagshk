@@ -22,9 +22,11 @@ async function answerCurrentCorrectly(page: Page) {
 }
 
 test('opening the exam area never starts a clock or creates a learning event', async ({ page }) => {
+  await page.goto('/');
+  await expect(page.getByRole('navigation', { name: 'Hauptnavigation' })).toBeVisible();
+  // Freeze examination time only after React has revealed the lazy route.
   await page.clock.install({ time: new Date('2026-10-23T18:00:00Z') });
   await page.clock.pauseAt(new Date('2026-10-23T18:00:01Z'));
-  await page.goto('/');
   await openExam(page);
   await expect(page.getByRole('switch', { name: 'Prüfungsmodus', exact: true })).toHaveAttribute(
     'aria-checked',
@@ -40,9 +42,10 @@ test('opening the exam area never starts a clock or creates a learning event', a
 test('learning work survives navigation and mode changes, and hand-in saves all explicit answers once', async ({
   page,
 }) => {
+  await page.goto('/');
+  await expect(page.getByRole('navigation', { name: 'Hauptnavigation' })).toBeVisible();
   await page.clock.install({ time: new Date('2026-10-23T18:00:00Z') });
   await page.clock.pauseAt(new Date('2026-10-23T18:00:01Z'));
-  await page.goto('/');
   await openExam(page);
   await page
     .getByRole('combobox', { name: 'Aufgabenart', exact: true })
@@ -101,6 +104,7 @@ test('learning work survives navigation and mode changes, and hand-in saves all 
   ]);
   await page.clock.fastForward(10_000);
   await expect(page.getByTestId('exam-elapsed')).toHaveText('00:07');
+  await page.clock.resume();
   await page.reload();
   await openExam(page);
   await expect(page.getByRole('heading', { name: 'Runde abgegeben', exact: true })).toBeVisible();
@@ -114,9 +118,10 @@ test('strict mode has a free answer sheet, no learning aids, and does not record
   page,
 }) => {
   await page.setViewportSize({ width: 320, height: 900 });
+  await page.goto('/');
+  await expect(page.getByRole('navigation', { name: 'Hauptnavigation' })).toBeVisible();
   await page.clock.install({ time: new Date('2026-10-23T18:00:00Z') });
   await page.clock.pauseAt(new Date('2026-10-23T18:00:01Z'));
-  await page.goto('/');
   await openExam(page);
   await page
     .getByRole('combobox', { name: 'Aufgabenart', exact: true })

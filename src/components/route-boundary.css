@@ -1,0 +1,61 @@
+.route-state {
+  width: min(100%, 680px);
+  margin-inline: auto;
+  padding: clamp(24px, 7vw, 72px) 24px;
+  color: #f8f6ed;
+  overflow-wrap: anywhere;
+}
+
+.route-state__brand {
+  display: inline-flex;
+  align-items: center;
+  min-height: 44px;
+  margin-bottom: 32px;
+  font-size: 24px;
+  font-weight: 750;
+}
+
+.route-state h1 {
+  font-size: clamp(26px, 5vw, 38px);
+  line-height: 1.2;
+  margin: 0 0 16px;
+}
+
+.route-state p {
+  color: #b9cbc5;
+  font-size: 16px;
+  line-height: 1.65;
+  margin: 0 0 24px;
+}
+
+.route-state__actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+}
+
+.route-state__action {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 48px;
+  padding: 12px 18px;
+  border: 1px solid #f8f6ed;
+  border-radius: 12px;
+  background: #f8f6ed;
+  color: #123e3b;
+  font-size: 16px;
+  font-weight: 650;
+  text-align: center;
+}
+
+.route-state__action--secondary {
+  background: transparent;
+  color: #f8f6ed;
+}
+
+.route-state a:focus-visible,
+.route-state button:focus-visible {
+  outline: 3px solid #e8b78d;
+  outline-offset: 4px;
+}
