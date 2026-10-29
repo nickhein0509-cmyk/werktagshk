@@ -1,0 +1,736 @@
+/* Design studies only. Never imported by the production application. */
+body[data-layout] {
+  --flow-sidebar-width: 208px;
+}
+body[data-layout] .workspace {
+  padding: 16px 28px 0;
+}
+body[data-layout] .sidebar {
+  padding-top: 32px;
+}
+body[data-layout] .brand {
+  margin-bottom: 38px;
+}
+body[data-layout] .nav-item {
+  font-size: 13px;
+}
+body[data-layout] .topbar {
+  min-height: 48px;
+  padding-bottom: 12px;
+  justify-content: flex-end;
+  gap: 16px;
+}
+body[data-layout] .topbar .breadcrumb {
+  margin-right: auto;
+  font-size: 13px;
+}
+body[data-layout] .topbar > a {
+  font-size: 12px;
+}
+body[data-layout] .topbar .daily-progress {
+  display: none;
+}
+body[data-layout] .flow-dashboard {
+  padding-top: 24px;
+}
+body[data-layout] .flow-hero {
+  min-height: 0;
+}
+body[data-layout] .flow-hero-content {
+  padding: 0;
+}
+body[data-layout] .flow-hero h1 {
+  font-size: 42px;
+  width: 100%;
+  max-width: none;
+  line-height: 1.15;
+  letter-spacing: -0.045em;
+  margin: 12px 0;
+}
+body[data-layout] .flow-focus {
+  max-width: none;
+}
+body[data-layout] .flow-focus > p:not(.eyebrow) {
+  max-width: 55ch;
+  font-size: 15px;
+  line-height: 1.6;
+  margin-bottom: 0;
+}
+body[data-layout] .flow-exam-eyebrow {
+  margin: 0;
+  font-size: 11px;
+}
+body[data-layout] .flow-hero-actions {
+  margin-top: 20px;
+  flex-direction: row;
+  align-items: center;
+  gap: 20px;
+}
+body[data-layout] .flow-focus .hero-action {
+  padding: 13px 20px;
+  min-height: 46px;
+}
+body[data-layout] .hero-meta {
+  margin: 12px 0 0;
+  font-size: 11px;
+}
+body[data-layout] .workshop-orbit {
+  display: none;
+}
+body[data-layout] .flow-exam-date {
+  display: none;
+}
+body[data-layout] .date-pill {
+  padding: 9px 14px;
+  border: 1px solid #516961;
+  border-radius: 9px;
+  color: #e9b78e;
+  font-size: 12px;
+  white-space: nowrap;
+}
+body[data-layout] .section-heading {
+  margin-bottom: 20px;
+  gap: 12px;
+}
+body[data-layout] .section-heading .eyebrow {
+  margin-bottom: 6px;
+  font-size: 10px;
+}
+body[data-layout] .section-heading h2 {
+  font-size: 24px;
+  letter-spacing: -0.04em;
+}
+body[data-layout] .section-heading .text-button {
+  font-size: 12px;
+  min-height: 40px;
+}
+body[data-layout] .flow-subjects {
+  padding: 24px;
+  border-radius: 20px;
+}
+body[data-layout] .exam-priority-grid {
+  gap: 12px;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+body[data-layout] .exam-priority-card,
+body[data-layout] .exam-priority-card:first-child,
+body[data-layout] .exam-priority-card:last-child {
+  padding: 18px;
+}
+body[data-layout] .exam-priority-top {
+  margin-bottom: 18px;
+}
+body[data-layout] .exam-area-number {
+  font-size: 28px;
+}
+body[data-layout] .exam-area-symbol {
+  width: 34px;
+  height: 34px;
+}
+body[data-layout] .exam-area-symbol svg {
+  width: 21px;
+}
+body[data-layout] .exam-priority-card h3 {
+  font-size: 21px;
+  line-height: 1.25;
+  margin-bottom: 10px;
+  text-wrap: balance;
+}
+body[data-layout] .exam-priority-card p {
+  font-size: 13px;
+  line-height: 1.65;
+  margin-bottom: 16px;
+}
+body[data-layout] .exam-priority-card .inline-link {
+  font-size: 12px;
+  min-height: 40px;
+  padding-top: 12px;
+}
+body[data-layout] .exam-priority-note {
+  font-size: 11px;
+  margin: 16px 0 0;
+}
+body[data-layout] .desktop-topics {
+  border-top: 1px solid #355052;
+  padding-top: 20px;
+}
+body[data-layout] .flow-topics-heading {
+  border: 0;
+  padding: 0;
+  margin: 0 0 16px;
+}
+body[data-layout] .flow-topics-heading h2 {
+  font-size: 20px;
+}
+body[data-layout] .flow-topics-heading > span {
+  color: #b7cbc3;
+  font-size: 10px;
+}
+body[data-layout] .topic-grid {
+  gap: 10px;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+}
+body[data-layout] .topic-card {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  padding: 16px;
+  background: #183335;
+  border-color: #355052;
+  color: #f7f7f2;
+  border-radius: 14px;
+}
+body[data-layout] .topic-top {
+  width: 100%;
+  margin-bottom: 10px;
+}
+body[data-layout] .topic-card .subject-object {
+  width: 30px;
+  height: 30px;
+  background: transparent;
+}
+body[data-layout] .topic-card .subject-object svg {
+  color: #e9b78e;
+  width: 23px;
+}
+body[data-layout] .subject-index {
+  color: #b7cbc3;
+}
+body[data-layout] .topic-card h3 {
+  font-size: 14px;
+  line-height: 1.4;
+  margin-bottom: 6px;
+}
+body[data-layout] .topic-card p {
+  display: none;
+}
+body[data-layout] .topic-progress {
+  width: 100%;
+  margin-top: auto;
+  padding-top: 8px;
+  color: #b7cbc3;
+  font-size: 11px;
+  line-height: 1.5;
+  gap: 8px;
+}
+body[data-layout] .flow-routine {
+  padding: 0;
+}
+body[data-layout] .flow-routine > .section-heading h2 {
+  font-size: 20px;
+}
+body[data-layout] .flow-routine > .section-heading > .text-button {
+  display: none;
+}
+body[data-layout] .routine-grid {
+  gap: 12px;
+}
+body[data-layout] .routine-grid > :is(div, button) {
+  min-height: 0;
+  padding: 20px;
+  border-radius: 16px;
+}
+body[data-layout] .routine-icon {
+  margin-bottom: 14px;
+}
+body[data-layout] .routine-icon svg {
+  width: 21px;
+  height: 21px;
+}
+body[data-layout] .routine-grid h3 {
+  font-size: 18px;
+  line-height: 1.35;
+  margin-bottom: 8px;
+}
+body[data-layout] .routine-grid p {
+  font-size: 12px;
+  margin-bottom: 12px;
+  line-height: 1.65;
+}
+body[data-layout] .routine-count {
+  position: absolute;
+  right: 20px;
+  top: 23px;
+  font-size: 11px;
+  margin: 0;
+}
+body[data-layout] .routine-grid .text-button,
+body[data-layout] .routine-grid .inline-link {
+  font-size: 12px;
+  min-height: 34px;
+}
+body[data-layout] .routine-week .week-dots {
+  position: static;
+  gap: 7px;
+  margin: 14px 0 10px;
+}
+body[data-layout] .week-dot {
+  width: 25px;
+  height: 25px;
+}
+body[data-layout] .content-footnote {
+  justify-content: flex-start;
+  text-align: left;
+  line-height: 1.6;
+  margin: 14px 0 0;
+  font-size: 10px;
+}
+body[data-layout] .workspace-footer {
+  margin-top: 24px;
+  padding-block: 18px;
+}
+/* A: independent action rail beside the working surface. */
+body[data-layout='a'] .flow-dashboard {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 272px;
+  grid-template-areas: 'hero routine' 'subjects routine' 'topics routine';
+  gap: 24px;
+  align-items: start;
+}
+body[data-layout='a'] .flow-hero {
+  grid-area: hero;
+}
+body[data-layout='a'] .flow-subjects {
+  grid-area: subjects;
+}
+body[data-layout='a'] .desktop-topics {
+  grid-area: topics;
+}
+body[data-layout='a'] .flow-routine {
+  grid-area: routine;
+  border-left: 1px solid #355052;
+  padding-left: 22px;
+}
+body[data-layout='a'] .routine-grid {
+  grid-template-columns: 1fr;
+}
+body[data-layout='a'] .routine-action:last-child {
+  background: #f4f0e7;
+  color: #143236;
+  border-color: #f4f0e7;
+}
+body[data-layout='a'] .routine-action:last-child :is(p, .routine-count) {
+  color: #53635c;
+}
+body[data-layout='a'] .routine-action:last-child .routine-icon {
+  color: #8b4927;
+}
+body[data-layout='a'] .exam-priority-card h3 {
+  font-size: 19px;
+}
+body[data-layout='a'] .flow-subjects {
+  padding: 22px;
+}
+body[data-layout='a'] .section-heading h2 {
+  font-size: 22px;
+}
+body[data-layout='a'] .routine-grid .routine-action:last-child {
+  order: -1;
+}
+/* B: wide, shallow bands; familiar hierarchy without the tall introduction. */
+body[data-layout='b'] .flow-dashboard {
+  display: grid;
+  gap: 20px;
+}
+body[data-layout='b'] .flow-hero-content {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  column-gap: 36px;
+  align-items: center;
+}
+body[data-layout='b'] .flow-exam-eyebrow {
+  grid-column: 1;
+}
+body[data-layout='b'] .flow-hero h1 {
+  grid-column: 1;
+  margin: 10px 0 0;
+  font-size: 40px;
+}
+body[data-layout='b'] .flow-hero-bottom {
+  grid-column: 2;
+  grid-row: 1 / 3;
+}
+body[data-layout='b'] .flow-hero-actions {
+  margin-top: 12px;
+  gap: 16px;
+}
+body[data-layout='b'] .hero-meta {
+  margin-top: 8px;
+}
+body[data-layout='b'] .flow-hero {
+  padding-bottom: 8px;
+}
+body[data-layout='b'] .flow-subjects {
+  padding: 22px;
+}
+body[data-layout='b'] .section-heading {
+  margin-bottom: 14px;
+}
+body[data-layout='b'] .exam-priority-top {
+  margin-bottom: 10px;
+}
+body[data-layout='b'] .exam-priority-card p {
+  margin-bottom: 10px;
+}
+body[data-layout='b'] .exam-priority-card h3 {
+  font-size: 21px;
+}
+body[data-layout='b'] .desktop-topics {
+  border: 0;
+  padding: 0;
+}
+body[data-layout='b'] .flow-topics-heading {
+  margin-bottom: 12px;
+}
+body[data-layout='b'] .topic-card {
+  display: grid;
+  grid-template-columns: 30px 1fr;
+  gap: 0 12px;
+  padding: 14px;
+}
+body[data-layout='b'] .topic-top {
+  grid-column: 1;
+  grid-row: 1 / 3;
+  margin: 0;
+}
+body[data-layout='b'] .subject-index {
+  display: none;
+}
+body[data-layout='b'] .topic-progress {
+  grid-column: 2;
+  padding: 0;
+}
+body[data-layout='b'] .routine-grid {
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+body[data-layout='b'] .routine-grid > :is(div, button) {
+  padding: 18px;
+}
+body[data-layout='b'] .routine-week .routine-icon {
+  display: none;
+}
+body[data-layout='b'] .routine-week .week-dots {
+  display: none;
+}
+body[data-layout='b'] .routine-goal-progress {
+  margin: 8px 0;
+}
+body[data-layout='b'] .routine-week > p {
+  display: none;
+}
+body[data-layout='b'] .routine-icon {
+  margin-bottom: 8px;
+}
+body[data-layout='b'] .routine-grid .routine-action > p {
+  margin-bottom: 8px;
+}
+/* C: a bright workspace with a full-width top navigation and list-first content. */
+body[data-layout='c'] {
+  background: #f4f0e7;
+}
+body[data-layout='c'] .app-shell {
+  display: block;
+  background: #f4f0e7;
+  color: #143236;
+}
+body[data-layout='c'] .sidebar {
+  position: static;
+  width: 100%;
+  min-height: 0;
+  height: auto;
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  gap: 34px;
+  padding: 18px 36px;
+  background: #0c2425;
+  border: 0;
+}
+body[data-layout='c'] .brand {
+  margin: 0;
+}
+body[data-layout='c'] .brand strong {
+  font-size: 25px;
+}
+body[data-layout='c'] .main-nav {
+  display: flex;
+  gap: 6px;
+  flex: 1;
+}
+body[data-layout='c'] .nav-item {
+  padding: 10px 13px;
+  min-height: 44px;
+  font-size: 12px;
+  white-space: nowrap;
+}
+body[data-layout='c'] .nav-item svg {
+  display: none;
+}
+body[data-layout='c'] .nav-item.active::after {
+  display: none;
+}
+body[data-layout='c'] .sidebar-footer {
+  display: none;
+}
+body[data-layout='c'] .workspace {
+  margin: 0 auto;
+  width: 100%;
+  max-width: 1480px;
+  padding: 12px 40px 0;
+}
+body[data-layout='c'] .topbar {
+  color: #143236;
+  border-color: #d6d3c9;
+}
+body[data-layout='c'] .topbar .breadcrumb {
+  color: #53635c;
+}
+body[data-layout='c'] .topbar > a {
+  color: #143236;
+  border-color: #b8c1b8;
+}
+body[data-layout='c'] .date-pill {
+  color: #8b4927;
+  border-color: #d3b8a2;
+}
+body[data-layout='c'] .flow-dashboard {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 328px;
+  grid-template-areas: 'hero hero' 'subjects routine' 'topics topics';
+  gap: 22px 28px;
+}
+body[data-layout='c'] .flow-hero {
+  grid-area: hero;
+  border: 1px solid #355052;
+  border-radius: 18px;
+  background: #0c2425;
+  color: #f7f7f2;
+  padding: 24px 28px;
+}
+body[data-layout='c'] .flow-hero-content {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  column-gap: 30px;
+}
+body[data-layout='c'] .flow-exam-eyebrow {
+  grid-column: 1;
+}
+body[data-layout='c'] .flow-hero h1 {
+  grid-column: 1;
+  margin-bottom: 0;
+}
+body[data-layout='c'] .flow-hero-bottom {
+  grid-column: 2;
+  grid-row: 1 / 3;
+}
+body[data-layout='c'] .flow-hero-actions {
+  margin-top: 12px;
+}
+body[data-layout='c'] .hero-meta {
+  display: none;
+}
+body[data-layout='c'] .flow-subjects {
+  grid-area: subjects;
+  padding: 0;
+  border: 0;
+  box-shadow: none;
+  border-radius: 0;
+}
+body[data-layout='c'] .exam-priority-grid {
+  grid-template-columns: 1fr;
+  gap: 10px;
+}
+body[data-layout='c'] .exam-priority-card {
+  display: grid;
+  grid-template-columns: 56px minmax(0, 1fr) 120px;
+  column-gap: 18px;
+  padding: 18px 20px;
+  border-radius: 14px;
+}
+body[data-layout='c'] .exam-priority-top {
+  grid-row: 1 / 3;
+  margin: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 12px;
+}
+body[data-layout='c'] .exam-area-symbol {
+  border: 0;
+  width: auto;
+  height: auto;
+}
+body[data-layout='c'] .exam-priority-card h3 {
+  grid-column: 2;
+  font-size: 23px;
+  text-wrap: initial;
+  margin: 0 0 7px;
+}
+body[data-layout='c'] .exam-priority-card p {
+  grid-column: 2;
+  margin: 0;
+  font-size: 14px;
+}
+body[data-layout='c'] .exam-priority-card .inline-link {
+  grid-column: 3;
+  grid-row: 1 / 3;
+  align-self: center;
+  padding: 0;
+  border: 0;
+}
+body[data-layout='c'] .flow-routine {
+  grid-area: routine;
+  color: #143236;
+}
+body[data-layout='c'] .flow-routine > .section-heading {
+  min-height: 54px;
+}
+body[data-layout='c'] .routine-grid {
+  grid-template-columns: 1fr;
+}
+body[data-layout='c'] .routine-grid > :is(div, button) {
+  border: 1px solid #d6d3c9;
+  background: #fffcf5;
+  color: #143236;
+  padding: 18px;
+}
+body[data-layout='c'] .routine-grid > .routine-week {
+  background: #e5e9df;
+}
+body[data-layout='c'] .routine-grid :is(p, .routine-count, .goal-ring) {
+  color: #53635c;
+}
+body[data-layout='c'] .routine-grid .goal-ring strong {
+  color: #143236;
+}
+body[data-layout='c'] .routine-icon {
+  display: none;
+}
+body[data-layout='c'] .routine-count {
+  position: static;
+  display: block;
+  margin-bottom: 7px;
+}
+body[data-layout='c'] .routine-week .week-dots {
+  display: none;
+}
+body[data-layout='c'] .routine-week > p {
+  display: none;
+}
+body[data-layout='c'] .routine-goal-progress {
+  margin-block: 10px;
+  background: #b5c2b0;
+}
+body[data-layout='c'] .routine-goal-progress::-webkit-progress-bar {
+  background: #b5c2b0;
+}
+body[data-layout='c'] .routine-goal-progress::-webkit-progress-value {
+  background: #8b4927;
+}
+body[data-layout='c'] .routine-action:last-child {
+  display: none;
+}
+body[data-layout='c'] .desktop-topics {
+  grid-area: topics;
+  border-color: #d6d3c9;
+}
+body[data-layout='c'] .flow-topics-heading > span {
+  color: #53635c;
+}
+body[data-layout='c'] .topic-card {
+  background: #fffcf5;
+  border-color: #d6d3c9;
+  color: #143236;
+  display: grid;
+  grid-template-columns: 36px 1fr;
+  gap: 0 12px;
+}
+body[data-layout='c'] .topic-top {
+  grid-column: 1;
+  grid-row: 1 / 3;
+  margin: 0;
+}
+body[data-layout='c'] .subject-index {
+  display: none;
+}
+body[data-layout='c'] .topic-progress {
+  grid-column: 2;
+  color: #53635c;
+  padding: 0;
+}
+body[data-layout='c'] .topic-card .subject-object svg {
+  color: #8b4927;
+}
+body[data-layout='c'] .content-footnote {
+  color: #53635c;
+}
+body[data-layout='c'] .workspace-footer {
+  border-color: #d6d3c9;
+  color: #53635c;
+}
+/* Resolve legacy card selectors so each study has consistent geometry. */
+body[data-layout] .flow-hero {
+  overflow: visible;
+}
+body[data-layout] .flow-hero-content {
+  padding-bottom: 4px;
+}
+body[data-layout] .routine-week .week-dots > * {
+  width: 24px;
+  height: 24px;
+  flex: 0 0 24px;
+  font-size: 10px;
+}
+body[data-layout] .routine-week .week-dots {
+  gap: 5px;
+}
+body[data-layout='a'] .flow-focus > p:not(.eyebrow) {
+  max-width: none;
+}
+body[data-layout='a'] .flow-hero h1 {
+  font-size: 38px;
+  margin-block: 10px;
+}
+body[data-layout='a'] .flow-hero-actions {
+  margin-top: 14px;
+}
+body[data-layout='a'] .flow-dashboard .routine-grid > .routine-action:last-child {
+  background: #f4f0e7;
+  color: #143236;
+  border-color: #f4f0e7;
+}
+body[data-layout='a'] .flow-dashboard .routine-action:last-child :is(h3, .inline-link) {
+  color: #143236;
+}
+body[data-layout='c'] .workspace {
+  --flow-text: #143236;
+  --flow-text-muted: #53635c;
+}
+body[data-layout='c'] .flow-hero {
+  --flow-text: #f7f7f2;
+  --flow-text-muted: #b7cbc3;
+}
+body[data-layout='c'] .flow-dashboard .exam-priority-card {
+  display: grid;
+  grid-template-columns: 56px minmax(0, 1fr) 120px;
+  padding: 18px 20px;
+}
+body[data-layout='c'] .flow-dashboard .routine-grid > :is(div, button) {
+  background: #fffcf5;
+  border-color: #d6d3c9;
+  color: #143236;
+}
+body[data-layout='c'] .flow-dashboard .routine-grid > .routine-week {
+  background: #e5e9df;
+}
+body[data-layout] .routine-week .week-dots > .week-day {
+  height: 34px;
+}
+body[data-layout] .routine-week .week-day > span {
+  width: 24px;
+  height: 24px;
+  flex-shrink: 0;
+}
+body[data-layout='c'] .sidebar .brand {
+  color: #f7f7f2;
+}
