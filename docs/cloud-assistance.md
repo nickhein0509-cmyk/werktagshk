@@ -22,7 +22,7 @@ Neue Cloud-Punkte bleiben fortlaufend in der Datenbank. Abgeschlossene Tage werd
 
 ## Health im 15-Minuten-Takt
 
-Die vorhandene Verbindung Apple Health → Freddy bleibt erhalten. Unter `/konto` kann der zugeordnete Besitzer einen Freddy Personal API-Schlüssel geschützt eintragen. Der Schlüssel gehört nicht in Chat, Git, öffentliche Dateien oder Browserspeicher. Die Funktion `health-sync` prüft den Schlüssel und die bestehende Apple-Health-Quelle, speichert ihn in Supabase Vault und richtet genau einen Cronjob `*/15 * * * *` ein. Ohne erfolgreichen Einrichtungsschritt gibt es keinen aktivierten Takt.
+Die vorhandene Verbindung Apple Health → Freddy bleibt erhalten. Unter `/konto` kann der zugeordnete Besitzer eine Freddy-MCP-Adresse mit Zugriffstoken oder einen Personal-API-Schlüssel geschützt eintragen. Der Schlüssel gehört nicht in Chat, Git, öffentliche Dateien oder Browserspeicher. Die Funktion `health-sync` prüft die Zugangsdaten und die bestehende Apple-Health-Quelle, speichert sie in Supabase Vault und richtet genau einen Cronjob `*/15 * * * *` ein. Ohne erfolgreichen Einrichtungsschritt gibt es keinen aktivierten Takt.
 
 Der Abgleich liest die vorhandenen freigegebenen Tagesmetriken vollständig mit Pagination. Merged-Tageswerte werden nicht aus einzelnen Apps addiert; VO₂max bleibt eine tatsächliche zeitgestempelte Beobachtung. Eine transaktionale Zusammenführung erhält frühere Tage und fehlende Werte. Überholte oder fehlgeschlagene Läufe ersetzen keine neueren Daten. Ausschalten beendet die geplanten Abrufe und erhält gespeicherte Werte.
 
@@ -40,3 +40,6 @@ Migrationen gegen die Live-Historie prüfen und die Funktionen bereitstellen.
 `npm run check` prüft Build, bestehende Lernfunktionen, beide Gatewaypfade, die Cloud-Backendlogik und Browserabläufe mit isolierten synthetischen Daten. Reale Standort-Empfangsnachweise sind separat am Produktionsspeicher zu prüfen; keine erfundenen GPS-Punkte für einen Produktionstest senden. Ein aktivierter Cronjob beweist noch keinen neuen Health-Quellenstand. Ein vollständiger echter Health-API-Test setzt den privaten Nutzerschlüssel voraus.
 
 Offizielle Quellen: [Supabase Scheduling](https://supabase.com/docs/guides/functions/schedule-functions), [Freddy Personal API](https://freddy.coach/help/personal-api), [Freddy Apple Health](https://freddy.coach/help/connect-apple-health).
+
+Die [MCP-Anbindung und Backend-Veröffentlichung](freddy-mcp-release.md) beschreibt
+Transportprüfung, Rechte, tatsächlichen Import und Rückweg.

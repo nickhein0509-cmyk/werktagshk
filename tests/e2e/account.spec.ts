@@ -5,6 +5,7 @@ const user = { id: userId, email: 'account-fixture@example.invalid', aud: 'authe
 const guest = { version: 1, attempts: [], bookmarks: [], dailyGoal: 8 };
 
 interface HealthFixture {
+  connectionKind?: 'api' | 'mcp';
   ok: boolean;
   status: string;
   configured: boolean;
@@ -79,7 +80,7 @@ async function accountFixture(page: Page, options: {
       return route.fulfill({ json: { ok: true, sourceConnected: true, metricsAvailable: 16, historyWindowDays: 7,
         historyFloor: '2026-10-22', sourceLastSyncAt: '2026-10-28T09:47:00Z', sourceLastDataAt: '2026-10-28T09:40:00Z' } });
     }
-    if (name === 'configure') Object.assign(health, { status: 'active', configured: true, enabled: true, cronActive: true, lastAttemptAt: '2026-10-28T10:00:00Z', lastSuccessAt: '2026-10-28T10:00:00Z', sourceLastSyncAt: '2026-10-28T09:47:00Z', sourceLastDataAt: '2026-10-28T09:40:00Z', nextCheckAt: '2026-10-28T10:15:00Z' });
+    if (name === 'configure') Object.assign(health, { connectionKind: request.postDataJSON()?.mcpUrl ? 'mcp' : 'api', status: 'active', configured: true, enabled: true, cronActive: true, lastAttemptAt: '2026-10-28T10:00:00Z', lastSuccessAt: '2026-10-28T10:00:00Z', sourceLastSyncAt: '2026-10-28T09:47:00Z', sourceLastDataAt: '2026-10-28T09:40:00Z', nextCheckAt: '2026-10-28T10:15:00Z' });
     if (name === 'refresh') Object.assign(health, { status: 'active', lastAttemptAt: '2026-10-28T10:05:00Z', lastSuccessAt: '2026-10-28T10:05:00Z', sourceLastSyncAt: '2026-10-28T09:47:00Z', sourceLastDataAt: '2026-10-28T09:40:00Z', errorCode: null });
     if (name === 'disable') Object.assign(health, { status: 'disabled', enabled: false, cronActive: false });
     await route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify(health) });
@@ -150,6 +151,7 @@ test('Health activation separates cloud checks from source timestamps and never 
   await page.goto('/konto');
   await expect(page.getByText('Noch nicht aktiviert', { exact: true })).toBeVisible();
   const key = 'synthetic-freddy-personal-api-key';
+  await page.getByLabel('Verbindungsart').selectOption('api');
   const input = page.getByLabel('Persönlicher Freddy-API-Schlüssel', { exact: true });
   await input.fill(key);
   await page.getByRole('button', { name: 'Health-Abgleich einrichten', exact: true }).click();
@@ -171,6 +173,7 @@ test('Freddy connection check is explicit and does not activate or persist the s
   await page.goto('/konto');
   await expect(page.getByText('Noch nicht aktiviert', { exact: true })).toBeVisible();
   const key = 'synthetic-check-only-personal-api-key';
+  await page.getByLabel('Verbindungsart').selectOption('api');
   const input = page.getByLabel('Persönlicher Freddy-API-Schlüssel', { exact: true });
   await input.fill(key);
   expect(calls.some(entry => entry.route === 'health:check')).toBe(false);
@@ -195,7 +198,7 @@ test('a stored Health connection is not called active before a successful import
   await page.goto('/konto');
   await expect(page.getByText('Erster vollständiger Abruf steht aus', { exact: true })).toBeVisible();
   await expect(page.getByText('Automatischer Abgleich aktiv', { exact: true })).toHaveCount(0);
-  await expect(page.getByLabel('Persönlicher Freddy-API-Schlüssel', { exact: true })).toHaveValue('');
+  await expect(page.getByLabel('Freddy-MCP-Zugriffstoken', { exact: true })).toHaveValue('');
   await page.getByRole('button', { name: 'Jetzt Health-Daten abrufen', exact: true }).click();
   await expect(page.getByText('Automatischer Abgleich aktiv', { exact: true })).toBeVisible();
   await expect(page.getByText(/Das erzwingt keine neue Messung auf dem iPhone/)).toBeVisible();
@@ -222,9 +225,10 @@ for (const variant of ['missing-schedule', 'source-error'] as const) {
 test('a rejected Freddy check reports the provider diagnosis without enabling a schedule', async ({ page }) => {
   const calls = await accountFixture(page, { linked: true, healthCheckError: 'HEALTH_KEY_INVALID' });
   await page.goto('/konto');
+  await page.getByLabel('Verbindungsart').selectOption('api');
   await page.getByLabel('Persönlicher Freddy-API-Schlüssel', { exact: true }).fill('synthetic-rejected-key');
   await page.getByRole('button', { name: 'Verbindung prüfen', exact: true }).click();
-  await expect(page.getByText(/Freddy hat den Schlüssel abgewiesen/)).toBeVisible();
+  await expect(page.getByText(/Freddy hat die Zugangsdaten abgewiesen/)).toBeVisible();
   await expect(page.getByText('Noch nicht aktiviert', { exact: true })).toBeVisible();
   expect(calls.some(entry => entry.route === 'health:configure')).toBe(false);
   expect(await page.evaluate(() => JSON.stringify(localStorage) + JSON.stringify(sessionStorage))).not.toContain('synthetic-rejected-key');
@@ -369,3 +373,28 @@ test('signing out clears a pending owner proof before the next account', async (
   await expect(page.getByText('Dein privater Verbindungslink ist vorbereitet.')).toHaveCount(0);
   expect(await page.evaluate(() => JSON.stringify(localStorage) + JSON.stringify(sessionStorage))).not.toContain('synthetic-pending-owner');
 });
+
+for (const width of [320, 1440]) {
+  test(`Freddy MCP setup sends credentials only after confirmation and clears them at ${width}px`, async ({page}) => {
+    const calls = await accountFixture(page, {linked:true});
+    await page.setViewportSize({width,height:900});
+    await page.goto('/konto');
+    const url='https://freddy.coach/mcp/synthetic', token='synthetic-mcp-token-1234567890';
+    const urlInput=page.getByLabel('Freddy-MCP-Adresse',{exact:true}), tokenInput=page.getByLabel('Freddy-MCP-Zugriffstoken',{exact:true});
+    await urlInput.fill(url); await tokenInput.fill(token);
+    await expect(urlInput).toHaveAttribute('type','password'); await expect(tokenInput).toHaveAttribute('type','password');
+    expect(calls.some(c=>c.route==='health:configure')).toBe(false);
+    await page.getByRole('button',{name:'Verbindung prüfen',exact:true}).click();
+    await expect(page.getByLabel('Ergebnis der Verbindungsprüfung')).toBeVisible();
+    expect(calls.find(c=>c.route==='health:check')?.body).toEqual({mcpUrl:url,mcpToken:token});
+    await page.getByRole('button',{name:'Health-Abgleich einrichten',exact:true}).click();
+    await expect(page.getByText('Automatischer Abgleich aktiv',{exact:true})).toBeVisible();
+    await expect(page.getByText('Gespeicherte Verbindung: Freddy MCP', {exact:true})).toBeVisible();
+    await expect(urlInput).toHaveValue(''); await expect(tokenInput).toHaveValue('');
+    expect(calls.find(c=>c.route==='health:configure')?.body).toEqual({mcpUrl:url,mcpToken:token});
+    const storage=await page.evaluate(()=>JSON.stringify(localStorage)+JSON.stringify(sessionStorage));
+    expect(storage).not.toContain(token); expect(storage).not.toContain(url);
+    expect(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth+1)).toBe(true);
+    await page.screenshot({path:`test-results/assistant-ui/freddy-mcp-${width}-synthetic.png`,fullPage:true});
+  });
+}

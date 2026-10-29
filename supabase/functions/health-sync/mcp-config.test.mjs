@@ -1,0 +1,41 @@
+import {test,before,after} from 'node:test';
+import assert from 'node:assert/strict';
+import {readFile} from 'node:fs/promises';
+import {PGlite} from '@electric-sql/pglite';
+let db;
+const installation='11111111-1111-4111-8111-111111111111';
+before(async()=>{
+ db=new PGlite();
+ await db.exec(`create role anon; create role authenticated; create role service_role;
+ create schema vault; create schema cron; create schema extensions; create schema assistance_private;
+ create table public.assistance_installations(id uuid primary key,owner_user_id uuid);
+ insert into public.assistance_installations values('${installation}','22222222-2222-4222-8222-222222222222');
+ create table vault.secrets(id uuid primary key default gen_random_uuid(),secret text);
+ create function vault.create_secret(value text,name text,description text) returns uuid language sql as $$ insert into vault.secrets(secret) values(value) returning id $$;
+ create function vault.update_secret(key uuid,value text) returns void language sql as $$ update vault.secrets set secret=value where id=key $$;
+ create function extensions.gen_random_bytes(n integer) returns bytea language sql as $$ select decode(repeat('aa',n),'hex') $$;
+ create table cron.job(jobid bigint generated always as identity,jobname text unique,schedule text,active boolean default true);
+ create function cron.schedule(name text,sched text,command text) returns bigint language sql as $$ insert into cron.job(jobname,schedule) values(name,sched) on conflict(jobname) do update set active=true returning jobid $$;
+ create function cron.unschedule(id bigint) returns boolean language sql as $$ delete from cron.job where jobid=id returning true $$;`);
+ const original=await readFile(new URL('../../migrations/20261028131922_assistance_health_cloud_sync.sql',import.meta.url),'utf8');
+ await db.exec(original.slice(original.indexOf('create table if not exists public.assistance_health_sync'),original.indexOf('create or replace function public.assistance_health_authorize_cron')));
+ await db.exec(await readFile(new URL('../../migrations/20261029060718_assistance_health_mcp.sql',import.meta.url),'utf8'));
+});
+after(async()=>{await db?.close()});
+const configure=value=>db.query('select public.assistance_health_configure($1,$2,$3)',[installation,value,'https://test-project.supabase.co/functions/v1/health-sync?route=sync']);
+test('MCP migration keeps credentials in Vault, exposes only transport metadata, and reuses its schedule',async()=>{
+ const credential=JSON.stringify({kind:'mcp',url:'https://freddy.coach/mcp/synthetic',token:'a'.repeat(64)});
+ await configure(credential);await configure(credential);
+ const status=(await db.query('select public.assistance_health_status($1) as value',[installation])).rows[0].value;
+ assert.equal(status.connectionKind,'mcp');assert.equal(status.cronActive,true);assert.equal(JSON.stringify(status).includes('aaaa'),false);
+ assert.equal((await db.query('select count(*)::int as n from cron.job')).rows[0].n,1);
+ assert.equal((await db.query('select count(*)::int as n from vault.secrets')).rows[0].n,2);
+ await db.exec(`set role anon`);await assert.rejects(configure(credential),/permission denied/);await db.exec('reset role');
+});
+test('invalid MCP targets never overwrite credentials; existing Personal API credentials remain valid',async()=>{
+ const before=(await db.query('select secret from vault.secrets order by id')).rows;
+ for(const value of [null,'{}',JSON.stringify({kind:'mcp',url:'https://evil.test/mcp/id',token:'a'.repeat(64)}),JSON.stringify({kind:'mcp',url:'https://freddy.coach/mcp/id',token:null})])await assert.rejects(configure(value),/HEALTH_INVALID_CONFIGURATION/);
+ assert.deepEqual((await db.query('select secret from vault.secrets order by id')).rows,before);
+ await configure('fk_live_synthetic_existing_key');
+ assert.equal((await db.query('select public.assistance_health_status($1) as value',[installation])).rows[0].value.connectionKind,'api');
+});

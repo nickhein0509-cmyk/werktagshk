@@ -1,7 +1,7 @@
-import { freddyClient, validApiKey } from './freddy.mjs';
+import { connectionFromBody, healthConnectionClient } from './connection.mjs';
 
 const uuid = value => typeof value === 'string' && /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(value);
-const safeCodes = new Set(['HEALTH_KEY_INVALID', 'HEALTH_SOURCE_NOT_CONNECTED', 'HEALTH_SOURCE_RATE_LIMITED', 'HEALTH_SOURCE_UNAVAILABLE', 'HEALTH_SOURCE_FORMAT', 'HEALTH_SOURCE_PAGINATION', 'HEALTH_SOURCE_TOO_LARGE', 'HEALTH_NON_MERGED_RECORD', 'HEALTH_INCOMPLETE_QUERY', 'HEALTH_AMBIGUOUS_DUPLICATE', 'HEALTH_AMBIGUOUS_OBSERVATION', 'HEALTH_OBSERVATION_TIME_REQUIRED']);
+const safeCodes = new Set(['HEALTH_KEY_INVALID', 'HEALTH_CONSENT_REQUIRED', 'HEALTH_SOURCE_NOT_CONNECTED', 'HEALTH_SOURCE_RATE_LIMITED', 'HEALTH_SOURCE_UNAVAILABLE', 'HEALTH_SOURCE_FORMAT', 'HEALTH_SOURCE_PAGINATION', 'HEALTH_SOURCE_TOO_LARGE', 'HEALTH_NON_MERGED_RECORD', 'HEALTH_INCOMPLETE_QUERY', 'HEALTH_AMBIGUOUS_DUPLICATE', 'HEALTH_AMBIGUOUS_OBSERVATION', 'HEALTH_OBSERVATION_TIME_REQUIRED']);
 const response = (status, body) => Response.json(body, { status, headers: { 'Cache-Control': 'no-store', 'Referrer-Policy': 'no-referrer', 'X-Content-Type-Options': 'nosniff' } });
 const fail = code => { throw Object.assign(new Error(code), { code }); };
 const safeError = error => safeCodes.has(error?.code) ? error.code : 'HEALTH_SYNC_FAILED';
@@ -33,7 +33,7 @@ export function createHealthSyncHandler({ supabaseUrl, serviceKey, publicOrigin 
     const claim = await rpc('assistance_health_claim', { p_installation_id: installationId });
     if (!claim?.claimed) return { skipped: true };
     try {
-      const snapshot = await freddyClient(claim.apiKey, fetcher).snapshot({ fetchedAt: now() });
+      const snapshot = await healthConnectionClient(claim.apiKey, fetcher).snapshot({ fetchedAt: now() });
       const committed = await rpc('assistance_health_commit_sync', { p_installation_id: installationId, p_lease_token: claim.leaseToken, p_days: snapshot.days, p_source_last_sync_at: snapshot.sourceLastSyncAt, p_source_last_data_at: snapshot.sourceLastDataAt });
       return committed?.committed === true ? { ok: true } : { skipped: true };
     } catch (error) {
@@ -67,14 +67,15 @@ export function createHealthSyncHandler({ supabaseUrl, serviceKey, publicOrigin 
         if (raw.length > 2048) return response(413, { ok: false, error: 'HEALTH_INVALID_REQUEST' });
         let body;
         try { body = JSON.parse(raw); } catch { return response(400, { ok: false, error: 'HEALTH_INVALID_REQUEST' }); }
-        if (!body || Object.keys(body).length !== 1 || !validApiKey(body.apiKey)) return response(400, { ok: false, error: 'HEALTH_KEY_INVALID' });
-        const checked = await freddyClient(body.apiKey, fetcher).check();
+        const credential = connectionFromBody(body);
+        if (!credential) return response(400, { ok: false, error: 'HEALTH_KEY_INVALID' });
+        const checked = await healthConnectionClient(credential, fetcher).check();
         if (route === 'check') {
-          body.apiKey = null;
+          body.apiKey = null; body.mcpToken = null; body.mcpUrl = null;
           return response(200, { ok: true, sourceConnected: true, sourceLastSyncAt: checked.sourceLastSyncAt, sourceLastDataAt: checked.sourceLastDataAt, metricsAvailable: checked.metrics.length, historyWindowDays: checked.historyWindowDays, historyFloor: checked.historyFloor });
         }
-        await rpc('assistance_health_configure', { p_installation_id: installationId, p_api_key: body.apiKey, p_function_url: base + '/functions/v1/health-sync?route=sync' });
-        body.apiKey = null;
+        await rpc('assistance_health_configure', { p_installation_id: installationId, p_api_key: credential, p_function_url: base + '/functions/v1/health-sync?route=sync' });
+        body.apiKey = null; body.mcpToken = null; body.mcpUrl = null;
         // Complete one real import before calling activation successful. Failures remain visible in status.
         await syncOne(installationId);
         return response(200, { ok: true, ...(await rpc('assistance_health_status', { p_installation_id: installationId })) });
