@@ -1,5 +1,8 @@
 # WerkTag: drei Produkte, eine gemeinsame Plattform
 
+**Aktive Entwicklung: Assistent und Materialliste.** KI-Lernhilfe und kommerzieller
+Lernapp-Ausbau pausieren; Lernbestand erhalten. [Aktueller Fokus](current-focus.md).
+
 Nick hat am 28. Oktober 2026 drei eigenständige Produkte festgelegt. Die gemeinsame
 Domain `werk-tag.com` verbindet ihre Einstiege, nicht ihre fachlichen Aufträge.
 Die private [Projektzentrale](https://github.com/nickhein0509-cmyk/projektzentrale/blob/main/WERKTAG.md)
@@ -8,9 +11,9 @@ Quellbestand direkt lesbar.
 
 | ID | Produkt und Zweck | Produktauftrag und Aufgaben | Bestehender Einstieg |
 | --- | --- | --- | --- |
-| LERNEN | Lernapp für Schule und Gesellenprüfung | [werktag-lernen](https://github.com/nickhein0509-cmyk/werktag-lernen) | `/` |
-| ASSISTENT | Persönliche Dokumentation und Aufzeichnungen | [werktag-assistent](https://github.com/nickhein0509-cmyk/werktag-assistent) | `/assistenz` |
-| MATERIAL | Materialliste für praktische Arbeit im Außeneinsatz | [werktag-materialliste](https://github.com/nickhein0509-cmyk/werktag-materialliste) | `/assistenz/components` |
+| LERNEN | Bestehende Lernapp erhalten; KI und kommerzieller Ausbau pausiert | [werktag-lernen](https://github.com/nickhein0509-cmyk/werktag-lernen) | `/` |
+| ASSISTENT | Aktiver Fokus: persönliche Dokumentation und Aufzeichnungen | [werktag-assistent](https://github.com/nickhein0509-cmyk/werktag-assistent) | `/assistenz` |
+| MATERIAL | Aktiver Fokus: Materialliste für praktische Arbeit im Außeneinsatz | [werktag-materialliste](https://github.com/nickhein0509-cmyk/werktag-materialliste) | `/assistenz/components` |
 | PLATTFORM | Gemeinsamer Projekteinstieg, Konto, Routing und Integration | [Projektzentrale](https://github.com/nickhein0509-cmyk/projektzentrale) | `/projekte`, `/konto` |
 
 Die drei Produkt-Repositories sind privat. Sie enthalten Produktauftrag,

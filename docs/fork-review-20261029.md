@@ -1,5 +1,11 @@
 # GitHub-Forks: Bewertung und konkrete WerkTag-Integration
 
+**Aktualisierte Verwendung (29.10.2026):** Assistent und Materialliste haben
+Vorrang; `DeepTutor`/Lern-KI bleiben pausiert. Die nachstehende Bewertung aller
+20 Forks bleibt eine begrenzte Bestandsaufnahme. [Aktueller Fokus](current-focus.md)
+und [Repository-Übersicht](repository-guide.md) trennen Bewertung, Integration
+und zukünftigen Bedarf. Keine vollständige Code- oder Sicherheitsprüfung behaupten.
+
 Stand: 29. Oktober 2026 (UTC). Produkt **PLATTFORM**.
 [Aufgabe](https://github.com/nickhein0509-cmyk/projektzentrale/issues/20).
 Basis `e41129ebb3f5726a33505d31bc42ea0e4f538904`, eigener Branch
@@ -52,7 +58,7 @@ verlinkten Fremdprojekts. Eine Sammlungslizenz gilt nicht pauschal für ihre Lin
 | [superpowers](https://github.com/nickhein0509-cmyk/superpowers) · [obra/superpowers](https://github.com/obra/superpowers) | MIT | **Gezielte Arbeitsreferenz** — Verifikation vor Erfolgsmeldungen und isolierte Arbeitszweige passen bereits zum Projekt. Keine konkurrierenden globalen Workflows automatisch installieren. |
 | [hallmark](https://github.com/nickhein0509-cmyk/hallmark) · [Nutlope/hallmark](https://github.com/Nutlope/hallmark) | MIT | **Jetzt als Prüfprinzip genutzt** — Bei Änderungen vorhandene Links/Bedienung erhalten und im Browser prüfen. Keine zweite Themesammlung oder Generatorpipeline übernehmen. |
 | [impeccable](https://github.com/nickhein0509-cmyk/impeccable) · [pbakaus/impeccable](https://github.com/pbakaus/impeccable) | Apache-2.0 | **Jetzt genutzt** — Gelesene optimize-/harden-Referenzen: bedarfsgesteuertes Laden, Messung, verständliche Fehler- und Ladezustände. Eigenständige Implementierung. |
-| [DeepTutor](https://github.com/nickhein0509-cmyk/DeepTutor) · [HKUDS/DeepTutor](https://github.com/HKUDS/DeepTutor) | Apache-2.0 | **Später gezielt** — Quellengestützte Lernabläufe/RAG als Referenz für LERNEN. Gesamte Python-/Next-/Modellanbieterplattform passt nicht als kleines Zusatzpaket. |
+| [DeepTutor](https://github.com/nickhein0509-cmyk/DeepTutor) · [HKUDS/DeepTutor](https://github.com/HKUDS/DeepTutor) | Apache-2.0 | **Pausiert** — Quellengestützte Lernabläufe/RAG als Referenz für LERNEN. Gesamte Python-/Next-/Modellanbieterplattform passt nicht als kleines Zusatzpaket. |
 | [skills](https://github.com/nickhein0509-cmyk/skills) · [expo/skills](https://github.com/expo/skills) | MIT | **Aktuell anderer Stack** — Expo- und React-Native-Skills. WerkTag nutzt React/Vite plus native Swift-App; kein Grund, dafür auf Expo umzubauen. |
 | [jailbreaks](https://github.com/nickhein0509-cmyk/jailbreaks) · [togg53192-cmd/jailbreaks](https://github.com/togg53192-cmd/jailbreaks) | Keine Lizenz erkannt/Root-Lizenz nicht gefunden | **Nicht integrieren** — Prompt-/Policy-Override-Sammlung ohne nachgewiesenen Produktnutzen; macht Verhalten nicht verlässlicher. Keine fremden AGENTS-/Systemregeln übernehmen. |
 | [macro](https://github.com/nickhein0509-cmyk/macro) · [macro-inc/macro](https://github.com/macro-inc/macro) | AGPL-3.0 | **Produktreferenz** — Verknüpfte Notizen/Aufgaben und Suche als Ideenquelle. SolidJS/Rust-Gesamtsystem ist groß; direkte Codeübernahme erfordert AGPL-Prüfung. |

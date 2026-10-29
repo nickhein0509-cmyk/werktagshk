@@ -1,5 +1,8 @@
 # Profil „WerkTag Fokus“
 
+**Aktive Produkte: Assistent und Materialliste.** [Aktueller Fokus](../current-focus.md).
+KI-Lernhilfe und kommerzieller Lernapp-Ausbau sind vorerst pausiert.
+
 Ein Repository als Startbestand: `https://github.com/nickhein0509-cmyk/werktagshk`,
 Branch `main`. Die Umgebung wird aus dem aktuellen Remote aufgebaut, nicht aus
 einem alten Windows-Export. `werktag.code-workspace` öffnet ausschließlich diesen
@@ -9,7 +12,7 @@ Ordner. Die bisherige Arbeitskopie und fremde Forks bleiben erhalten.
 | --- | --- |
 | Runtime | Linux, Node 24, npm aus Node, Git, Chromium; WebKit für zweite Browserengine |
 | Setup | `npm ci`; bei fehlenden Browsern `npx playwright install --with-deps chromium webkit` |
-| Startkontext | `docs/fokus/START.md`, `AGENTS.md`, `docs/product-map.md`; ein konkretes Issue |
+| Startkontext | `docs/fokus/START.md`, `AGENTS.md`, `docs/current-focus.md`, `docs/product-map.md`; ein konkretes Issue |
 | Repositoryzugriff | WerkTag-Code; Produktvertrag/Issues gezielt über GitHub lesen |
 | Netzwerk | Paketmanager/GitHub-Grundprofil; `api.github.com`, `werk-tag.com` für direkte API-/Liveprüfungen bei Bedarf |
 | Geheimnisse | Keine für lokale Entwicklung mit synthetischen Testdaten |
@@ -29,8 +32,9 @@ Startauftrag eröffnen; ein Worktree startet keinen Chat mit leerem Gedächtnis.
 - Zunächst **keine aktiv gepflegten Fremdforks**: Die Auswertung vom 29.10. fand
   auf allen 20 Standardbranches keine eigenen Zusatzcommits.
 - Kuratierte Referenzen: `awesome-scalability` (Messung/Architektur), `impeccable`
-  und `hallmark` (Oberfläche), `superpowers` (Arbeitsmethoden), `DeepTutor`
-  (spätere Lernhilfe). Nur die konkret benötigten Teile prüfen.
+  und `hallmark` (Oberfläche), `superpowers` (Arbeitsmethoden). Für Assistenz-iOS
+  Bibliotheksreferenzen nur bei konkretem Bedarf prüfen. `DeepTutor` bleibt mit der
+  Lern-KI pausiert. Nur die konkret benötigten Teile laden und prüfen.
 - Künftige reine Lesezeichen als Stars/Listen führen. Fork erst bei geplanter
   eigener Änderung oder Upstream-Beitrag; dann Zweck, Lizenz und Syncplan notieren.
 - Vorläufig 3–5 tatsächlich aktive Fremdforks als Arbeitsbudget, kein technisches

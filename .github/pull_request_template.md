@@ -7,6 +7,8 @@ Welches konkrete Problem löst der Stand und wie verhält sich WerkTag danach?
 ## Herkunft und Abhängigkeiten
 
 - Produkt: Lernapp / Assistent / Materialliste / gemeinsame Plattform
+- [ ] [Aktuellen Fokus](https://github.com/nickhein0509-cmyk/werktagshk/blob/main/docs/current-focus.md) gelesen: Assistent/Materialliste aktiv; Lern-KI und kommerzieller Lernapp-Ausbau pausiert.
+- Bezug der Aufgabe zum aktiven Fokus (oder ausdrücklicher neuer Auftrag):
 - Verknüpfte Produktaufgabe:
 - Produktkarte und aktueller Implementierungsort geprüft:
 - Aufgabenbranch:

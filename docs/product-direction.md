@@ -1,4 +1,9 @@
-# WerkTag: Prüfungsfokus jetzt, erwachsene Lernreise später
+# WerkTag Lernen: erhaltener Bestand und pausierte Ausbauplanung
+
+**Status seit 29.10.2026:** Die folgenden Lernprioritäten sind die frühere Planung,
+kein aktueller Entwicklungsauftrag. KI-Lernhilfe und kommerzieller Ausbau bleiben
+pausiert; Assistent und Materialliste haben Vorrang. Bestehende Lernfunktionen und
+persönliche Prüfungsvorbereitung bleiben erhalten. [Aktueller Fokus](current-focus.md).
 
 Geltungsbereich seit Nicks Klarstellung vom 28. Oktober 2026: **WerkTag Lernapp**.
 Assistent und Materialliste sind eigenständige Produkte mit eigenen Zielen;
@@ -9,10 +14,10 @@ und der Prüfungstermin stammen aus dem Nutzerauftrag. Dieses Dokument ist keine
 Prüfungsordnung und belegt weder offizielle Gewichtungen noch konkrete
 Prüfungsinhalte.
 
-## Verbindlicher Produktfokus
+## Frühere Lernpriorität (historischer Plan vom 23.10.2026)
 
 Nick bereitet sich auf seine Gesellenprüfung Teil 2 am **7. Dezember 2026** vor.
-Priorität 1 sind brauchbare Prüfungsübungen und ein reibungsloser Lernablauf in
+Die damalige Priorität waren brauchbare Prüfungsübungen und ein reibungsloser Lernablauf in
 **Arbeitsplanung**, **Systemanalyse und Instandhaltung** sowie **WiSo**. Die App
 soll schnell zu einer passenden Aufgabe, zu einer nachvollziehbaren Erklärung und
 zur gezielten Wiederholung führen.
@@ -23,7 +28,7 @@ neue Freischaltungen oder eine Spieloberfläche implementiert. Das aktuelle
 Design darf bereits Werkstattcharakter, klare Auftragskarten und kleine
 Erfolgsmomente zeigen; das verpflichtet Nick zu keiner zusätzlichen Spielhandlung.
 
-## Was bis zur Prüfung zählt
+## Qualitätsanforderungen des vorhandenen Lernprodukts
 
 1. **Aufgabenbestand fachlich entwickeln:** Jedes Lernziel, jede Aufgabe und jeder
    Lösungsweg haben einen nachvollziehbaren Ursprung und überprüfte Annahmen.

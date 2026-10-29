@@ -1,5 +1,11 @@
 # OpenAI-Grundlage für WerkTag
 
+**Priorisierung 29.10.2026:** Lernhilfe pausiert. Diese technische Grundlage ist
+kein aktiver Auftrag zur Anbieterfreischaltung. Assistent-KI bleibt ein optionaler
+späterer Ausbau; die Arbeit an Assistent und Materialliste benötigt sie nicht.
+[Verbindlicher Fokus](current-focus.md). Historische Lernbeispiele unten bleiben
+API-Vertragsbeispiele, keine nächste Umsetzungsaufgabe.
+
 Technische Vorbereitung für [Plattformaufgabe #10](https://github.com/nickhein0509-cmyk/projektzentrale/issues/10).
 Dieser Stand ergänzt einen gemeinsamen Serverzugang. Er aktiviert keine KI,
 veröffentlicht keine Datenbankänderung und enthält noch keine Lernhilfe- oder
