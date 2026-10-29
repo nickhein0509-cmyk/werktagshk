@@ -12,14 +12,14 @@ export function checkContext(body) {
   }
   if (markers[0][1] === 'general') {
     for (const area of ['Lernen', 'Assistent', 'Materialliste', 'Plattform']) {
-      const match = body.match(new RegExp(`^- ${area}:\\s*(.+)$`, 'mi'));
+      const match = body.match(new RegExp(`^- ${area}:[ \\t]*([^\\r\\n]+)\\r?$`, 'mi'));
       if (!match || match[1].trim().length < 12 || /^(?:ausfüllen|tbd|todo|n\/a)\b/i.test(match[1].trim())) {
         errors.push(`${area}: Prüfung, Ergebnis oder konkreten offenen Punkt angeben (mindestens 12 Zeichen).`);
       }
     }
   }
   if (markers[0][1] === 'limited') {
-    const match = body.match(/^- Begrenzter Bereich:\s*(.+)$/mi);
+    const match = body.match(/^- Begrenzter Bereich:[ \t]*([^\r\n]+)\r?$/mi);
     if (!match || match[1].trim().length < 12 || /^(?:ausfüllen|tbd|todo|n\/a)\b/i.test(match[1].trim())) errors.push('Begrenzten Bereich und Auswirkungen auf gemeinsame Elemente angeben.');
   }
   return errors;

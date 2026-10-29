@@ -1,0 +1,41 @@
+name: Produktindex-Korrektur vorbereiten
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - docs/product-map.md
+      - docs/generated-product-index.md
+      - scripts/context-index.mjs
+      - scripts/open-index-repair-pr.sh
+      - .github/workflows/repair-product-index.yml
+  schedule:
+    - cron: '17 7 * * *'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: product-index-repair
+  cancel-in-progress: false
+
+jobs:
+  repair:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      # Only main is checked out. A dedicated fine-grained token
+      # with contents + pull-requests write is needed to create a PR whose normal
+      # GitHub Actions checks run. No token is required when no repair is needed.
+      - uses: actions/checkout@v4
+        with:
+          ref: main
+          token: ${{ secrets.WERKTAG_INDEX_REPAIR_TOKEN || github.token }}
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+      - name: Ausschließlich Index auf Basis von main korrigieren
+        env:
+          GH_TOKEN: ${{ secrets.WERKTAG_INDEX_REPAIR_TOKEN }}
+        run: bash scripts/open-index-repair-pr.sh

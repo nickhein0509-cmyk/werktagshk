@@ -26,3 +26,24 @@ test('Umfang muss bewusst und eindeutig erklärt werden', () => {
   assert.deepEqual(checkContext('<!-- werktag-design-scope: none -->'), []);
   assert.equal(checkContext('<!-- werktag-design-scope: none -->\n<!-- werktag-design-scope: general -->').length, 1);
 });
+
+test('Leere Bereichsfelder übernehmen keinen Text aus der nächsten Zeile', () => {
+  const areas = ['Lernen', 'Assistent', 'Materialliste', 'Plattform'];
+  for (const empty of areas) {
+    for (const whitespace of ['', '  \t']) {
+      for (const newline of ['\n', '\r\n']) {
+        const fields = areas.map(area => `- ${area}:${area === empty ? whitespace : ' Ausführlich geprüft.'}`);
+        const body = ['<!-- werktag-design-scope: general -->', ...fields, 'Eine andere längere Zeile'].join(newline);
+        const errors = checkContext(body);
+        assert.equal(errors.length, 1, `Fehler für ${empty} erwartet`);
+        assert.match(errors[0], new RegExp(`^${empty}:`));
+      }
+    }
+  }
+});
+test('Ein leeres Feld für begrenzten Umfang übernimmt keine Folgezeile', () => {
+  for (const newline of ['\n', '\r\n']) {
+    const body = ['<!-- werktag-design-scope: limited -->', '- Begrenzter Bereich:   ', 'Eine andere längere Zeile'].join(newline);
+    assert.equal(checkContext(body).length, 1);
+  }
+});

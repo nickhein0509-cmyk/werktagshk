@@ -34,7 +34,7 @@ jobs:
             npx playwright install --with-deps chromium
           fi
       - name: Kontextprüfungen testen
-        run: node --test scripts/test-context-guards.mjs
+        run: node --test scripts/test-context-guards.mjs scripts/test-index-repair.mjs
       - name: Produktindex prüfen und bei Abweichung korrigieren
         id: context_index
         run: |
