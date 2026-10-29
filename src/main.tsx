@@ -5,6 +5,7 @@ import { ProjectHub } from './components/ProjectHub';
 import { AccountPage } from './components/AccountPage';
 import './styles.css';
 import './design/focus.css';
+import './design/atelier.css';
 
 ReactDOM.createRoot(document.getElementById('root')!).render(
   <React.StrictMode>
