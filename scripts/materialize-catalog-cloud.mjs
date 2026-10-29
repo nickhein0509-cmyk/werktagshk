@@ -6,7 +6,7 @@ import { createHash } from 'node:crypto';
 import { CATALOGUE_FILES, CATALOGUE_SOURCE_SHA256, validateCatalogueResource } from '../supabase/functions/assistance/catalog.mjs';
 
 const EXPECTED_ADAPTER = 'ff78461cd47fc5648284d8814a4d0057293d7fb0f0cba7d420c54b9c506b467d';
-const EXPECTED_ENDPOINT = 'https://hrqaxsbddpmphblmoyly.supabase.co/functions/v1/assistance';
+const EXPECTED_ENDPOINT = 'https://mvkksfecimpjnytvbrrb.supabase.co/functions/v1/assistance';
 const hash = bytes => createHash('sha256').update(bytes).digest('hex');
 function replaceOnce(text, before, after) {
   if (text.split(before).length !== 2) throw new Error('The verified catalogue view has changed.');
