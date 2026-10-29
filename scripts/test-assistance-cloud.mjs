@@ -4,7 +4,7 @@ import { Readable } from 'node:stream';
 import { readFile } from 'node:fs/promises';
 import { createCloudProxy, cloudCookie } from '../server/assistance-cloud.mjs';
 import account from '../api/assistenz-account.mjs';
-import { CATALOGUE_CSP } from '../supabase/functions/assistance/catalog.mjs';
+import { CATALOGUE_CSP, CATALOGUE_FILES } from '../supabase/functions/assistance/catalog.mjs';
 
 const endpoint = 'https://synthetic.supabase.co/functions/v1/werktag-assistance';
 const origin = 'https://werk-tag.com';
@@ -32,6 +32,26 @@ test('protected catalogue HTML restores its fixed MIME and policy after Edge gat
       assert.equal(res.headers['cache-control'], 'no-store');
     }
   }
+});
+
+test('cloud catalogue allowlist follows every canonical asset while index stays alias-only', async () => {
+  const seen = [];
+  const proxy = createCloudProxy({ endpoint, fetchImpl: async url => {
+    seen.push(url.searchParams.get('route'));
+    return new Response('synthetic catalogue asset', { headers: { 'content-type': 'text/plain' } });
+  } });
+  const assets = CATALOGUE_FILES.filter(file => file !== 'index.html');
+  for (const file of assets) {
+    const route = 'map/components/' + file;
+    const res = response(); await proxy(request('/assistenz/components/' + file), res, route);
+    assert.equal(res.statusCode, 200, route);
+    assert.equal(seen.at(-1), route);
+  }
+  for (const route of ['map/components/index.html', 'map/components/blocks/shk-shard-42.b64']) {
+    const res = response(); await proxy(request(), res, route);
+    assert.equal(res.statusCode, 405, route);
+  }
+  assert.equal(seen.length, assets.length);
 });
 
 test('catalogue errors stay JSON and ordinary cloud HTML never gains catalogue rendering', async () => {

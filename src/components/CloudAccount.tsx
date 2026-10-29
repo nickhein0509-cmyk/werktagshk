@@ -6,6 +6,7 @@ import { supabase } from '../lib/supabase';
 import { mergeLearningStates } from '../lib/sync';
 import { validateState } from '../lib/learning';
 import type { LearningState } from '../lib/learning';
+import { registerAccount, signInAccount, signOutAccount } from '../lib/account-actions';
 
 export function CloudAccount({
   user,
@@ -34,12 +35,12 @@ export function CloudAccount({
     setBusy(true);
     try {
       const result = create
-        ? await client.auth.signUp({
+        ? await registerAccount(client, {
             email,
             password,
-            options: { emailRedirectTo: window.location.origin },
+            emailRedirectTo: window.location.origin,
           })
-        : await client.auth.signInWithPassword({ email, password });
+        : await signInAccount(client, { email, password });
       setMessage(
         result.error
           ? 'Anmeldung fehlgeschlagen. Prüfe E-Mail, Passwort und gegebenenfalls deine Bestätigungsmail.'
@@ -70,14 +71,7 @@ export function CloudAccount({
               setBusy(true);
               setMessage('');
               try {
-                const cleared = await fetch('/assistenz/logout', {
-                  method: 'POST', credentials: 'same-origin', signal: AbortSignal.timeout(8000),
-                });
-                // Keep the account signed in until its private session is revoked.
-                // Otherwise a failed request would leave a usable catalogue cookie.
-                if (!cleared.ok) throw new Error('Private session revocation failed');
-                const { error } = await client.auth.signOut({ scope: 'local' });
-                if (error) throw error;
+                await signOutAccount(client);
               } catch {
                 setMessage('Abmelden nicht abgeschlossen. Bitte erneut versuchen.');
               } finally {

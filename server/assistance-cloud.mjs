@@ -1,8 +1,8 @@
 import { Buffer } from 'node:buffer';
-import { CATALOGUE_CSP, cataloguePath, catalogueType } from '../supabase/functions/assistance/catalog.mjs';
+import { CATALOGUE_CSP, CATALOGUE_FILES, cataloguePath, catalogueType } from '../supabase/functions/assistance/catalog.mjs';
 
 const COOKIE = '__Secure-werktag-assistance';
-const catalogueFiles = ['app.js','inflate.js','style-0.css','style-1.css','chrome.css','blocks/shk-offline-index.b64',...Array.from({length:42},(_,i)=>`blocks/shk-shard-${i}.b64`)];
+const catalogueFiles = CATALOGUE_FILES.filter(file => file !== 'index.html');
 const routes = new Map([
   ['pub', ['POST']], ['map/data', ['GET']], ['map/archive', ['GET']],
   ['map/statistics', ['GET']], ['map/context', ['GET', 'POST']], ['map/context-range', ['GET']],
