@@ -2,6 +2,7 @@ import {test} from 'node:test';
 import assert from 'node:assert/strict';
 import {Readable} from 'node:stream';
 import {createGateway} from '../api/assistenz.mjs';
+import {CATALOGUE_FILES} from '../supabase/functions/assistance/catalog.mjs';
 function req(url,method='GET',headers={},payload){const r=Readable.from(payload?[Buffer.from(payload)]:[]);Object.assign(r,{url,method,headers});return r;}
 function response(){return{headers:{},setHeader(k,v){this.headers[k.toLowerCase()]=v;},end(v){this.body=Buffer.isBuffer(v)?v.toString():v??'';}};}
 const opts={upstreamOrigin:'https://receiver.example',publicOrigin:'https://werk-tag.com'};
@@ -16,6 +17,14 @@ test('server URL misconfiguration and upstream redirects fail closed',async()=>{
 test('catalogue shell and assets preserve bytes, authentication and source policy',async()=>{
   const samples=[['','text/html','<html><body><a href="/projekte">Projekte</a><p>/map/source</p></body></html>'],['/app.js','application/javascript','const source="/map/source";'],['/blocks/shk-offline-index.b64','text/plain','index/map/base64'],['/blocks/shk-shard-41.b64','text/plain','last/map/base64']];
   for(const [path,type,source] of samples){let seen;const gateway=createGateway({...opts,fetchImpl:async(u,o)=>{seen={u,o};return new Response(source,{headers:{'content-type':type,'content-security-policy':"default-src 'none'; script-src 'self'"}});}});const res=response();await gateway(req('/assistenz/components'+path,'GET',{cookie:'__Secure-nick-map=test; unrelated=private'}),res);assert.equal(res.statusCode,200);assert.equal(res.body,source);assert.equal(seen.u.pathname,'/map/components'+path);assert.equal(seen.o.headers.cookie,'__Secure-nick-map=test');assert.equal(res.headers['cache-control'],'no-store');assert.match(res.headers['content-security-policy'],/script-src 'self'/);}
+});
+test('private gateway derives catalogue assets from the canonical list and keeps index alias-only',async()=>{
+  const seen=[];const gateway=createGateway({...opts,fetchImpl:async url=>{seen.push(url.pathname);return new Response('synthetic',{headers:{'content-type':'text/plain'}});}});
+  const assets=CATALOGUE_FILES.filter(file=>file!=='index.html');
+  for(const file of assets){const res=response();await gateway(req('/assistenz/components/'+file),res);assert.equal(res.statusCode,200,file);assert.equal(seen.at(-1),'/map/components/'+file);}
+  const shell=response();await gateway(req('/assistenz/components'),shell);assert.equal(shell.statusCode,200);assert.equal(seen.at(-1),'/map/components');
+  for(const path of ['/index.html','/view']){const res=response();await gateway(req('/assistenz/components'+path),res);assert.equal(res.statusCode,404,path);}
+  assert.equal(seen.length,assets.length+1);
 });
 test('catalogue private access failures stay closed and unknown blocks never reach PC',async()=>{
   let calls=0;const gateway=createGateway({...opts,fetchImpl:async()=>{calls++;return new Response('Bitte zuerst privat anmelden.',{status:401,headers:{'content-type':'text/html'}});}});

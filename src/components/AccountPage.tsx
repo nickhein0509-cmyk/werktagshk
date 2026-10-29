@@ -2,6 +2,13 @@ import { useEffect, useRef, useState } from 'react';
 import type { Session } from '@supabase/supabase-js';
 import { supabase } from '../lib/supabase';
 import { assistanceOwnerProof } from '../lib/assistance-access';
+import {
+  registerAccount,
+  requestAccountPasswordReset,
+  signInAccount,
+  signOutAccount,
+  updateAccountPassword,
+} from '../lib/account-actions';
 import './account-page.css';
 
 // Remove only our private connection parameter. Supabase must still receive its
@@ -220,8 +227,12 @@ export function AccountPage() {
     setMessage('');
     try {
       const result = register
-        ? await supabase.auth.signUp({ email, password, options: { emailRedirectTo: `${window.location.origin}/konto` } })
-        : await supabase.auth.signInWithPassword({ email, password });
+        ? await registerAccount(supabase, {
+            email,
+            password,
+            emailRedirectTo: `${window.location.origin}/konto`,
+          })
+        : await signInAccount(supabase, { email, password });
       setMessage(result.error
         ? 'Anmeldung fehlgeschlagen. Prüfe E-Mail, Passwort und gegebenenfalls die Bestätigungsmail.'
         : register && !result.data.session
@@ -261,9 +272,11 @@ export function AccountPage() {
     setBusy(true);
     setMessage('');
     try {
-      const { error } = await supabase.auth.resetPasswordForEmail(email.trim(), {
-        redirectTo: `${window.location.origin}/konto`,
-      });
+      const { error } = await requestAccountPasswordReset(
+        supabase,
+        email.trim(),
+        `${window.location.origin}/konto`,
+      );
       if (authGeneration.current !== generation) return;
       setMessage(error
         ? 'Die Wiederherstellung ist gerade nicht verfügbar. Bitte versuche es später erneut.'
@@ -289,7 +302,7 @@ export function AccountPage() {
     setBusy(true);
     setMessage('');
     try {
-      const { error } = await supabase.auth.updateUser({ password });
+      const { error } = await updateAccountPassword(supabase, password);
       if (currentAccount.current !== account || authGeneration.current !== generation) return;
       if (error) throw error;
       setRecovery(false);
@@ -309,10 +322,7 @@ export function AccountPage() {
     if (!supabase) return;
     setBusy(true);
     try {
-      const cleared = await fetch('/assistenz/logout', { method: 'POST', credentials: 'same-origin', signal: AbortSignal.timeout(8000) });
-      if (!cleared.ok) throw new Error();
-      const { error } = await supabase.auth.signOut({ scope: 'local' });
-      if (error) throw error;
+      await signOutAccount(supabase);
       setOwnerKey('');
       setMessage('Abgemeldet.');
     } catch { setMessage('Abmelden nicht abgeschlossen. Bitte erneut versuchen.'); }
