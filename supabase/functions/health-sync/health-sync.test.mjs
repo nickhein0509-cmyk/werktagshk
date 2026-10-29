@@ -22,6 +22,18 @@ test('existing parser preserves merged totals, source times and exact VO2 observ
   assert.equal(days[0].sourceLastSyncAt, '2026-10-28T11:55:00.000Z');
 });
 
+test('VO2 observations retain the precision supplied by the provider', () => {
+  for (const [timestamp, observedAt, precision] of [
+    ['2026-10-28T09:12:34Z', '2026-10-28T09:12:34.000Z', 'second'],
+    ['2026-10-28T10:12:34+01:00', '2026-10-28T09:12:34.000Z', 'second'],
+    ['2026-10-28T09:12:34.000Z', '2026-10-28T09:12:34.000Z', 'millisecond'],
+  ]) {
+    const [day] = normalizeRows([{ ...steps, metric: 'vo2_max', device: 'Apple Watch', numValue: 45.2, unit: 'ml/kg/min', timestamp }], { fetchedAt });
+    assert.equal(day.metrics.vo2_max.observedAt, observedAt);
+    assert.equal(day.metrics.vo2_max.observedAtPrecision, precision, timestamp);
+  }
+});
+
 test('per-device totals, contradictory duplicates and out-of-window rows fail closed', () => {
   assert.throws(() => normalizeRows([{ ...steps, device: 'iPhone' }], { fetchedAt }), /HEALTH_NON_MERGED_RECORD/);
   assert.throws(() => normalizeRows([steps, { ...steps, numValue: 2345 }], { fetchedAt }), /HEALTH_AMBIGUOUS_DUPLICATE/);
@@ -49,13 +61,13 @@ test('source connection is validated without requesting or returning raw health 
   assert.throws(() => sourceMetadata({ sources: [{ ...source, needsReauth: true }] }), /HEALTH_SOURCE_NOT_CONNECTED/);
 });
 
-function fixture({ owner = true, providerStatus = 200, cursorLoop = false, committed = true, initialConfigured = false, initialAttemptAt = null, claimAvailable = true } = {}) {
+function fixture({ owner = true, anonymous = false, providerStatus = 200, cursorLoop = false, committed = true, initialConfigured = false, initialAttemptAt = null, claimAvailable = true } = {}) {
   const calls = [], stored = [];
   let configured = initialConfigured, disabled = false, lastAttemptAt = initialAttemptAt, lastSuccessAt = null, errorCode = null;
   const fetcher = async (input, options = {}) => {
     const url = new URL(input), body = options.body ? JSON.parse(options.body) : null;
     calls.push({ path: url.pathname, query: url.search, body });
-    if (url.pathname === '/auth/v1/user') return options.headers.Authorization === `Bearer ${token}` ? json({ id: user }) : json({ error: 'unauthorized' }, { status: 401 });
+    if (url.pathname === '/auth/v1/user') return options.headers.Authorization === `Bearer ${token}` ? json({ id: user, is_anonymous: anonymous }) : new Response(null, { status: 401 });
     if (url.pathname === '/rest/v1/assistance_installations') return json(owner ? [{ id: installation }] : []);
     if (url.pathname === '/rest/v1/assistance_health_sync') return json([{ installation_id: installation }]);
     if (url.pathname.endsWith('/assistance_health_authorize_cron')) return json(body.p_secret === 's'.repeat(64));
@@ -95,6 +107,17 @@ test('wrong owner cannot probe a key; provider authentication errors leave confi
   const response = await invalid.request('configure', { apiKey });
   assert.equal(response.status, 400); assert.deepEqual(await response.json(), { ok: false, error: 'HEALTH_KEY_INVALID' });
   assert.equal(invalid.calls.some(call => call.path.endsWith('/assistance_health_configure')), false);
+});
+
+test('anonymous accounts cannot read Health status or use owner actions', async () => {
+  for (const route of ['status', 'check', 'configure', 'refresh', 'disable']) {
+    const f = fixture({ anonymous: true, initialConfigured: true });
+    const response = await f.request(route, route === 'status' ? undefined : route === 'check' || route === 'configure' ? { apiKey } : {});
+    assert.equal(response.status, 403, route);
+    assert.deepEqual(await response.json(), { ok: false, error: 'HEALTH_OWNER_REQUIRED' });
+    assert.deepEqual(f.calls.map(call => call.path), ['/auth/v1/user']);
+    assert.equal(f.stored.length, 0);
+  }
 });
 
 test('cron secret is checked before credentials; failed pagination never commits partial data', async () => {
