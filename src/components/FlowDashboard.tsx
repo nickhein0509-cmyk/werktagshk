@@ -1,3 +1,4 @@
+import '../design/dashboard-finish.css';
 import { WorkshopOrbit } from './WorkshopOrbit';
 import type { ReactNode } from 'react';
 import {
@@ -5,6 +6,8 @@ import {
   ArrowUpRight,
   BriefcaseBusiness,
   CalendarDays,
+  ClipboardList,
+  ScanLine,
   Droplets,
   Flame,
   RotateCcw,
@@ -17,6 +20,8 @@ import { examAreas, examDate } from '../exam';
 import type { ExamAreaId } from '../exam';
 import { getMasteredIds, getStreak, getTodayCount } from '../lib/learning';
 import type { LearningState } from '../lib/learning';
+
+const areaIcons = [ClipboardList, ScanLine, BriefcaseBusiness];
 
 const topicIcons = { heizung: Flame, sanitaer: Droplets, klima: Wind, wiso: BriefcaseBusiness };
 
@@ -49,7 +54,7 @@ export function FlowDashboard({
   const nextExercise = exercises.find((exercise) => !mastered.has(exercise.id)) ?? exercises[0];
 
   return (
-    <>
+    <div className="flow-dashboard">
       <section className="flow-hero" aria-labelledby="flow-title">
         <WorkshopOrbit />
         <div className="flow-hero-content">
@@ -104,19 +109,24 @@ export function FlowDashboard({
           </button>
         </div>
         <div className="exam-priority-grid">
-          {examAreas.map((area, index) => (
-            <button className="exam-priority-card" key={area.id} onClick={() => onArea(area.id)}>
-              <div className="exam-priority-top">
-                <span>0{index + 1}</span>
-                <ArrowUpRight size={19} />
-              </div>
-              <h3>{area.title}</h3>
-              <p>{area.description}</p>
-              <span className="inline-link">
-                Fragen üben <ArrowRight size={16} />
-              </span>
-            </button>
-          ))}
+          {examAreas.map((area, index) => {
+            const AreaIcon = areaIcons[index];
+            return (
+              <button className="exam-priority-card" key={area.id} onClick={() => onArea(area.id)}>
+                <div className="exam-priority-top">
+                  <span className="exam-area-number">0{index + 1}</span>
+                  <span className="exam-area-symbol" aria-hidden="true">
+                    <AreaIcon size={28} strokeWidth={1.25} />
+                  </span>
+                </div>
+                <h3>{area.title}</h3>
+                <p>{area.description}</p>
+                <span className="inline-link">
+                  Fragen üben <ArrowRight size={16} />
+                </span>
+              </button>
+            );
+          })}
         </div>
         <p className="exam-priority-note">
           Redaktionelle Schwerpunkte zur Vorbereitung · keine Vorhersage von Prüfungsfragen.
@@ -175,6 +185,12 @@ export function FlowDashboard({
               </strong>
               <span> Aufgaben heute</span>
             </div>
+            <progress
+              className="routine-goal-progress"
+              value={Math.min(todayCount, state.dailyGoal)}
+              max={state.dailyGoal}
+              aria-label="Heutiges Tagesziel"
+            />
             {weekDots}
             <p>
               {streak} {streak === 1 ? 'Lerntag' : 'Lerntage'} in Folge
@@ -221,6 +237,6 @@ export function FlowDashboard({
           Fortschritt getrennt.
         </p>
       </section>
-    </>
+    </div>
   );
 }
