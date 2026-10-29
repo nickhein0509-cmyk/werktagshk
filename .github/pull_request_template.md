@@ -16,6 +16,19 @@ Welches konkrete Problem löst der Stand und wie verhält sich WerkTag danach?
 - Benötigte andere PRs oder Branches:
 - Auftrag: Arbeitsstand / zur Kombination vorgesehen / Veröffentlichung beauftragt
 
+## Designumfang
+
+<!-- Einen Wert auswählen: general (allgemeines WerkTag-Design), limited (ausdrücklich begrenzt), none (kein Designauftrag). -->
+<!-- werktag-design-scope: pending -->
+
+Bei `general` zu jedem Bereich die Prüfung und das Ergebnis oder einen konkreten offenen Punkt nennen. Bei `limited` den begrenzten Bereich und Auswirkungen auf gemeinsame Elemente nennen. Diese Angaben ersetzen keine inhaltliche Review.
+
+- Lernen: ausfüllen
+- Assistent: ausfüllen
+- Materialliste: ausfüllen
+- Plattform: ausfüllen
+- Begrenzter Bereich: ausfüllen
+
 ## Prüfung
 
 - Tatsächlich ausgeführte Befehle und Ergebnis:

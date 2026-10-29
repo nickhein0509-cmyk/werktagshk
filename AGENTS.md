@@ -28,6 +28,20 @@ here. Identify the product, linked task and owned files before editing. A task
 for one product does not automatically authorize changes across all three.
 Coordinate genuinely shared authentication, routing, storage and releases.
 
+## Shared design scope — 29 October 2026
+
+Nick confirmed that a general request to design or beautify WerkTag covers all
+three product areas: Lernen, private Assistenz and Materialliste (also called
+Komponentenliste), plus their shared navigation and account entry. Treat them
+as a connected application for visual consistency while respecting each
+product's distinct purpose, data and access controls. Inspect the actual
+implementation and relevant flows for each area, apply a coherent design suited
+to its tasks, and verify the affected experiences. If an area cannot be accessed,
+changed or verified, state precisely what remains open; do not claim the whole
+application is complete. A request Nick explicitly limits to one area remains
+limited, while considering effects on shared elements. This design-scope rule
+does not authorize unrelated cross-product functional or data changes.
+
 The learning-specific priorities and design requirements below apply to the
 Lernapp. They do not override Assistent or Materialliste requirements. Private
 study-source collections and personal learning evidence remain separate from
