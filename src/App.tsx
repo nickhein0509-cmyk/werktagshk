@@ -1,4 +1,4 @@
-import { version as appVersion } from '../package.json';
+import packageInfo from '../package.json';
 import { lazy, Suspense, useEffect, useId, useMemo, useRef, useState } from 'react';
 import type { ChangeEvent, ReactNode } from 'react';
 import {
@@ -513,7 +513,7 @@ function App() {
         <footer className="workspace-footer">
           <span>WerkTag · Mit Kopf. Mit Hand. Mit dir.</span>
           <span>
-            WerkTag Atelier <span className="footer-version">/ {appVersion}</span>
+            WerkTag Atelier <span className="footer-version">/ {packageInfo.version}</span>
           </span>
         </footer>
       </div>

@@ -1,5 +1,6 @@
 import { expect, test } from '@playwright/test';
-import { version } from '../../package.json';
+import packageInfo from '../../package.json' with { type: 'json' };
+const { version } = packageInfo;
 
 for (const width of [320, 390]) {
   test(`atelier footer remains reachable above mobile navigation at ${width}px`, async ({ page }) => {
