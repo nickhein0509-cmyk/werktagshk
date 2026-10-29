@@ -1,13 +1,13 @@
 /* Flow 0.2.0: dark petrol frame, light work surfaces, white primary action. */
 :root {
-  --flow-canvas: #0d2427;
+  --flow-canvas: #0c2425;
   --flow-text: #f7f7f2;
-  --flow-text-muted: #b9cbc5;
-  --flow-surface: #eeeee6;
-  --flow-surface-raised: #fffefa;
+  --flow-text-muted: #b7cbc3;
+  --flow-surface: #f4f0e7;
+  --flow-surface-raised: #fffcf5;
   --flow-ink: #143236;
   --flow-ink-muted: #53635c;
-  --flow-copper: #e0a37d;
+  --flow-copper: #e9b78e;
   --flow-copper-ink: #8b4927;
   --flow-line: #cbd2c7;
   --flow-line-dark: #355052;

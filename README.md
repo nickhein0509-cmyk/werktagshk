@@ -114,6 +114,10 @@ abgegebene Antwort auf eine Aufgabe, nicht nachgewiesene berufliche Kompetenz.
 Das Tagesziel zählt unterschiedliche bearbeitete Aufgaben pro lokalem
 Kalendertag. Wiederholtes Klicken erhöht es nicht künstlich.
 
+## Atelier 0.14.0
+
+Die gemeinsame Website nutzt jetzt lokal ausgelieferte Manrope-Typografie, warme Arbeitsflächen, kupferne Leitungszeichnungen und eine ruhigere Navigation. Lernapp, Projektwahl, Konto und Assistent erhalten eine zusammenhängende Gestaltung. [Änderungen und Prüfgrenzen](docs/atelier-release.md).
+
 ## Lokal entwickeln
 
 Voraussetzung: Node.js 24 (siehe `.nvmrc`) und npm. Die Modellübungen funktionieren
@@ -125,6 +129,8 @@ werden ausschließlich nach Anmeldung und serverseitiger Freigabe geladen.
 npm ci
 npm run dev
 ```
+
+[Lokale Produktrouten und Grenzen privater Dienste](docs/local-development.md): `/assistenz` und `/assistenz/components` öffnen auch lokal die richtigen Einstiege.
 
 ```sh
 npm run build     # TypeScript und Produktionsbundle

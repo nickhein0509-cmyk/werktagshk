@@ -1,1 +1,22 @@
 .health-panel{margin-top:24px;padding:22px;background:#fff;border:1px solid var(--line);border-radius:16px}.health-heading{display:flex;justify-content:space-between;align-items:center;gap:16px;margin-bottom:18px}.health-heading h2{font-size:21px;letter-spacing:-.5px;font-weight:600;margin:0}.health-source{font-size:10px;color:var(--green);background:#eaf2e4;padding:6px 10px;border-radius:20px;white-space:nowrap}.health-grid{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:10px}.health-grid article{border-radius:10px;background:#f6f8f2;border:1px solid #e7ece0;padding:15px}.health-grid article>span{display:block;color:var(--muted);font-size:9px;letter-spacing:1px;font-weight:650}.health-grid strong{font-size:26px;font-weight:550;letter-spacing:-.7px;line-height:1.7}.health-grid small{display:block;font-size:10px;color:var(--muted)}.health-grid .health-unit{display:inline;font-size:11px;font-weight:400;letter-spacing:0;color:var(--muted);margin-left:4px}.health-notes{color:var(--muted);font-size:10px;margin:13px 0 0;line-height:1.6}.health-notes p{margin:4px 0}.health-message{font-size:12px;color:var(--muted);padding:15px;background:#f6f8f2;border-radius:9px;margin:0}#health-extras:empty{display:none}@media(max-width:650px){.health-panel{padding:16px;margin-top:20px}.health-heading{gap:10px;align-items:start}.health-heading h2{font-size:20px}.health-source{font-size:9px;max-width:135px;white-space:normal;text-align:center}.health-grid{grid-template-columns:repeat(2,minmax(0,1fr));gap:8px}.health-grid article{padding:12px}.health-grid strong{font-size:25px}.health-grid article>span{font-size:8px}.health-notes{font-size:10px}}
+
+/* Quiet reading surfaces keep missing measurements distinct from real values. */
+.health-panel { padding: 28px; border-radius: 24px; }
+.health-heading h2 { font-size: 26px; letter-spacing: -.035em; font-weight: 500; }
+.health-source { background: #e4eade; color: #305a46; border: 1px solid #c0cdb8; }
+.health-grid { gap: 12px; }
+.health-grid article { background: #eeeee4; border-color: #d9dfd1; border-radius: 15px; padding: 19px; min-width: 0; }
+.health-grid article > span { overflow-wrap: anywhere; }
+.health-grid strong { font-size: 31px; font-weight: 450; letter-spacing: -.04em; }
+.health-message { background: #eaece2; color: #4e6458; border-radius: 13px; padding: 19px; line-height: 1.7; }
+.health-notes { font-size: 12px; line-height: 1.8; }
+@media (max-width: 650px) {
+  .health-panel { padding: 22px 17px; }
+  .health-heading { flex-wrap: wrap; }
+  .health-heading h2 { font-size: 23px; }
+  .health-source { max-width: 100%; text-align: left; }
+  .health-grid { gap: 8px; }
+  .health-grid article { padding: 15px 11px; }
+  .health-grid strong { font-size: 27px; }
+  .health-grid article > span { font-size: 10px; }
+}
