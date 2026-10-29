@@ -33,6 +33,7 @@ if (/^\/konto\/?$/.test(window.location.pathname) && window.location.hash) {
 type LinkStatus = { linked: boolean; canRead: boolean };
 type HealthStatus = {
   status: string;
+  connectionKind?: 'api' | 'mcp';
   configured: boolean;
   enabled: boolean;
   cronActive?: boolean;
@@ -53,7 +54,8 @@ type HealthCheck = {
   sourceLastDataAt: string | null;
 };
 const healthErrors: Record<string, string> = {
-  HEALTH_KEY_INVALID: 'Freddy hat den Schlüssel abgewiesen. Erstelle bei Freddy unter „AI apps“ einen persönlichen API-Schlüssel und trage ihn hier ein.',
+  HEALTH_KEY_INVALID: 'Freddy hat die Zugangsdaten abgewiesen. Prüfe die gewählte Verbindungsart und die zugehörigen Zugangsdaten in Freddy.',
+  HEALTH_CONSENT_REQUIRED: 'Öffne Freddy und bestätige dort die angezeigten Bedingungen, bevor WerkTag Daten abrufen kann.',
   HEALTH_KEY_UNAVAILABLE: 'Der gespeicherte Freddy-Schlüssel ist nicht verfügbar. Richte den Health-Abgleich mit einem gültigen Schlüssel erneut ein.',
   HEALTH_SOURCE_NOT_CONNECTED: 'Apple Health ist bei Freddy pausiert oder benötigt eine erneute Freigabe. Prüfe die Quelle in Freddy auf deinem iPhone.',
   HEALTH_SOURCE_RATE_LIMITED: 'Freddy begrenzt gerade die Abrufe. Warte kurz und versuche es später erneut.',
@@ -62,8 +64,8 @@ const healthErrors: Record<string, string> = {
   HEALTH_SOURCE_PAGINATION: 'Der Abruf war unvollständig. Es wurden keine Teilergebnisse übernommen. Versuche den Abruf erneut.',
   HEALTH_SOURCE_TOO_LARGE: 'Der Abruf ist zu groß. Es wurden keine Teilergebnisse übernommen.',
   HEALTH_SYNC_FAILED: 'Der Cloud-Abgleich ist fehlgeschlagen. Deine vorhandenen Werte bleiben erhalten. Versuche den Abruf erneut.',
-  HEALTH_NOT_CONFIGURED: 'WerkTag ist noch nicht mit Freddy verbunden. Trage zuerst deinen persönlichen Freddy-API-Schlüssel ein.',
-  HEALTH_SYNC_DISABLED: 'Der automatische Abgleich ist ausgeschaltet. Aktiviere ihn mit deinem persönlichen Freddy-Schlüssel erneut.',
+  HEALTH_NOT_CONFIGURED: 'WerkTag ist noch nicht mit Freddy verbunden. Trage zuerst die Freddy-Verbindung ein.',
+  HEALTH_SYNC_DISABLED: 'Der automatische Abgleich ist ausgeschaltet. Richte die Freddy-Verbindung erneut ein, um ihn zu aktivieren.',
   HEALTH_SYNC_BUSY: 'Ein Health-Abruf läuft bereits. Aktualisiere den Status in etwa einer Minute.',
   HEALTH_REFRESH_COOLDOWN: 'Der letzte Health-Abruf ist noch keine Minute her. Warte kurz und aktualisiere dann den Status.',
   HEALTH_OWNER_REQUIRED: 'Melde dich mit dem WerkTag-Konto an, dem deine private Assistenz zugeordnet ist.',
@@ -137,6 +139,10 @@ export function AccountPage() {
   const [health, setHealth] = useState<HealthStatus | null>(null);
   const [healthCheck, setHealthCheck] = useState<HealthCheck | null>(null);
   const [apiKey, setApiKey] = useState('');
+  const [connectionKind, setConnectionKind] = useState<'mcp' | 'api'>('mcp');
+  const [mcpUrl, setMcpUrl] = useState('');
+  const [mcpToken, setMcpToken] = useState('');
+  const connectionFilled = connectionKind === 'mcp' ? Boolean(mcpUrl.trim() && mcpToken.trim()) : Boolean(apiKey.trim());
   const [healthBusy, setHealthBusy] = useState(false);
   const [healthMessage, setHealthMessage] = useState('');
   const [reload, setReload] = useState(0);
@@ -174,7 +180,7 @@ export function AccountPage() {
       currentAccount.current = nextAccount;
       setSession(next);
       setAuthReady(true);
-      setApiKey('');
+      setApiKey(''); setMcpUrl(''); setMcpToken('');
       setHealthCheck(null);
     });
     return () => {
@@ -331,23 +337,23 @@ export function AccountPage() {
 
   async function healthAction(action: 'configure' | 'disable' | 'check' | 'refresh') {
     const needsKey = action === 'configure' || action === 'check';
-    if (!session || (needsKey && !apiKey.trim()) || healthBusy) return;
+    if (!session || (needsKey && !connectionFilled) || healthBusy) return;
     const account = session.user.id;
     const controller = new AbortController();
     mutations.current.add(controller);
-    const submittedKey = apiKey.trim();
-    if (action !== 'check') setApiKey('');
+    const credential = connectionKind === 'mcp' ? { mcpUrl: mcpUrl.trim(), mcpToken: mcpToken.trim() } : { apiKey: apiKey.trim() };
+    if (action !== 'check') { setApiKey(''); setMcpUrl(''); setMcpToken(''); }
     setHealthBusy(true);
     setHealthMessage('');
     try {
       if (action === 'check') {
-        const checked = await accountRequest<HealthCheck>('/api/assistenz-health?route=check', session.access_token, { apiKey: submittedKey }, controller.signal);
+        const checked = await accountRequest<HealthCheck>('/api/assistenz-health?route=check', session.access_token, credential, controller.signal);
         if (controller.signal.aborted || currentAccount.current !== account) return;
         setHealthCheck(checked);
         setHealthMessage(checked.metricsAvailable ? 'Freddy ist erreichbar und Apple Health ist freigegeben. Die Prüfung speichert keinen Schlüssel und aktiviert noch keinen Abgleich.' : 'Freddy ist erreichbar. Es sind noch keine unterstützten Apple-Health-Tageswerte abrufbar. Öffne Freddy auf dem iPhone und prüfe die Health-Freigaben.');
         return;
       }
-      const next = await accountRequest<HealthStatus>(`/api/assistenz-health?route=${action}`, session.access_token, action === 'configure' ? { apiKey: submittedKey } : {}, controller.signal);
+      const next = await accountRequest<HealthStatus>(`/api/assistenz-health?route=${action}`, session.access_token, action === 'configure' ? credential : {}, controller.signal);
       if (controller.signal.aborted || currentAccount.current !== account) return;
       setHealth(next);
       setHealthMessage(action === 'disable' ? 'Automatischer Health-Abgleich ausgeschaltet. Gespeicherte Daten bleiben erhalten.' : action === 'refresh' ? 'Die bei Freddy verfügbaren Daten wurden vollständig geprüft und übernommen. Das erzwingt keine neue Messung auf dem iPhone.' : next.errorCode ? healthErrors[next.errorCode] ?? 'Die Verbindung ist gespeichert, aber der erste Abruf braucht Aufmerksamkeit. Prüfe den Status.' : 'Einstellungen gespeichert. Der angezeigte Status zeigt, ob der erste vollständige Abruf erfolgreich war.');
@@ -418,13 +424,14 @@ export function AccountPage() {
               <section className="account-card" aria-labelledby="account-health-title">
                 <h2 id="account-health-title">Apple Health über Freddy</h2>
                 <p className={`account-health-state ${healthActive ? 'account-health-ready' : 'account-health-pending'}`} role="status">{healthState(health)}</p>
-                {!health?.configured && <p className="account-health-explanation">Deine Freddy-Verbindung in ChatGPT und die Verbindung zu WerkTag sind getrennt. Für den automatischen Abruf benötigt WerkTag einmalig einen persönlichen Freddy-API-Schlüssel.</p>}
+                {!health?.configured && <p className="account-health-explanation">Deine Freddy-Verbindung in ChatGPT und die Verbindung zu WerkTag sind getrennt. Für den automatischen Abruf kannst du deine Freddy-MCP-Adresse mit dem zugehörigen Zugriffstoken verwenden.</p>}
                 <ol className="account-health-steps" aria-label="Health-Verbindung einrichten">
                   <li><strong>iPhone → Freddy</strong><span>Apple Health in der Freddy-App freigeben und die App für den ersten Abgleich öffnen.</span></li>
-                  <li><strong>Freddy → WerkTag</strong><span>Unter „AI apps“ einen API-Schlüssel für WerkTag erstellen und unten geschützt eintragen.</span></li>
+                  <li><strong>Freddy → WerkTag</strong><span>Die MCP-Verbindungsdaten aus Freddy unten geschützt eintragen. Ein Personal-API-Schlüssel ist dafür nicht nötig.</span></li>
                   <li><strong>Cloud-Abruf prüfen</strong><span>Nach der Einrichtung zählen ein erfolgreicher vollständiger Abruf und die tatsächlichen Quellenzeiten.</span></li>
                 </ol>
                 <p>WerkTag prüft bei aktiviertem Cloud-Takt alle 15 Minuten die bei Freddy verfügbaren Daten. Neue iPhone-Messungen erscheinen erst, wenn Apple Health und Freddy sie synchronisiert haben. Ein alter Quellenstand wird durch häufiges Abrufen nicht neuer.</p>
+                {health?.configured && <p>Gespeicherte Verbindung: {health.connectionKind === 'mcp' ? 'Freddy MCP' : 'Freddy Personal API'}</p>}
                 <dl className="account-times">
                   <div><dt>Letzte Cloud-Prüfung</dt><dd>{readableTime(health?.lastAttemptAt)}</dd></div>
                   <div><dt>Letzter erfolgreicher Abruf</dt><dd>{readableTime(health?.lastSuccessAt)}</dd></div>
@@ -435,11 +442,15 @@ export function AccountPage() {
                 {health?.errorCode && <p className="account-health-explanation">{healthErrors[health.errorCode] ?? 'Der letzte vollständige Abruf ist fehlgeschlagen. Vorhandene Werte bleiben erhalten. Prüfe die Verbindung und versuche den Abruf erneut.'}</p>}
                 {health?.configured && health.enabled && !health.cronActive && <p>Der Schlüssel ist hinterlegt, aber der automatische Zeitplan läuft nicht. Richte den Abgleich erneut ein, um den Zeitplan wiederherzustellen.</p>}
                 {health?.configured && health.enabled && !health.lastSuccessAt && <p>Es ist noch kein vollständiger erfolgreicher Cloud-Abruf bestätigt. Ein gespeicherter Schlüssel allein belegt keinen Datenimport.</p>}
-                <p>Öffne <a href="https://freddy.coach/app" target="_blank" rel="noopener noreferrer">Freddy</a> und dort „AI apps“ → „API keys“. <a href="https://freddy.coach/help/personal-api" target="_blank" rel="noopener noreferrer">Hilfe zum persönlichen API-Schlüssel</a></p>
+                <p>Öffne <a href="https://freddy.coach/app" target="_blank" rel="noopener noreferrer">Freddy</a> und dort die MCP-Verbindung unter „AI apps“.</p>
                 <form onSubmit={(event) => { event.preventDefault(); void healthAction('configure'); }}>
-                  <label>Persönlicher Freddy-API-Schlüssel<input type="password" autoComplete="off" spellCheck={false} required value={apiKey} onChange={(event) => { setApiKey(event.target.value); setHealthCheck(null); }} /></label>
-                  <p>Der Schlüssel wird einmalig geschützt an den Server übertragen und nicht im Browserspeicher abgelegt. Deine bestehenden Kurzbefehle bleiben bestehen.</p>
-                  <div className="account-actions"><button type="button" disabled={healthBusy || !apiKey.trim()} onClick={() => void healthAction('check')}>Verbindung prüfen</button><button className="account-primary" disabled={healthBusy || !apiKey.trim()}>Health-Abgleich einrichten</button></div>
+                  <label>Verbindungsart<select value={connectionKind} onChange={(event) => { setConnectionKind(event.target.value as 'mcp' | 'api'); setApiKey(''); setMcpUrl(''); setMcpToken(''); setHealthCheck(null); }}><option value="mcp">Freddy MCP</option><option value="api">Personal API</option></select></label>
+                  {connectionKind === 'mcp' ? <>
+                    <label>Freddy-MCP-Adresse<input type="password" autoComplete="off" spellCheck={false} required value={mcpUrl} onChange={(event) => { setMcpUrl(event.target.value); setHealthCheck(null); }} /></label>
+                    <label>Freddy-MCP-Zugriffstoken<input type="password" autoComplete="off" spellCheck={false} required value={mcpToken} onChange={(event) => { setMcpToken(event.target.value); setHealthCheck(null); }} /></label>
+                  </> : <label>Persönlicher Freddy-API-Schlüssel<input type="password" autoComplete="off" spellCheck={false} required value={apiKey} onChange={(event) => { setApiKey(event.target.value); setHealthCheck(null); }} /></label>}
+                  <p>Die Zugangsdaten werden geschützt übertragen, serverseitig verschlüsselt und nicht im Browserspeicher abgelegt. Deine bestehenden Kurzbefehle bleiben bestehen.</p>
+                  <div className="account-actions"><button type="button" disabled={healthBusy || !connectionFilled} onClick={() => void healthAction('check')}>Verbindung prüfen</button><button className="account-primary" disabled={healthBusy || !connectionFilled}>Health-Abgleich einrichten</button></div>
                 </form>
                 {healthCheck && <div className="account-health-check" aria-label="Ergebnis der Verbindungsprüfung"><p>Apple Health erreichbar · {healthCheck.metricsAvailable} unterstützte Tagesmetriken</p><p>{healthCheck.historyWindowDays ? `Dein Freddy-Tarif erlaubt den Abruf der letzten ${healthCheck.historyWindowDays} Tage.` : 'Der Datenumfang richtet sich nach deinem Freddy-Tarif.'} Bereits gespeicherte WerkTag-Tage bleiben erhalten.</p><p>Quelle zuletzt synchronisiert: {readableTime(healthCheck.sourceLastSyncAt)}</p></div>}
                 <div className="account-actions"><button type="button" disabled={healthBusy} onClick={() => setReload((value) => value + 1)}>Health-Status aktualisieren</button>{health?.configured && health.enabled && <button type="button" disabled={healthBusy} onClick={() => void healthAction('refresh')}>Jetzt Health-Daten abrufen</button>}{health?.configured && <button type="button" disabled={healthBusy} onClick={() => void healthAction('disable')}>Automatischen Health-Abgleich ausschalten</button>}</div>
