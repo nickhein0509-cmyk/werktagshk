@@ -355,3 +355,12 @@
     white-space: nowrap;
   }
 }
+/* Focus follows the surface: dark copper on the pale start card, light copper on petrol. */
+.flow-cockpit .routine-start:focus-visible {
+  outline-color: var(--flow-copper-ink);
+}
+.flow-cockpit .cockpit-jump:focus-visible,
+.flow-cockpit .flow-routine .text-button:focus-visible {
+  outline: 3px solid var(--flow-copper);
+  outline-offset: 4px;
+}
