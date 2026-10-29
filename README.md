@@ -16,6 +16,11 @@ Die [Produkt- und Eigentümerkarte](docs/product-map.md) erklärt für jeden Cha
 wo er beginnen und welche Dateien er bearbeiten soll. `/projekte` und `/konto`
 sind gemeinsame Plattformdienste. Die bisherige Historie bleibt erhalten.
 
+Die [Fork-Auswertung und Ladeoptimierung](docs/fork-review-20261029.md) bewertet
+20 Referenzprojekte und dokumentiert, welche Konzepte gezielt in WerkTag einfließen.
+Projektauswahl und Konto laden die Lernapp nicht mit; `npm run check:entry-budgets`
+prüft nach einem Build die Importgrenzen und Größenlimits.
+
 Der [Assistent 0.13.0](docs/assistant-workspace.md) bietet eine eigene Übersicht,
 private Notizen und Aufgaben mit Fälligkeit, Suche über gewählte Zeiträume und
 Bedienung auf Handy und Desktop. Manuelle Einträge funktionieren unabhängig von

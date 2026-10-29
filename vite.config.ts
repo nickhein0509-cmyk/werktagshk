@@ -42,6 +42,7 @@ const localRoutes: Plugin = {
 export default defineConfig({
   plugins: [localRoutes, react()],
   build: {
+    manifest: true,
     rolldownOptions: {
       input: { main: 'index.html', assistance: 'assistance.html', components: 'components.html' },
       output: {

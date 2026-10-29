@@ -1,0 +1,427 @@
+{
+  "checkedOnUTC": "2026-10-29",
+  "scope": "20 public forks; default branches compared with parent default branches, snapshot at inventory time; other branches not reviewed",
+  "source": "GitHub public REST metadata and compare endpoints, read via Remote Desktop Commander; source READMEs via GitHub connector/local checkouts",
+  "forks": [
+    {
+      "name": "awesome-remote-job",
+      "fork": true,
+      "created": "2026-10-29T14:51:59Z",
+      "pushed": "2026-09-21T15:00:51Z",
+      "description": "A curated list of awesome remote jobs and resources. Inspired by https://github.com/vinta/awesome-python",
+      "license": null,
+      "parent": "lukasz-madon/awesome-remote-job",
+      "parentPushed": "2026-09-21T15:00:51Z",
+      "sizeKiB": 1205,
+      "defaultBranch": "master",
+      "comparison": {
+        "status": "identical",
+        "ahead": 0,
+        "behind": 0,
+        "head": "d7c1d773841358f72212c4c1a123adff6af56c78"
+      },
+      "category": "Persönliche Referenz",
+      "decision": "Job-/Remote-Arbeitsliste; kein Bestandteil der WerkTag-Laufzeit. Star/Leseliste genügt.",
+      "licenseReview": "CC0 laut README; API ohne Zuordnung"
+    },
+    {
+      "name": "open-source-ios-apps",
+      "fork": true,
+      "created": "2026-10-29T14:51:39Z",
+      "pushed": "2026-10-29T14:34:19Z",
+      "description": ":iphone: Collaborative List of Open-Source iOS Apps",
+      "license": "CC0-1.0",
+      "parent": "dkhamsing/open-source-ios-apps",
+      "parentPushed": "2026-10-29T14:34:19Z",
+      "sizeKiB": 37059,
+      "defaultBranch": "master",
+      "comparison": {
+        "status": "identical",
+        "ahead": 0,
+        "behind": 0,
+        "head": "f88abe6cc5287fd312b9b1627e3660bfe288a9d2"
+      },
+      "category": "Später gezielt",
+      "decision": "Beispiele für vorhandene native iOS-App: Health, Location, Tasks. Jede verlinkte App hat ihre eigene Lizenz; keine pauschale Übernahme.",
+      "licenseReview": "CC0-1.0 für die Liste"
+    },
+    {
+      "name": "awesome-openclaw-skills",
+      "fork": true,
+      "created": "2026-10-29T14:51:20Z",
+      "pushed": "2026-10-19T05:54:13Z",
+      "description": "The awesome collection of OpenClaw skills. 5,400+ skills filtered and categorized from the official OpenClaw Skills Registry.🦞",
+      "license": "MIT",
+      "parent": "VoltAgent/awesome-openclaw-skills",
+      "parentPushed": "2026-10-19T05:54:13Z",
+      "sizeKiB": 2319,
+      "defaultBranch": "main",
+      "comparison": {
+        "status": "identical",
+        "ahead": 0,
+        "behind": 0,
+        "head": "c2c40f188e996cdedbb786db1fb6585d389f671b"
+      },
+      "category": "Referenz, einzeln prüfen",
+      "decision": "Katalog fremder Automationen, keine WerkTag-Funktion. Nur konkrete Skills mit Quelle, Berechtigungen, Datenzugriff und Tests auswählen.",
+      "licenseReview": "MIT für die Liste"
+    },
+    {
+      "name": "awesome-ios",
+      "fork": true,
+      "created": "2026-10-29T14:51:02Z",
+      "pushed": "2026-08-27T19:34:29Z",
+      "description": "A curated list of awesome iOS ecosystem, including Objective-C and Swift Projects ",
+      "license": "MIT",
+      "parent": "vsouza/awesome-ios",
+      "parentPushed": "2026-08-27T19:34:29Z",
+      "sizeKiB": 17206,
+      "defaultBranch": "master",
+      "comparison": {
+        "status": "identical",
+        "ahead": 0,
+        "behind": 0,
+        "head": "630ca87d5f93373c8098d42c8dc780e79eb44d12"
+      },
+      "category": "Später gezielt",
+      "decision": "iOS-Bibliotheken für Swift-/Health-/Location-Arbeit auswählen, sobald eine konkrete Lücke besteht. Kein Anlass für neue Pakete im Webbuild.",
+      "licenseReview": "MIT für die Liste"
+    },
+    {
+      "name": "github-cheat-sheet",
+      "fork": true,
+      "created": "2026-10-29T14:50:24Z",
+      "pushed": "2024-04-15T20:15:56Z",
+      "description": "A list of cool features of Git and GitHub.",
+      "license": "MIT",
+      "parent": "tiimgreen/github-cheat-sheet",
+      "parentPushed": "2024-04-15T20:15:56Z",
+      "sizeKiB": 776,
+      "defaultBranch": "master",
+      "comparison": {
+        "status": "identical",
+        "ahead": 0,
+        "behind": 0,
+        "head": "746af1b42356973f66627319bbaf4ac5157c5308"
+      },
+      "category": "Arbeitsreferenz",
+      "decision": "Vergleich zwischen Forks, Issues/PR-Verknüpfung, Git-Hilfen. WerkTags Worktree-/PR-Verfahren existiert bereits.",
+      "licenseReview": "MIT"
+    },
+    {
+      "name": "awesome-scalability",
+      "fork": true,
+      "created": "2026-10-29T14:49:51Z",
+      "pushed": "2026-01-04T03:51:47Z",
+      "description": "The Patterns of Scalable, Reliable, and Performant Large-Scale Systems",
+      "license": "MIT",
+      "parent": "binhnguyennus/awesome-scalability",
+      "parentPushed": "2026-01-04T03:51:47Z",
+      "sizeKiB": 1607,
+      "defaultBranch": "master",
+      "comparison": {
+        "status": "identical",
+        "ahead": 0,
+        "behind": 0,
+        "head": "c9ca9f248d4dbbde63a8460188f6324f00f34ddd"
+      },
+      "category": "Jetzt genutzt",
+      "decision": "Performance messen und Ladegrenzen definieren; daraus konkrete Route-Trennung und Build-Budget. Keine Microservices/Kubernetes hinzufügen.",
+      "licenseReview": "MIT"
+    },
+    {
+      "name": "RuView",
+      "fork": true,
+      "created": "2026-10-29T14:49:23Z",
+      "pushed": "2026-10-29T12:17:32Z",
+      "description": "π RuView turns commodity WiFi signals into real-time spatial intelligence, vital sign monitoring, and presence detection — all without a single pixel of video.",
+      "license": "MIT",
+      "parent": "ruvnet/RuView",
+      "parentPushed": "2026-10-29T12:17:32Z",
+      "sizeKiB": 425896,
+      "defaultBranch": "main",
+      "comparison": {
+        "status": "identical",
+        "ahead": 0,
+        "behind": 0,
+        "head": "3686bc770f77eb6161d5379861dcd09d7d9a1e4b"
+      },
+      "category": "Separates Experiment",
+      "decision": "WiFi-/CSI-Sensorik mit Hardware/Firmware; kein fertiger Health-Ersatz. README kennzeichnet Teile als synthetisch/unvalidiert. Nicht in persönliche Messdaten mischen.",
+      "licenseReview": "MIT laut API; Teilkomponenten gesondert prüfen"
+    },
+    {
+      "name": "awesome-mac",
+      "fork": true,
+      "created": "2026-10-29T14:48:41Z",
+      "pushed": "2026-10-29T14:05:58Z",
+      "description": " This project is dedicated to collecting high-quality macOS software and organizing them systematically by different categories for easy search and use.",
+      "license": "CC0-1.0",
+      "parent": "jaywcjlove/awesome-mac",
+      "parentPushed": "2026-10-29T14:05:58Z",
+      "sizeKiB": 89049,
+      "defaultBranch": "master",
+      "comparison": {
+        "status": "identical",
+        "ahead": 0,
+        "behind": 0,
+        "head": "1075c604bdb67f3a89e1fe00e5755f5aea0d752e"
+      },
+      "category": "Persönliche Referenz",
+      "decision": "Softwarekatalog für macOS, keine einbaubare App-Bibliothek. Gelistete Produkte haben eigene Lizenzen und Preise.",
+      "licenseReview": "CC0-1.0 für die Liste"
+    },
+    {
+      "name": "Awesome-Hacking",
+      "fork": true,
+      "created": "2026-10-29T14:47:41Z",
+      "pushed": "2026-10-27T01:45:58Z",
+      "description": "A collection of various awesome lists for hackers, pentesters and security researchers",
+      "license": "CC0-1.0",
+      "parent": "Hack-with-Github/Awesome-Hacking",
+      "parentPushed": "2026-10-27T01:45:58Z",
+      "sizeKiB": 1476,
+      "defaultBranch": "master",
+      "comparison": {
+        "status": "identical",
+        "ahead": 0,
+        "behind": 0,
+        "head": "440486fd08b0a0d9ad9a041a0bb234dcdf65dee2"
+      },
+      "category": "Gezielte Prüfreferenz",
+      "decision": "AppSec-/API-/Node-Sicherheitsreferenzen; keine neue Laufzeitabhängigkeit und kein durchgeführter Pentest.",
+      "licenseReview": "CC0-1.0 für die Liste"
+    },
+    {
+      "name": "the-book-of-secret-knowledge",
+      "fork": true,
+      "created": "2026-10-29T14:46:43Z",
+      "pushed": "2024-11-19T14:00:38Z",
+      "description": "A collection of inspiring lists, manuals, cheatsheets, blogs, hacks, one-liners, cli/web tools and more.",
+      "license": "MIT",
+      "parent": "trimstray/the-book-of-secret-knowledge",
+      "parentPushed": "2024-11-19T14:00:38Z",
+      "sizeKiB": 1748,
+      "defaultBranch": "master",
+      "comparison": {
+        "status": "identical",
+        "ahead": 0,
+        "behind": 0,
+        "head": "7d37069a361d3fd9f214480755f7969744e866fa"
+      },
+      "category": "Arbeitsreferenz",
+      "decision": "CLI-/Betriebsnachschlagewerk. Stand des Default-Branches von 2024; Befehle und externe Links vor Anwendung prüfen.",
+      "licenseReview": "MIT"
+    },
+    {
+      "name": "TradingAgents",
+      "fork": true,
+      "created": "2026-10-29T06:26:32Z",
+      "pushed": "2026-10-27T08:43:04Z",
+      "description": "TradingAgents: Multi-Agents LLM Financial Trading Framework",
+      "license": "Apache-2.0",
+      "parent": "TauricResearch/TradingAgents",
+      "parentPushed": "2026-10-27T08:43:04Z",
+      "sizeKiB": 6566,
+      "defaultBranch": "main",
+      "comparison": {
+        "status": "identical",
+        "ahead": 0,
+        "behind": 0,
+        "head": "c4544913a14ed3df5f1ed7b9e8483270ce20682a"
+      },
+      "category": "Außerhalb WerkTag",
+      "decision": "Finanzanalyse-Framework mit Anbietern und eigenen Daten-/Kostenverträgen. Für einen getrennten Trading-Auftrag aufheben.",
+      "licenseReview": "Apache-2.0"
+    },
+    {
+      "name": "opencode",
+      "fork": true,
+      "created": "2026-10-29T06:26:12Z",
+      "pushed": "2026-10-29T06:23:37Z",
+      "description": "The open source coding agent.",
+      "license": "MIT",
+      "parent": "anomalyco/opencode",
+      "parentPushed": "2026-10-29T14:56:45Z",
+      "sizeKiB": 612353,
+      "defaultBranch": "dev",
+      "comparison": {
+        "status": "behind",
+        "ahead": 0,
+        "behind": 16,
+        "head": "510aa79d075c32e75f85b7774ff7390370c22b18"
+      },
+      "category": "Entwicklungswerkzeug",
+      "decision": "Coding-Agent außerhalb des Produktbundles. Fork erst pflegen, wenn eigene Patches oder Beiträge vorgesehen sind.",
+      "licenseReview": "MIT"
+    },
+    {
+      "name": "superpowers",
+      "fork": true,
+      "created": "2026-10-29T06:25:35Z",
+      "pushed": "2026-10-23T03:48:57Z",
+      "description": "An agentic skills framework & software development methodology that works.",
+      "license": "MIT",
+      "parent": "obra/superpowers",
+      "parentPushed": "2026-10-23T03:48:57Z",
+      "sizeKiB": 7985,
+      "defaultBranch": "main",
+      "comparison": {
+        "status": "identical",
+        "ahead": 0,
+        "behind": 0,
+        "head": "2ce8aa15d05bd57213e6f746f953aafb7ded7a8b"
+      },
+      "category": "Gezielte Arbeitsreferenz",
+      "decision": "Verifikation vor Erfolgsmeldungen und isolierte Arbeitszweige passen bereits zum Projekt. Keine konkurrierenden globalen Workflows automatisch installieren.",
+      "licenseReview": "MIT"
+    },
+    {
+      "name": "hallmark",
+      "fork": true,
+      "created": "2026-10-29T06:25:13Z",
+      "pushed": "2026-10-28T14:52:03Z",
+      "description": "Anti-AI-slop design skill for Claude Code, Cursor, and Codex.",
+      "license": "MIT",
+      "parent": "Nutlope/hallmark",
+      "parentPushed": "2026-10-28T14:52:03Z",
+      "sizeKiB": 233526,
+      "defaultBranch": "main",
+      "comparison": {
+        "status": "identical",
+        "ahead": 0,
+        "behind": 0,
+        "head": "8f6969f8922caabde9de1784959eae11ddf68073"
+      },
+      "category": "Jetzt als Prüfprinzip genutzt",
+      "decision": "Bei Änderungen vorhandene Links/Bedienung erhalten und im Browser prüfen. Keine zweite Themesammlung oder Generatorpipeline übernehmen.",
+      "licenseReview": "MIT"
+    },
+    {
+      "name": "impeccable",
+      "fork": true,
+      "created": "2026-10-29T06:24:51Z",
+      "pushed": "2026-10-29T04:51:37Z",
+      "description": "The design vocabulary for your coding agent. Steer with polish and bolder, review with critique and audit, catch AI slop before it ships.",
+      "license": "Apache-2.0",
+      "parent": "pbakaus/impeccable",
+      "parentPushed": "2026-10-29T04:51:37Z",
+      "sizeKiB": 887658,
+      "defaultBranch": "main",
+      "comparison": {
+        "status": "identical",
+        "ahead": 0,
+        "behind": 0,
+        "head": "5e745ace7e151feb2a93d360d0281fe39448b857"
+      },
+      "category": "Jetzt genutzt",
+      "decision": "Gelesene optimize-/harden-Referenzen: bedarfsgesteuertes Laden, Messung, verständliche Fehler- und Ladezustände. Eigenständige Implementierung.",
+      "licenseReview": "Apache-2.0"
+    },
+    {
+      "name": "DeepTutor",
+      "fork": true,
+      "created": "2026-10-29T06:24:10Z",
+      "pushed": "2026-10-28T18:01:08Z",
+      "description": "DeepTutor: Lifelong Personalized Tutoring. https://deeptutor.info/.",
+      "license": "Apache-2.0",
+      "parent": "HKUDS/DeepTutor",
+      "parentPushed": "2026-10-29T10:14:05Z",
+      "sizeKiB": 305630,
+      "defaultBranch": "main",
+      "comparison": {
+        "status": "identical",
+        "ahead": 0,
+        "behind": 0,
+        "head": "1ea7df155447f4caf0e3abc86b3ff5395479cd4a"
+      },
+      "category": "Später gezielt",
+      "decision": "Quellengestützte Lernabläufe/RAG als Referenz für LERNEN. Gesamte Python-/Next-/Modellanbieterplattform passt nicht als kleines Zusatzpaket.",
+      "licenseReview": "Apache-2.0"
+    },
+    {
+      "name": "skills",
+      "fork": true,
+      "created": "2026-10-29T06:23:40Z",
+      "pushed": "2026-10-28T20:08:40Z",
+      "description": "A collection of AI agent skills for working with Expo projects and Expo Application Services",
+      "license": "MIT",
+      "parent": "expo/skills",
+      "parentPushed": "2026-10-29T10:37:46Z",
+      "sizeKiB": 4632,
+      "defaultBranch": "main",
+      "comparison": {
+        "status": "identical",
+        "ahead": 0,
+        "behind": 0,
+        "head": "05754e71d02abe0d2d7a2fb5259ccac41f5ea59c"
+      },
+      "category": "Aktuell anderer Stack",
+      "decision": "Expo- und React-Native-Skills. WerkTag nutzt React/Vite plus native Swift-App; kein Grund, dafür auf Expo umzubauen.",
+      "licenseReview": "MIT"
+    },
+    {
+      "name": "jailbreaks",
+      "fork": true,
+      "created": "2026-10-29T06:22:58Z",
+      "pushed": "2026-10-28T12:31:33Z",
+      "description": "LIST OF ALL MY JAILBREAKS",
+      "license": null,
+      "parent": "togg53192-cmd/jailbreaks",
+      "parentPushed": "2026-10-28T12:31:33Z",
+      "sizeKiB": 241,
+      "defaultBranch": "main",
+      "comparison": {
+        "status": "identical",
+        "ahead": 0,
+        "behind": 0,
+        "head": "17c7117635cf0f270104b1bb8b1e79ff8319a668"
+      },
+      "category": "Nicht integrieren",
+      "decision": "Prompt-/Policy-Override-Sammlung ohne nachgewiesenen Produktnutzen; macht Verhalten nicht verlässlicher. Keine fremden AGENTS-/Systemregeln übernehmen.",
+      "licenseReview": "Keine Lizenz erkannt/Root-Lizenz nicht gefunden"
+    },
+    {
+      "name": "macro",
+      "fork": true,
+      "created": "2026-10-29T06:21:37Z",
+      "pushed": "2026-10-29T05:55:32Z",
+      "description": "Macro is a unified workspace for teams: email, chat, docs, tasks, agents, calls, and CRM — @-linked together with shared AI memory.",
+      "license": "AGPL-3.0",
+      "parent": "macro-inc/macro",
+      "parentPushed": "2026-10-29T14:56:33Z",
+      "sizeKiB": 1996574,
+      "defaultBranch": "main",
+      "comparison": {
+        "status": "identical",
+        "ahead": 0,
+        "behind": 0,
+        "head": "3953a658d877ddfcd8c4724e0b5d66f02de008f3"
+      },
+      "category": "Produktreferenz",
+      "decision": "Verknüpfte Notizen/Aufgaben und Suche als Ideenquelle. SolidJS/Rust-Gesamtsystem ist groß; direkte Codeübernahme erfordert AGPL-Prüfung.",
+      "licenseReview": "AGPL-3.0"
+    },
+    {
+      "name": "openbot",
+      "fork": true,
+      "created": "2026-10-29T06:21:07Z",
+      "pushed": "2026-10-29T06:21:01Z",
+      "description": "A local-first desktop workspace for persistent AI teammates. Run Codex, Claude, and Grok with dedicated workspaces, task queues, file sharing, browser control, and agent-to-agent collaboration.",
+      "license": "NOASSERTION",
+      "parent": "nightly-labs/openbot",
+      "parentPushed": "2026-10-29T14:56:43Z",
+      "sizeKiB": 206943,
+      "defaultBranch": "main",
+      "comparison": {
+        "status": "behind",
+        "ahead": 0,
+        "behind": 35,
+        "head": "c389f4404256e754214b6982503381778d80ed35"
+      },
+      "category": "Separates Entwicklungswerkzeug",
+      "decision": "Lokaler Agenten-Desktop, kein Web-App-Baustein; direkte Übernahme für kommerzielles WerkTag nicht durch die vorhandene Lizenz gedeckt.",
+      "licenseReview": "PolyForm Noncommercial 1.0.0 (LICENSE gelesen)"
+    }
+  ]
+}
