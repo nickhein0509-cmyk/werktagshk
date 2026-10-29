@@ -4,7 +4,7 @@ Auftrag vom 29. Oktober 2026: die gemeinsame Website authentischer, eigenständi
 
 ## Gestaltung
 
-- Lokal bereitgestellte variable Manrope-Schrift mit mitgelieferter OFL-Lizenz; Systemschrift bleibt als Fallback verfügbar. Keine zusätzliche Font-Anfrage an Dritte.
+- Lokal bereitgestellte variable Manrope-Schrift mit mitgelieferter OFL-Lizenz; Systemschrift bleibt als Fallback verfügbar. Keine zusätzliche Font-Anfrage an Dritte. Die Produktionsrichtlinie erlaubt dafür ausschließlich Schriften derselben Herkunft; ein Browsertest prüft das tatsächliche Laden unter dieser Richtlinie.
 - Lernstart mit eigener dekorativer Kupfer-Leitungsstudie, ruhiger Navigation, klarer Hauptaktion und leichter gegliederten Arbeitsflächen. Die Illustration enthält keine Messwerte oder fachlichen Aussagen.
 - Projektwahl und Konto erhalten dieselben Material-, Typografie- und Formprinzipien.
 - Assistent mit editorialem Einstieg, Tastatur-Sprunglink, hellen Notiz-/Aufgabenflächen, klaren Zuständen sowie abgestimmter Zeitachse und Health-Ansicht.
