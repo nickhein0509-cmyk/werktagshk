@@ -172,7 +172,7 @@ async function timelineFixture(page: Page, options: {
     if (options.fullProductionCSP) {
       // The fixture's account host replaces only the real project's host.
       headers['content-security-policy'] = productionHeaders.find(header => header.key.toLowerCase() === 'content-security-policy')!.value
-        .replaceAll('https://hrqaxsbddpmphblmoyly.supabase.co', 'https://test-werktag.supabase.co');
+        .replaceAll('https://mvkksfecimpjnytvbrrb.supabase.co', 'https://test-werktag.supabase.co');
     }
     return route.fulfill({ response, headers });
   });

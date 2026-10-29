@@ -1,8 +1,7 @@
 import {createClient} from 'npm:@supabase/supabase-js@2.118.0';
 import {createNativeHandler} from './handler.mjs';
 const admin=createClient(Deno.env.get('SUPABASE_URL')!,Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!,{auth:{persistSession:false,autoRefreshToken:false}});
-const installationId=Deno.env.get('ASSISTANCE_INSTALLATION_ID');
-if(!installationId)throw new Error('ASSISTANCE_INSTALLATION_ID required');
+const installationId=Deno.env.get('ASSISTANCE_INSTALLATION_ID')??'b4f2aa0a-c752-42f4-9b9d-10aecf7c9420';
 const check=(r:any)=>{if(r.error)throw new Error('Database operation failed');return r.data;};
 const store={
  async getUser(token:string){const r=await admin.auth.getUser(token);return r.error?null:r.data.user;},
