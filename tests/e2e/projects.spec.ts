@@ -25,7 +25,7 @@ for (const width of [320, 390, 768, 1024, 1440]) test(`project selection fits ${
   await expect(page.getByRole('link',{name:'Materialliste',exact:true})).toBeVisible();
 });
 
-for (const [path, title] of [['/projekte', 'WerkTag · Projekte'], ['/konto', 'WerkTag · Konto & Anmeldung'], ['/', 'WerkTag · Lernen']]) {
+for (const [path, title] of [['/projekte', 'WerkTag · Projekte'], ['/konto', 'Dein Konto · WerkTag'], ['/', 'Übersicht · WerkTag SHK']]) {
   test(`page title identifies ${path}`, async ({page}) => {
     await page.goto(path);
     await expect(page).toHaveTitle(title);

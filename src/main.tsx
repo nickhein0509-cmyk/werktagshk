@@ -9,11 +9,8 @@ import './design/atelier.css';
 
 const accountRoute = /^\/konto\/?$/.test(window.location.pathname);
 const projectsRoute = /^\/projekte\/?$/.test(window.location.pathname);
-document.title = accountRoute
-  ? 'WerkTag · Konto & Anmeldung'
-  : projectsRoute
-    ? 'WerkTag · Projekte'
-    : 'WerkTag · Lernen';
+// Account and learning views manage their own titles after mounting.
+if (projectsRoute) document.title = 'WerkTag · Projekte';
 
 ReactDOM.createRoot(document.getElementById('root')!).render(
   <React.StrictMode>
