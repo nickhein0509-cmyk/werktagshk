@@ -1,5 +1,9 @@
 # WerkTag: drei Desktop-Aufteilungen
 
+**Weiterführung:** Variante A wird als echte Oberfläche im
+[Lerncockpit-Auftrag](../fokus/UMSETZUNG-20261029.md) integriert. Die Bilder und
+Messwerte hier bleiben die historische Studie aus PR #23.
+
 Produkt LERNEN. Nutzerauftrag: mehr Übersicht und bessere Flächennutzung auf
 Desktop, mehrere Designoptionen; native iOS-Abnahme folgt später.
 Branch `feat/desktop-layout-options-20261029`, frische main-Basis

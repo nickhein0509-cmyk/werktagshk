@@ -1,5 +1,5 @@
 import '../design/dashboard-finish.css';
-import { WorkshopOrbit } from './WorkshopOrbit';
+import '../design/dashboard-cockpit.css';
 import type { ReactNode } from 'react';
 import {
   ArrowRight,
@@ -54,131 +54,138 @@ export function FlowDashboard({
   const nextExercise = exercises.find((exercise) => !mastered.has(exercise.id)) ?? exercises[0];
 
   return (
-    <div className="flow-dashboard">
-      <section className="flow-hero" aria-labelledby="flow-title">
-        <WorkshopOrbit />
-        <div className="flow-hero-content">
-          <p className="eyebrow flow-exam-eyebrow">SHK · ABSCHLUSSPRÜFUNG TEIL 2</p>
-          <h1 id="flow-title">
-            Deine Prüfung.
-            <br />
-            Dein nächster Schritt.
-          </h1>
-          <div className="flow-hero-bottom">
-            <div className="flow-focus">
-              <p>
-                Übe die Zusammenhänge für deine Prüfung. Mit eigenen Aufgaben, klaren Lösungswegen
-                und deinem privaten Fragenbestand.
-              </p>
-              <div className="flow-hero-actions">
-                <button className="button hero-action" onClick={() => onLibrary()}>
-                  Prüfungsfragen öffnen <ArrowUpRight size={19} />
-                </button>
-                <button className="text-button" onClick={onExam}>
-                  Runde mit Zeitmessung <ArrowRight size={17} />
-                </button>
-              </div>
-              <span className="hero-meta">Eigene Übungsaufgaben · keine offiziellen Prüfungen</span>
-            </div>
-            <div className="flow-exam-date">
-              <span className="eyebrow">DEIN PRÜFUNGSTERMIN</span>
-              <time dateTime={examDate}>
-                <strong>
-                  07<span>/12</span>
-                </strong>
-                <span>7. Dezember 2026</span>
-              </time>
-              <p>
-                Ein klarer Fokus.
-                <br />
-                Dein Tempo bis dahin.
-              </p>
-            </div>
-          </div>
-        </div>
-      </section>
-
-      <section className="flow-subjects" aria-labelledby="exam-areas-title">
-        <div className="section-heading">
-          <div>
-            <p className="eyebrow">DEINE SCHRIFTLICHEN SCHWERPUNKTE</p>
-            <h2 id="exam-areas-title">Drei Bereiche. Ein Ziel.</h2>
-          </div>
-          <button className="text-button" onClick={() => onLibrary()}>
-            Alle Aufgaben <ArrowRight size={16} />
-          </button>
-        </div>
-        <div className="exam-priority-grid">
-          {examAreas.map((area, index) => {
-            const AreaIcon = areaIcons[index];
-            return (
-              <button className="exam-priority-card" key={area.id} onClick={() => onArea(area.id)}>
-                <div className="exam-priority-top">
-                  <span className="exam-area-number">0{index + 1}</span>
-                  <span className="exam-area-symbol" aria-hidden="true">
-                    <AreaIcon size={28} strokeWidth={1.25} />
-                  </span>
+    <div className="flow-dashboard flow-cockpit">
+      <div className="cockpit-main">
+        <section className="flow-hero" aria-labelledby="flow-title">
+          <div className="flow-hero-content">
+            <p className="eyebrow flow-exam-eyebrow">SHK · ABSCHLUSSPRÜFUNG TEIL 2</p>
+            <h1 id="flow-title">Dein Lernplatz.</h1>
+            <div className="flow-hero-bottom">
+              <div className="flow-focus">
+                <p>Prüfungsfragen üben, Zusammenhänge verstehen und gezielt wiederholen.</p>
+                <div className="flow-hero-actions">
+                  <button className="button hero-action" onClick={() => onLibrary()}>
+                    Prüfungsfragen öffnen <ArrowUpRight size={19} />
+                  </button>
+                  <button className="text-button" onClick={onExam}>
+                    Runde mit Zeitmessung <ArrowRight size={17} />
+                  </button>
                 </div>
-                <h3>{area.title}</h3>
-                <p>{area.description}</p>
-                <span className="inline-link">
-                  Fragen üben <ArrowRight size={16} />
+                <a className="text-button cockpit-jump" href="#routine-title">
+                  Heute im Blick <ArrowRight size={16} />
+                </a>
+                <span className="hero-meta">
+                  Eigene Übungsaufgaben · keine offiziellen Prüfungen
                 </span>
-              </button>
-            );
-          })}
-        </div>
-        <p className="exam-priority-note">
-          Redaktionelle Schwerpunkte zur Vorbereitung · keine Vorhersage von Prüfungsfragen.
-        </p>
-        <div className="flow-topics-heading">
-          <h2>Oder nach Lernfeld einsteigen.</h2>
-          <span>DEINE MODELLÜBUNGEN</span>
-        </div>
-        <div className="topic-grid">
-          {topics.map((topic, index) => {
-            const Icon = topicIcons[topic.id];
-            const topicExercises = exercises.filter((exercise) => exercise.topicId === topic.id);
-            const done = topicExercises.filter((exercise) => mastered.has(exercise.id)).length;
-            return (
-              <button
-                className={`topic-card ${topic.id}`}
-                key={topic.id}
-                onClick={() => onLibrary(topic.id)}
-              >
-                <div className="topic-top">
-                  <span className="subject-object">
-                    <Icon size={31} strokeWidth={1.5} />
-                  </span>
-                  <span className="subject-index">0{index + 1}</span>
-                </div>
-                <h3>{topic.name}</h3>
-                <p>{topic.subtitle}</p>
-                <div className="topic-progress">
-                  <span>
-                    {done} von {topicExercises.length} zuletzt richtig
-                  </span>
-                  <ArrowUpRight size={18} />
-                </div>
-              </button>
-            );
-          })}
-        </div>
-      </section>
+              </div>
+              <p className="cockpit-exam-date">
+                Dein Prüfungstermin: <time dateTime={examDate}>7. Dezember 2026</time>
+              </p>
+            </div>
+          </div>
+        </section>
 
-      <section className="flow-routine" aria-labelledby="routine-title">
+        <section className="flow-subjects" aria-labelledby="exam-areas-title">
+          <div className="section-heading">
+            <div>
+              <p className="eyebrow">DEINE SCHRIFTLICHEN SCHWERPUNKTE</p>
+              <h2 id="exam-areas-title">Womit möchtest du starten?</h2>
+            </div>
+            <button className="text-button" onClick={() => onLibrary()}>
+              Alle Aufgaben <ArrowRight size={16} />
+            </button>
+          </div>
+          <div className="exam-priority-grid">
+            {examAreas.map((area, index) => {
+              const AreaIcon = areaIcons[index];
+              return (
+                <button
+                  className="exam-priority-card"
+                  key={area.id}
+                  onClick={() => onArea(area.id)}
+                >
+                  <div className="exam-priority-top">
+                    <span className="exam-area-number">0{index + 1}</span>
+                    <span className="exam-area-symbol" aria-hidden="true">
+                      <AreaIcon size={28} strokeWidth={1.25} />
+                    </span>
+                  </div>
+                  <h3>{area.title}</h3>
+                  <p>{area.description}</p>
+                  <span className="inline-link">
+                    Fragen üben <ArrowRight size={16} />
+                  </span>
+                </button>
+              );
+            })}
+          </div>
+          <p className="exam-priority-note">
+            Redaktionelle Schwerpunkte zur Vorbereitung · keine Vorhersage von Prüfungsfragen.
+          </p>
+        </section>
+        <section className="cockpit-topics" aria-labelledby="topics-title">
+          <div className="flow-topics-heading">
+            <h2 id="topics-title">Deine Lernfelder</h2>
+            <span>DEINE MODELLÜBUNGEN</span>
+          </div>
+          <div className="topic-grid">
+            {topics.map((topic, index) => {
+              const Icon = topicIcons[topic.id];
+              const topicExercises = exercises.filter((exercise) => exercise.topicId === topic.id);
+              const done = topicExercises.filter((exercise) => mastered.has(exercise.id)).length;
+              return (
+                <button
+                  className={`topic-card ${topic.id}`}
+                  key={topic.id}
+                  onClick={() => onLibrary(topic.id)}
+                >
+                  <div className="topic-top">
+                    <span className="subject-object">
+                      <Icon size={31} strokeWidth={1.5} />
+                    </span>
+                    <span className="subject-index">0{index + 1}</span>
+                  </div>
+                  <h3>{topic.name}</h3>
+                  <p>{topic.subtitle}</p>
+                  <div className="topic-progress">
+                    <span>
+                      {done} von {topicExercises.length} zuletzt richtig
+                    </span>
+                    <ArrowUpRight size={18} />
+                  </div>
+                </button>
+              );
+            })}
+          </div>
+        </section>
+      </div>
+      <aside className="flow-routine" aria-labelledby="routine-title">
         <div className="section-heading">
-          <h2 id="routine-title">Dranbleiben wird Routine.</h2>
-          <button className="text-button" onClick={onCloud}>
-            Mein Fragenbestand <ArrowRight size={16} />
-          </button>
+          <h2 id="routine-title" tabIndex={-1}>
+            Heute im Blick
+          </h2>
         </div>
         <div className="routine-grid">
+          <button
+            className="routine-action routine-start"
+            aria-labelledby="cockpit-start-label"
+            onClick={() => onStart(nextExercise)}
+          >
+            <span className="routine-icon">
+              <Flame size={25} strokeWidth={1.5} />
+            </span>
+            <span className="routine-count">ca. {nextExercise.estimatedMinutes} Min</span>
+            <h3>Eine Aufgabe zum Einstieg</h3>
+            <p>{nextExercise.title}</p>
+            <span className="inline-link" id="cockpit-start-label">
+              Lerneinheit starten <ArrowUpRight size={16} />
+            </span>
+          </button>
           <div className="routine-week">
             <span className="routine-icon">
               <CalendarDays size={25} strokeWidth={1.5} />
             </span>
-            <h3>Dein Lernrhythmus.</h3>
+            <h3>Dein Tagesziel</h3>
             <div className="goal-ring">
               <strong>
                 {todayCount}/{state.dailyGoal}
@@ -206,7 +213,7 @@ export function FlowDashboard({
             <span className="routine-count">
               {dueCount} {dueCount === 1 ? 'Aufgabe fällig' : 'Aufgaben fällig'}
             </span>
-            <h3>Damit Wissen bleibt.</h3>
+            <h3>Gezielt wiederholen</h3>
             <p>
               {dueCount
                 ? 'Greif offene Aufgaben noch einmal auf und vertiefe den Zusammenhang.'
@@ -216,27 +223,15 @@ export function FlowDashboard({
               {dueCount ? 'Jetzt wiederholen' : 'Erste Aufgabe entdecken'} <ArrowRight size={16} />
             </span>
           </button>
-          <button
-            className="routine-action"
-            aria-label="Lerneinheit starten"
-            onClick={() => onStart(nextExercise)}
-          >
-            <span className="routine-icon">
-              <Flame size={25} strokeWidth={1.5} />
-            </span>
-            <span className="routine-count">ca. {nextExercise.estimatedMinutes} Min</span>
-            <h3>Eine Frage reicht zum Start.</h3>
-            <p>{nextExercise.title}</p>
-            <span className="inline-link">
-              Lerneinheit starten <ArrowUpRight size={16} />
-            </span>
-          </button>
         </div>
+        <button className="text-button cockpit-private" onClick={onCloud}>
+          Mein Fragenbestand <ArrowRight size={16} />
+        </button>
         <p className="content-footnote">
           <ShieldCheck size={14} /> Modellübungen und privater Fragenbestand führen ihren
           Fortschritt getrennt.
         </p>
-      </section>
+      </aside>
     </div>
   );
 }

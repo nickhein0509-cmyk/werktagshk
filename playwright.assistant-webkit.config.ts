@@ -8,7 +8,7 @@ export default defineConfig({
   // The second engine must not delete Chromium's explicitly synthetic UI shots.
   // Keep failure traces in an already ignored child directory instead.
   outputDir: 'test-results/webkit',
-  testMatch: /(?:assistant-workspace|assistant-timeline|assistance-entry|account|route-loading)\.spec\.ts/,
+  testMatch: /(?:assistant-workspace|assistant-timeline|assistance-entry|account|route-loading|cockpit)\.spec\.ts/,
   use: {
     ...base.use,
     browserName: 'webkit',

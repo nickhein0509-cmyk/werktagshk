@@ -16,6 +16,9 @@ Die [Produkt- und Eigentümerkarte](docs/product-map.md) erklärt für jeden Cha
 wo er beginnen und welche Dateien er bearbeiten soll. `/projekte` und `/konto`
 sind gemeinsame Plattformdienste. Die bisherige Historie bleibt erhalten.
 
+**Neuer Arbeitskontext:** [WerkTag Fokus](docs/fokus/START.md) mit
+[Umgebungsprofil](docs/fokus/UMGEBUNG.md) und `werktag.code-workspace`.
+
 Die [Fork-Auswertung und Ladeoptimierung](docs/fork-review-20261029.md) bewertet
 20 Referenzprojekte und dokumentiert, welche Konzepte gezielt in WerkTag einfließen.
 Projektauswahl und Konto laden die Lernapp nicht mit; `npm run check:entry-budgets`
@@ -34,7 +37,7 @@ wird ausschließlich als Domain gesendet; private Links bleiben geschützt.
 
 ## Lernapp
 
-Ein neuer Lernbuddy für Sanitär, Heizung, Klima/Lüftung und WiSo. Die responsive
+Die WerkTag-Lernapp für Sanitär, Heizung, Klima/Lüftung und WiSo. Die responsive
 Web-App verbindet eine technische Werkstattgestaltung mit kurzen Übungsaufgaben,
 nachvollziehbaren Lösungswegen und einem persönlichen Lernrhythmus.
 
@@ -46,7 +49,10 @@ und die Grenzen. Die [Produktanweisung](docs/product-direction.md) hält die
 spätere erwachsene Lernreise mit Werkstattgeschichte, Meilensteinen, Stufen und
 fachlichen Minispielen fest; diese Funktionen werden jetzt noch nicht gebaut.
 
-Gestaltung ansehen: [Desktop](docs/screenshots/desktop.png),
+Neuer Lerneinstieg: [Lerncockpit A](docs/fokus/UMSETZUNG-20261029.md) mit
+[Desktop](docs/fokus/cockpit-1440.png) und [Handy](docs/fokus/cockpit-390.png).
+
+Weitere Ansichten (frühere Aufnahmen): [Desktop](docs/screenshots/desktop.png),
 [Handy](docs/screenshots/mobile.png) und [Aufgabe](docs/screenshots/exercise.png).
 Prüfungsbereich: [Desktop](docs/screenshots/exam-mode.png) und [Handy](docs/screenshots/exam-mobile.png).
 Werkzeugkoffer: [Formelwerkstatt](docs/screenshots/formula-workbench.png) und [Handy](docs/screenshots/formula-workbench-mobile.png).

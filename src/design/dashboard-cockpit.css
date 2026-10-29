@@ -1,0 +1,357 @@
+/* The live implementation of study A. Only the learning overview owns this layout. */
+.flow-cockpit {
+  display: grid;
+  gap: 28px;
+  padding-top: 24px;
+}
+.cockpit-main {
+  min-width: 0;
+  display: grid;
+  gap: 24px;
+  align-content: start;
+}
+.flow-cockpit .flow-hero {
+  min-height: 0;
+  overflow: visible;
+}
+.flow-cockpit .flow-hero-content {
+  padding: 0;
+}
+.flow-cockpit .flow-hero h1 {
+  width: 100%;
+  max-width: none;
+  margin: 12px 0;
+  font-size: clamp(32px, 3vw, 42px);
+  line-height: 1.15;
+}
+.flow-cockpit .flow-hero-bottom {
+  display: block;
+}
+.flow-cockpit .flow-focus {
+  max-width: none;
+}
+.flow-cockpit .flow-focus > p:not(.eyebrow) {
+  max-width: none;
+  font-size: 15px;
+  line-height: 1.65;
+}
+.flow-cockpit .flow-hero-actions {
+  flex-direction: row;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px 20px;
+  margin-top: 16px;
+}
+.flow-cockpit .hero-action {
+  padding: 14px 20px;
+}
+.flow-cockpit .hero-meta {
+  margin-top: 8px;
+  line-height: 1.65;
+}
+.cockpit-exam-date {
+  color: var(--flow-text-muted);
+  font-size: 12px;
+  line-height: 1.6;
+  margin: 12px 0 0;
+}
+.flow-cockpit .cockpit-jump {
+  display: inline-flex;
+  min-height: 44px;
+  align-items: center;
+  margin-top: 6px;
+  font-size: 13px;
+}
+.flow-cockpit .flow-subjects {
+  padding: 22px;
+  border-radius: 20px;
+}
+.flow-cockpit .section-heading {
+  gap: 12px;
+  flex-wrap: wrap;
+  margin-bottom: 18px;
+}
+.flow-cockpit .section-heading h2 {
+  font-size: 23px;
+}
+.flow-cockpit .section-heading .text-button {
+  min-height: 44px;
+  font-size: 12px;
+}
+.flow-cockpit .exam-priority-card,
+.flow-cockpit .exam-priority-card:first-child,
+.flow-cockpit .exam-priority-card:last-child {
+  padding: 18px;
+  min-width: 0;
+}
+.flow-cockpit .exam-priority-top {
+  margin-bottom: 18px;
+}
+.flow-cockpit .exam-area-number {
+  font-size: 30px;
+}
+.flow-cockpit .exam-area-symbol {
+  width: 34px;
+  height: 34px;
+}
+.flow-cockpit .exam-area-symbol svg {
+  width: 20px;
+}
+.flow-cockpit .exam-priority-card h3 {
+  font-size: 20px;
+  overflow-wrap: anywhere;
+  text-wrap: initial;
+}
+.flow-cockpit .exam-priority-card p {
+  font-size: 13px;
+  line-height: 1.65;
+}
+.flow-cockpit .exam-priority-card .inline-link {
+  min-height: 44px;
+  padding-top: 12px;
+}
+.flow-cockpit .exam-priority-note {
+  margin: 16px 0 0;
+  line-height: 1.6;
+}
+.cockpit-topics {
+  border-top: 1px solid var(--flow-line-dark);
+  padding-top: 20px;
+  min-width: 0;
+}
+.flow-cockpit .flow-topics-heading {
+  margin: 0 0 16px;
+  padding: 0;
+  border: 0;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+.flow-cockpit .flow-topics-heading h2 {
+  font-size: 20px;
+}
+.flow-cockpit .flow-topics-heading > span {
+  color: var(--flow-text-muted);
+}
+.flow-cockpit .topic-grid {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px;
+}
+.flow-cockpit .topic-card {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  min-width: 0;
+  padding: 16px;
+  background: #183335;
+  color: var(--flow-text);
+  border-color: var(--flow-line-dark);
+}
+.flow-cockpit .topic-top {
+  width: 100%;
+  margin-bottom: 10px;
+}
+.flow-cockpit .topic-card .subject-object {
+  width: 30px;
+  height: 30px;
+  background: transparent;
+}
+.flow-cockpit .topic-card .subject-object svg {
+  color: var(--flow-copper);
+  width: 24px;
+}
+.flow-cockpit .subject-index,
+.flow-cockpit .topic-progress,
+.flow-cockpit .topic-card p {
+  color: var(--flow-text-muted);
+}
+.flow-cockpit .topic-card h3 {
+  color: var(--flow-text);
+  font-size: 14px;
+  line-height: 1.45;
+  overflow-wrap: anywhere;
+}
+.flow-cockpit .topic-card p {
+  font-size: 12px;
+  line-height: 1.6;
+}
+.flow-cockpit .topic-progress {
+  width: 100%;
+  font-size: 11px;
+  gap: 8px;
+  margin-top: auto;
+  padding-top: 8px;
+}
+.flow-cockpit .flow-routine {
+  padding: 0;
+  min-width: 0;
+}
+.flow-cockpit .flow-routine > .section-heading h2 {
+  font-size: 20px;
+  scroll-margin-top: 24px;
+}
+.flow-cockpit .routine-grid {
+  grid-template-columns: 1fr;
+  gap: 12px;
+}
+.flow-cockpit .routine-grid > :is(div, button) {
+  min-height: 0;
+  padding: 20px;
+  border-radius: 16px;
+}
+.flow-cockpit .routine-icon {
+  margin-bottom: 14px;
+}
+.flow-cockpit .routine-icon svg {
+  width: 22px;
+}
+.flow-cockpit .routine-grid h3 {
+  font-size: 18px;
+  line-height: 1.4;
+  margin-bottom: 8px;
+}
+.flow-cockpit .routine-grid p {
+  font-size: 12px;
+  line-height: 1.65;
+  margin-bottom: 12px;
+}
+.flow-cockpit .routine-count {
+  position: static;
+  display: block;
+  font-size: 11px;
+  margin: 0 0 8px;
+}
+.flow-cockpit .routine-grid .text-button,
+.flow-cockpit .routine-grid .inline-link {
+  font-size: 12px;
+  min-height: 44px;
+}
+.flow-cockpit .routine-week .week-dots {
+  position: static;
+  gap: 5px;
+  margin: 14px 0 10px;
+  flex-wrap: wrap;
+}
+.flow-cockpit .routine-week .week-dots > .week-day {
+  width: 24px;
+  height: 34px;
+  flex: 0 0 24px;
+  font-size: 10px;
+}
+.flow-cockpit .routine-week .week-day > span {
+  width: 24px;
+  height: 24px;
+  flex-shrink: 0;
+}
+.flow-cockpit .routine-grid > .routine-start {
+  background: var(--flow-surface);
+  color: var(--flow-ink);
+  border-color: var(--flow-surface);
+}
+.flow-cockpit .routine-start :is(h3, .inline-link) {
+  color: #143236;
+}
+.flow-cockpit .routine-start :is(p, .routine-count) {
+  color: #53635c;
+}
+.flow-cockpit .routine-start .routine-icon {
+  color: var(--flow-copper-ink);
+}
+.flow-cockpit .cockpit-private {
+  margin-top: 12px;
+  min-height: 44px;
+  font-size: 12px;
+}
+.flow-cockpit .content-footnote {
+  justify-content: flex-start;
+  text-align: left;
+  line-height: 1.65;
+  margin: 12px 0 0;
+  font-size: 11px;
+}
+.flow-cockpit .topic-card:focus-visible {
+  outline-color: var(--flow-copper);
+}
+.flow-cockpit #routine-title:focus {
+  outline: 2px solid var(--flow-copper);
+  outline-offset: 6px;
+}
+@media (min-width: 1200px) {
+  .flow-cockpit {
+    grid-template-columns: minmax(0, 1fr) 272px;
+    align-items: start;
+  }
+  .flow-cockpit .flow-routine {
+    border-left: 1px solid var(--flow-line-dark);
+    padding-left: 22px;
+  }
+  .flow-cockpit .topic-grid {
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+  }
+  .flow-cockpit .topic-card p {
+    display: none;
+  }
+}
+@media (min-width: 1600px) {
+  .flow-cockpit {
+    grid-template-columns: minmax(0, 1fr) 300px;
+  }
+}
+@media (min-width: 761px) and (max-width: 1199px) {
+  .flow-cockpit .routine-grid {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+}
+@media (max-width: 480px) {
+  .flow-cockpit .flow-subjects {
+    padding: 18px 14px;
+  }
+  .flow-cockpit .exam-priority-grid {
+    grid-template-columns: 1fr;
+  }
+  .flow-cockpit .topic-card {
+    padding: 12px;
+  }
+  .flow-cockpit .flow-hero-actions {
+    align-items: stretch;
+    flex-direction: column;
+  }
+  .flow-cockpit .flow-focus .hero-action {
+    justify-content: space-between;
+  }
+}
+@media (hover: hover) {
+  .flow-cockpit .topic-card:hover {
+    background: #23423d;
+    border-color: var(--flow-copper);
+  }
+  .flow-cockpit .routine-start:hover {
+    background: #fffdf9;
+    border-color: var(--flow-copper-ink);
+  }
+}
+.flow-cockpit .flow-exam-eyebrow {
+  margin: 0;
+}
+.flow-cockpit .flow-focus > p:not(.eyebrow) {
+  margin-bottom: 0;
+}
+.flow-cockpit .routine-count {
+  position: absolute;
+  top: 22px;
+  right: 20px;
+  max-width: calc(100% - 76px);
+  text-align: right;
+}
+@media (min-width: 1200px) {
+  /* Keyboard users can jump to the rail without a second visible primary action. */
+  .flow-cockpit .cockpit-jump:not(:focus) {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    min-height: 0;
+    padding: 0;
+    overflow: hidden;
+    clip-path: inset(50%);
+    white-space: nowrap;
+  }
+}
