@@ -30,7 +30,12 @@ Cloud-Abruf, erfolgreicher Import, letzter Quellen-Sync und letzte Quelldaten si
 
 ## Bereitstellung und Prüfung
 
-Die Migrationen sind auf das bestehende WerkTag-Projekt anzuwenden; danach werden `assistance` und `health-sync` bereitgestellt. Beide Funktionen verwenden eigene zwingende Authentifizierung und benötigen daher `verify_jwt=false` am Plattform-Gateway. Browser erhalten niemals einen Service-Schlüssel. Die serverseitigen Vercel-Variablen `ASSISTANCE_CLOUD_URL` und `ASSISTANCE_HEALTH_URL` verweisen auf die jeweiligen Supabase-Funktionen. Ein Zurücksetzen des Webdeployments allein kopiert neue Cloud-Daten nicht zurück auf den PC.
+Seit dem Auftrag vom 29.10.2026 ist `mvkksfecimpjnytvbrrb` das Ziel des
+[vollständigen Projektumzugs](supabase-project-migration.md); das bisherige Projekt
+bleibt bis zur geprüften Umschaltung produktiv. Die SQL-Dateien allein bilden keine
+vollständige Datenbank ab. Erst nach Bestandsübertragung die tatsächlich fehlenden
+Migrationen gegen die Live-Historie prüfen und die Funktionen bereitstellen.
+`assistance` und `health-sync` verwenden eigene zwingende Authentifizierung und benötigen daher `verify_jwt=false` am Plattform-Gateway. Browser erhalten niemals einen Service-Schlüssel. Die serverseitigen Vercel-Variablen `ASSISTANCE_CLOUD_URL` und `ASSISTANCE_HEALTH_URL` verweisen auf die jeweiligen Supabase-Funktionen. Ein Zurücksetzen des Webdeployments allein kopiert neue Cloud-Daten nicht zurück auf den PC oder in das Quellprojekt.
 
 `npm run check` prüft Build, bestehende Lernfunktionen, beide Gatewaypfade, die Cloud-Backendlogik und Browserabläufe mit isolierten synthetischen Daten. Reale Standort-Empfangsnachweise sind separat am Produktionsspeicher zu prüfen; keine erfundenen GPS-Punkte für einen Produktionstest senden. Ein aktivierter Cronjob beweist noch keinen neuen Health-Quellenstand. Ein vollständiger echter Health-API-Test setzt den privaten Nutzerschlüssel voraus.
 
