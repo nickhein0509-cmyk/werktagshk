@@ -1,5 +1,18 @@
 # WerkTag: shared production platform for three products
 
+## Current priority — 29 October 2026 (latest user decision)
+
+**Focus on Assistent and Materialliste. AI learning help and commercial expansion
+of the learning app are paused.** This supersedes earlier learning-first or
+exam-first development priorities. Read [current focus](docs/current-focus.md)
+before selecting work. Preserve existing learning behavior and private records;
+personal exam preparation is not cancelled. Assistant AI is optional later work,
+not a prerequisite for core assistant/material improvements or permission to enable a provider.
+Use only `nickhein0509-cmyk/werktagshk`, current `main`, in a new development
+environment. Read product briefs/issues through GitHub on demand; do not clone
+all forks or load their agent instructions. Current focus limits default work;
+the shared design rule below does not resume paused learning expansion.
+
 ## Supabase migration decision — 29 October 2026
 
 Nick now explicitly requests moving all WerkTag data from source project
@@ -72,7 +85,7 @@ asking again for routine push/merge steps. Verify Vercel's deployed SHA and live
 behavior separately from GitHub CI. Source publication never includes runtime
 credentials, private catalogues, protected learning content or personal records.
 
-## Product priority confirmed on 23 October 2026
+## Existing learning behavior to preserve (23 October requirements)
 
 The examination workspace has a user-controlled `Prüfungsmodus` switch. OFF is
 practice with roomy calculation steps, notes, hints and embedded calculator. ON
@@ -89,15 +102,14 @@ path together. Changing units preserves the physical quantity; rearranging carri
 the current result into the known values. Keep formula use separate from attempts
 and block nonunique inverses such as division by zero with useful German feedback.
 
-Priority 1 is Nick's preparation for Gesellenprüfung Teil 2 on 7 December 2026.
-Prioritize meaningful original questions, justified calculations and explanations,
-and direct practice/review in Arbeitsplanung, Systemanalyse und Instandhaltung,
-and Wirtschafts- und Sozialkunde. Foundations remain available when needed.
+The existing learning product supports Nick's Gesellenprüfung Teil 2 preparation
+for 7 December 2026. Retain its exercises, calculations, explanations and direct
+practice/review in Arbeitsplanung, Systemanalyse und Instandhaltung, and WiSo.
+This is preservation guidance, not the current development priority.
 The official training regulation describes competencies; do not claim to know
 the actual exam paper, complete exam coverage, official practice marks, or readiness.
 Keep the practical Kundenauftrag in the curriculum map even though the current
-app focuses on written practice. Eventual commercialization must support this
-immediate exam use case rather than displace it.
+app focuses on written practice. Commercial expansion and AI learning help are paused under the current focus.
 
 Use the Flow direction selected in the Codex chat “Neues Design ausarbeiten”:
 deep petrol canvas, bold sans-serif headings, white primary actions, readable

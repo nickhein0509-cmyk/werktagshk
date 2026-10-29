@@ -1,5 +1,9 @@
 # WerkTag: fokussierter Arbeitsstart
 
+**Jetzt: Assistent und Materialliste.** KI-Lernhilfe und kommerzieller Ausbau der
+Lernapp pausieren. Bestehende Lernfunktionen und private Prüfungsvorbereitung
+bleiben erhalten. [Maßgebliche Entscheidung](../current-focus.md).
+
 Diese Datei ist der Einstieg für einen **neuen Chat**. Kein alter Chatverlauf,
 keine Fremdrepository-Sammlung und kein Sammelimport aller Dokumente sind nötig.
 Ein Arbeitsordner begrenzt die Dateiauswahl, ist aber keine Sicherheitsgrenze
@@ -11,7 +15,7 @@ der Umgebungsverwaltung angelegt/ausgewählt werden; diese Dateien tun das nicht
 - WerkTag umfasst **Lernen**, **Assistent** und **Materialliste**. Code und PRs:
   `nickhein0509-cmyk/werktagshk`. Die drei Produktrepos enthalten Aufträge/Issues;
   ihr kompletter Quellbestand muss nicht in die Umgebung geklont werden.
-- Zuerst `AGENTS.md` und `docs/product-map.md`, dann genau das bearbeitete Issue,
+- Zuerst `AGENTS.md`, `docs/current-focus.md` und `docs/product-map.md`, dann genau das bearbeitete Issue,
   dessen Produktvertrag per GitHub und die betroffenen Quelldateien lesen.
 - Frisch `origin/main` laden, eigenen Branch und eigene Arbeitskopie mit
   `node scripts/start-work.mjs <feat|fix|chore|docs/aufgabe> <absoluter-pfad>`
@@ -45,8 +49,9 @@ bei blockierten Aufgaben den genauen fehlenden Schritt festhalten.
 ## Kopierbarer Auftrag für einen neuen Chat
 
 > Arbeite am aktuellen main von nickhein0509-cmyk/werktagshk. Lies zuerst
-> docs/fokus/START.md, AGENTS.md und docs/product-map.md. Ermittle über GitHub die
-> höchste priorisierte, technisch bearbeitbare offene Aufgabe. Lies nur ihren
+> docs/fokus/START.md, AGENTS.md, docs/current-focus.md und docs/product-map.md.
+> Wähle eine technisch bearbeitbare Aufgabe für Assistent oder Materialliste.
+> KI-Lernhilfe und kommerzieller Lernapp-Ausbau sind pausiert. Lies nur ihren
 > Produktvertrag und betroffene Quellen. Erstelle einen eigenen Branch/Worktree,
 > implementiere und prüfe die Änderung, öffne den PR und aktualisiere das Issue.
 > WerkTag hat drei Produkte; Fremdforks dienen nur gezielten Referenzen.

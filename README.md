@@ -1,5 +1,11 @@
 # WerkTag · Lernapp, Assistent und Materialliste
 
+**Aktueller Fokus (29.10.2026): Assistent und Materialliste.** KI-Lernhilfe und
+kommerzieller Lernapp-Ausbau sind vorerst pausiert. Bestehende Lernfunktionen und
+Daten bleiben erhalten. [Verbindliche Entscheidung](docs/current-focus.md).
+Neue Entwicklungsumgebung: ausschließlich **`nickhein0509-cmyk/werktagshk`, `main`**.
+[Zweck aller Repositories und Stand der Fork-Auswertung](docs/repository-guide.md).
+
 WerkTag besteht aus **drei eigenständigen Produkten** unter einer Domain:
 
 | Produkt | Zweck | Produktbereich | Laufender Einstieg |
@@ -41,7 +47,8 @@ Die WerkTag-Lernapp für Sanitär, Heizung, Klima/Lüftung und WiSo. Die respons
 Web-App verbindet eine technische Werkstattgestaltung mit kurzen Übungsaufgaben,
 nachvollziehbaren Lösungswegen und einem persönlichen Lernrhythmus.
 
-**Aktueller Fokus:** Nicks Gesellenprüfung Teil 2 am 7. Dezember 2026.
+**Bestehender Lernbereich:** für Nicks Gesellenprüfung Teil 2 am 7. Dezember 2026.
+Dies ist derzeit keine Priorität für neuen Produkt- oder KI-Ausbau.
 Die Oberfläche baut auf dem gewählten Flow-Design auf. Direkte Einstiege nach
 Arbeitsplanung, Systemanalyse/Instandhaltung und WiSo führen zu den Übungen.
 Der [Prüfungsrahmen](docs/exam-blueprint.md) beschreibt die fachliche Zuordnung
