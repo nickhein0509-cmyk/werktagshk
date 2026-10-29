@@ -7,8 +7,13 @@ import './styles.css';
 import './design/focus.css';
 import './design/atelier.css';
 
+const accountRoute = /^\/konto\/?$/.test(window.location.pathname);
+const projectsRoute = /^\/projekte\/?$/.test(window.location.pathname);
+// Account and learning views manage their own titles after mounting.
+if (projectsRoute) document.title = 'WerkTag · Projekte';
+
 ReactDOM.createRoot(document.getElementById('root')!).render(
   <React.StrictMode>
-    {/^\/konto\/?$/.test(window.location.pathname) ? <AccountPage /> : /^\/projekte\/?$/.test(window.location.pathname) ? <ProjectHub /> : <App />}
+    {accountRoute ? <AccountPage /> : projectsRoute ? <ProjectHub /> : <App />}
   </React.StrictMode>,
 );

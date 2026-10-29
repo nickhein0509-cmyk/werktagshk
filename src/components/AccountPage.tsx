@@ -377,7 +377,7 @@ export function AccountPage() {
   return (
     <div className="account-page">
       <a className="account-skip" href="#account-main">Zum Konto</a>
-      <header className="account-header"><a href="/projekte">WerkTag · Projekte</a><a href="/">Zum SHK Lernbuddy</a></header>
+      <header className="account-header"><a href="/projekte">WerkTag · Projekte</a><a href="/">Zum Lernen</a></header>
       <main id="account-main" className="account-main" tabIndex={-1}>
         <p className="account-eyebrow">DEIN PERSÖNLICHER BEREICH</p>
         <h1>Dein Konto.</h1>
