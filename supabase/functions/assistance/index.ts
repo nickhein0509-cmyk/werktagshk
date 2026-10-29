@@ -32,4 +32,5 @@ const store={
  async archive(id:string,date:string){const value=check(await admin.from('assistance_archives').select('*').eq('installation_id',id).eq('date',date).maybeSingle());return value?canonicalArchive(value):null;},
  async ensureArchive(id:string,date:string,payload:any,gpx:string){check(await admin.from('assistance_archives').upsert({installation_id:id,date,payload,gpx,original_json:JSON.stringify(payload,null,2)+'\n'},{onConflict:'installation_id,date',ignoreDuplicates:true}));},
 };
-Deno.serve(createAssistance({store,installationId,publicOrigin:Deno.env.get('ASSISTANCE_PUBLIC_ORIGIN')??'https://werk-tag.com'}));
+const handler = createAssistance({store,installationId,publicOrigin:Deno.env.get('ASSISTANCE_PUBLIC_ORIGIN')??'https://werk-tag.com'});
+Deno.serve(handler as (request: Request) => Promise<Response>);
