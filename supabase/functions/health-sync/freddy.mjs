@@ -111,7 +111,10 @@ export function normalizeRows(rows, { fetchedAt, sourceLastSyncAt = null, source
     if (row.metric === 'vo2_max') {
       const at = iso(row.timestamp);
       if (!at) fail('HEALTH_OBSERVATION_TIME_REQUIRED');
-      observation = ' @ ' + at.slice(0, -1) + ' UTC+00:00';
+      // ISO normalization adds .000 even when the source only reports seconds.
+      const time = at.slice(0, -1);
+      const hasFraction = /\.\d+(?:Z|[+-]\d{2}:\d{2})$/i.test(row.timestamp);
+      observation = ' @ ' + (hasFraction ? time : time.replace(/\.000$/, '')) + ' UTC+00:00';
     }
     if (!groups.has(row.date)) groups.set(row.date, []);
     groups.get(row.date).push(`  ${row.metric}: ${row.numValue} ${row.unit}${observation} (Apple Health · ${device})`);

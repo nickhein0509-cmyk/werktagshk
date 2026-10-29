@@ -15,7 +15,7 @@ export function CloudAccount({
 }: {
   user: User | null;
   state: LearningState;
-  onLoad: (state: LearningState) => void;
+  onLoad: (state: LearningState) => boolean;
 }) {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -141,7 +141,7 @@ function CloudProgress({
 }: {
   userId: string;
   state: LearningState;
-  onLoad: (state: LearningState) => void;
+  onLoad: (state: LearningState) => boolean;
 }) {
   const [message, setMessage] = useState('Lernstand der Modellübungen noch nicht geladen.');
   const [connected, setConnected] = useState(false);
@@ -184,9 +184,14 @@ function CloudProgress({
         throw Error('Cloud-Daten haben ein unbekanntes Format. Sie werden nicht überschrieben.');
       local = mergeLearningStates(latest.current, local);
       const merged = remote ? mergeLearningStates(local, remote) : local;
+      // A newer local record or an account switch can refuse the merged state.
+      // Enabling autosave then would upload the old in-memory state over the cloud history.
+      if (!onLoad(merged))
+        throw Error(
+          'Der lokale Lernstand konnte nicht übernommen werden. Die Cloud wird nicht überschrieben.',
+        );
       revision.current = data?.revision ?? null;
       lastSaved.current = data ? JSON.stringify(remote) : '';
-      onLoad(merged);
       setConnected(true);
       setMessage('Modellübungen verbunden. Änderungen werden automatisch gespeichert.');
     } catch (error) {
