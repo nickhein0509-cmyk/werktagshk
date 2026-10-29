@@ -88,6 +88,8 @@ async function timelineFixture(page: Page, options: {
   webglUnavailable?: boolean;
   fullProductionCSP?: boolean;
   seeds?: Array<{ date: string; entry: ManualEntry }>;
+  archiveDays?: Array<{ date: string; schemaVersion: number; pointCount: number; recorderCount: number; archiveSnapshotOlder?: boolean; multipleRecorders?: boolean }>;
+  deferredDates?: string[];
 } = {}) {
   let authorized = true;
   let noGPS = options.noGPS ?? false;
@@ -204,7 +206,7 @@ async function timelineFixture(page: Page, options: {
     return route.fulfill({ json: {
       ...data, refreshedAt: stamp,
       health: { date, status: 'empty', metrics: {}, days: [], fetchedAt: stamp },
-      archive: { enabled: true, days: [], status: { ok: true } },
+      archive: { enabled: true, days: options.archiveDays ?? [], status: { ok: true, deferredDates: options.deferredDates ?? [] } },
       ingestion: { lastMessageAt: stamp, observedSince: stamp },
     } });
   });
@@ -342,6 +344,16 @@ test('incoming measurements preserve the timeline keyboard focus', async ({ page
   await expect(trip).toBeFocused();
 });
 
+test('last receipt display compares offset timestamps as instants', async ({ page }) => {
+  const records = [
+    { ...points[0], receivedAt: '2026-10-28T10:00:00+02:00' },
+    { ...points[1], receivedAt: '2026-10-28T09:00:00Z' },
+  ];
+  await timelineFixture(page, { points: records });
+  await openDay(page);
+  await expect(page.locator('#received')).toHaveText('Empfangen 10:00 Uhr');
+});
+
 test('recorder selection keeps source and device together through map, statistics and return to a day', async ({ page }) => {
   const own = { source: 'iphone', device: 'iPhone & Familie / +1' };
   const native = { source: 'werktag_ios', device: 'WerkTag Testgerät' };
@@ -375,6 +387,19 @@ test('recorder selection keeps source and device together through map, statistic
   await page.locator('#view-day').click();
   await expect(page.locator('#recorder')).toHaveValue('');
   await expect(page.locator('#recorder-note')).toContainText('WerkTag iPhone');
+});
+
+test('a late v2 multi-recorder snapshot keeps the stale-download warning visible', async ({ page }) => {
+  await timelineFixture(page, { archiveDays: [{ date: today, schemaVersion: 2, pointCount: points.length, recorderCount: 2, multipleRecorders: true, archiveSnapshotOlder: true }] });
+  await openDay(page);
+  await expect(page.locator('#archive-status')).toContainText('Weitere Messungen sind nach dem Archiv eingetroffen.');
+  await expect(page.locator('#archive-status')).not.toContainText('Geräte sind getrennt archiviert');
+});
+
+test('a deferred legacy day is not mislabeled as an unsupported multi-recorder day', async ({ page }) => {
+  await timelineFixture(page, { deferredDates: [today] });
+  await openDay(page);
+  await expect(page.locator('#archive-status')).toContainText('keine eindeutige Recorderkennung');
 });
 
 test('a delayed statistic from the previous recorder cannot replace the newly selected source', async ({ page }) => {
@@ -425,14 +450,18 @@ test('a missing map library has a recoverable error while personal drafts remain
   await openDay(page);
   await expect(page.locator('#map-retry')).toBeVisible();
   await expect(page.locator('#timeline .event')).toHaveCount(4);
+  if (!await page.locator('#view-workspace').isVisible()) await page.locator('.assistant-more > summary').first().click();
   await page.locator('#view-workspace').click();
+  if (!await page.locator('#workspace-form').isVisible()) await page.locator('#workspace-capture > summary').click();
   await expect(page.locator('#workspace-save')).toBeEnabled();
   await page.locator('#workspace-note').fill('Synthetischer Entwurf trotz fehlender Karte');
   await page.locator('#view-day').click();
   state.recoverLeaflet();
   await page.locator('#map-retry').click();
   await expect(page.locator('#map')).toHaveClass(/leaflet-container/);
+  if (!await page.locator('#view-workspace').isVisible()) await page.locator('.assistant-more > summary').first().click();
   await page.locator('#view-workspace').click();
+  if (!await page.locator('#workspace-form').isVisible()) await page.locator('#workspace-capture > summary').click();
   await expect(page.locator('#workspace-note')).toHaveValue('Synthetischer Entwurf trotz fehlender Karte');
   expect(errors).toEqual([]);
 });
@@ -526,7 +555,9 @@ test('unsupported WebGL keeps routes and drafts available and offers a working m
   await expect(page.locator('#basemap-status')).toHaveAttribute('data-state', 'error');
   await expect(page.locator('#map-provider')).toHaveValue('openfreemap');
   await expect(page.locator('#timeline .event')).toHaveCount(4);
+  if (!await page.locator('#view-workspace').isVisible()) await page.locator('.assistant-more > summary').first().click();
   await page.locator('#view-workspace').click();
+  if (!await page.locator('#workspace-form').isVisible()) await page.locator('#workspace-capture > summary').click();
   await page.locator('#workspace-note').fill('Synthetischer Entwurf ohne WebGL');
   await page.locator('#view-day').click();
   await page.locator('#timeline .event.stay').click();
@@ -534,7 +565,9 @@ test('unsupported WebGL keeps routes and drafts available and offers a working m
   await expect(page.locator('#basemap-status')).toHaveAttribute('data-state', 'ready');
   await expect(page.locator('#timeline .event.stay')).toHaveAttribute('aria-pressed', 'true');
   await expect(page.locator('#map-selection-summary')).toContainText('Aufenthalt');
+  if (!await page.locator('#view-workspace').isVisible()) await page.locator('.assistant-more > summary').first().click();
   await page.locator('#view-workspace').click();
+  if (!await page.locator('#workspace-form').isVisible()) await page.locator('#workspace-capture > summary').click();
   await expect(page.locator('#workspace-note')).toHaveValue('Synthetischer Entwurf ohne WebGL');
 });
 
@@ -631,7 +664,9 @@ test('empty GPS remains an honest empty day and an expired session erases the pr
   await expect(page.locator('#map-selection-summary')).toContainText('Ausgewählter Aufenthalt');
   await expect(page.locator('#timeline-day-summary')).toContainText('gespeicherte Messpunkte');
   await expect(page.locator('#map .leaflet-pane')).not.toHaveCount(0);
+  if (!await page.locator('#view-workspace').isVisible()) await page.locator('.assistant-more > summary').first().click();
   await page.locator('#view-workspace').click();
+  if (!await page.locator('#workspace-form').isVisible()) await page.locator('#workspace-capture > summary').click();
   await page.locator('#workspace-note').fill('Synthetischer privater Entwurf');
   await page.locator('#view-day').click();
   state.expire();
@@ -663,7 +698,10 @@ test('assistant focus counts only loaded tasks and quick capture retains a separ
   await expect(page.locator('#workspace-focus-today strong')).toHaveText('1');
   await expect(page.locator('#workspace-focus-overdue strong')).toHaveText('2');
   await expect(page.locator('#workspace-focus-undated strong')).toHaveText('1');
+  if (!await page.locator('#view-workspace').isVisible()) await page.locator('.assistant-more > summary').first().click();
+  await page.locator('#view-workspace').click();
   await page.locator('#workspace-focus-overdue').click();
+  await page.locator('#workspace-capture > summary').click();
   await expect(page.locator('#workspace-filter')).toHaveValue('task-overdue');
   await expect(page.locator('.workspace-card')).toHaveCount(2);
   await expect(page.locator('.workspace-card').filter({ hasText: 'Außerhalb des Suchfensters' })).toHaveCount(0);
@@ -686,19 +724,22 @@ test('a failed wider search never reports partial counts and explicit range navi
   ] });
   await page.goto('/assistenz');
   await expect(page.locator('#workspace-focus-overdue strong')).toHaveText('1');
+  if (!await page.locator('#view-workspace').isVisible()) await page.locator('.assistant-more > summary').first().click();
   await page.locator('#view-workspace').click();
+  if (!await page.locator('#workspace-form').isVisible()) await page.locator('#workspace-capture > summary').click();
   state.failRangeOnce();
   await page.locator('#workspace-period').selectOption('90');
   await expect(page.locator('#workspace-range-label')).toContainText('Nicht vollständig geladen');
   await expect(page.locator('.workspace-card')).toHaveCount(0);
-  await page.locator('#view-overview').click();
   await expect(page.locator('#workspace-focus-overdue strong')).toHaveText('–');
   await expect(page.locator('#workspace-focus-overdue')).toBeDisabled();
   await expect(page.locator('#workspace-focus-message')).toContainText('noch nicht vollständig geladen');
   await page.locator('#workspace-refresh').click();
   await expect(page.locator('#workspace-focus-overdue strong')).toHaveText('2');
   await expect(page.locator('#workspace-focus-overdue')).toBeEnabled();
+  if (!await page.locator('#view-workspace').isVisible()) await page.locator('.assistant-more > summary').first().click();
   await page.locator('#view-workspace').click();
+  if (!await page.locator('#workspace-form').isVisible()) await page.locator('#workspace-capture > summary').click();
   await page.locator('#workspace-period').selectOption('30');
   await expect(page.locator('#workspace-range-label')).toContainText('1 passende Einträge');
   await page.locator('#workspace-range-previous').click();
@@ -724,7 +765,9 @@ for (const width of [320, 390, 1440]) {
     await page.keyboard.press('Tab');
     await mkdir('test-results/assistant-ui', { recursive: true });
     await page.screenshot({ path: `test-results/assistant-ui/${browserName}-timeline-${width}.png`, fullPage: true });
-    await page.locator('#view-workspace').click();
+    if (!await page.locator('#view-workspace').isVisible()) await page.locator('.assistant-more > summary').first().click();
+  await page.locator('#view-workspace').click();
+  if (!await page.locator('#workspace-form').isVisible()) await page.locator('#workspace-capture > summary').click();
     const workspace = await page.evaluate(() => ({ viewport: innerWidth, width: document.documentElement.scrollWidth }));
     expect(workspace.width).toBeLessThanOrEqual(workspace.viewport + 1);
   });

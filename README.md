@@ -59,6 +59,13 @@ Fachwissen mit rein synthetischem Inhalt:
 
 ## Gemeinsame Plattform und parallele Arbeit
 
+**Supabase-Umzug beauftragt (29.10.2026):** Alle WerkTag-Daten sollen vom bisherigen
+Projekt `hrqaxsbddpmphblmoyly` nach `mvkksfecimpjnytvbrrb` übertragen werden.
+PR #20 hat die Verbindung auf das Ziel umgestellt; die öffentliche Live-Konfiguration
+bestätigt das Ziel. Vollständigkeit privater Daten und persönliche Nutzung sind
+gesondert zu prüfen.
+[Verbindliche Zuordnung, vollständiger Ablauf und Ausführungsprotokoll](docs/supabase-project-migration.md).
+
 `/projekte` bietet Lernen, private Assistenz und Komponentenliste. `/konto` ist der gemeinsame Anmeldeeinstieg. GPS und der geschützte Katalog werden über die bestehende Supabase-Cloud bereitgestellt; private Inhalte bleiben außerhalb dieses öffentlichen Repositorys. Details: [Cloud-Assistenz](docs/cloud-assistance.md) und [Komponentenliste](docs/components.md).
 
 Für verschiedene Chats/Works gilt: ein eigener Aufgabenbranch und eine eigene Arbeitskopie pro Auftrag, Übergabe über Pull Requests, gemeinsame Prüfung im Release-Branch. [Anleitung und Starthelfer](docs/parallel-work.md). `main` ist der geprüfte gemeinsame Veröffentlichungsstand.
@@ -162,6 +169,14 @@ beenden ihren eigenen Entwicklungsserver und verändern keine echten Lerndaten.
 - `.agents/skills`: zwei lokale Skills für Inhalte und Produktdesign.
 - [Plugin-Fähigkeiten](docs/plugin-capabilities.md): verwendbare Plugins und ihre
   tatsächlichen Grenzen.
+
+## Vorbereitete OpenAI-Grundlage
+
+Die [serverseitige KI-Grundlage](docs/openai-foundation.md) ergänzt einen
+ausdrücklich freizugebenden Zugang für Lernen und Assistenz mit Kontotrennung,
+dauerhaften Nutzungsgrenzen und synthetischen Tests. Sie bleibt standardmäßig
+deaktiviert. Modell, Kostenrahmen, geschützter API-Zugang und Backend-Einrichtung
+sind vor echter Nutzung erforderlich; KI-Oberflächen sind noch nicht enthalten.
 
 ## Daten und Grenzen
 

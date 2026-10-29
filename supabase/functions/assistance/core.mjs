@@ -1,6 +1,7 @@
 import {selectPoints,berlinDay,healthView,validateHealthDay,emptyContext,updateContextValue,validateContextValue,contextView,validateContextRange,contextRange,statisticsFromData,gpxForDay} from './domain.mjs';
 import {cataloguePath,catalogueResponse,catalogueUnauthorized,validateCatalogueResource} from './catalog.mjs';
 import {recorderCount,validateRecorderSelection} from './semantics/recorders.js';
+import {archiveHashInput,archiveMatchesContent,archiveRecorderJournals,archiveV2Content,compareArchivePoints,validateArchiveStructure} from './archive-contract.mjs';
 export const COOKIE='__Secure-werktag-assistance';
 const MSG=new Set(['location','status','transition','waypoint','waypoints','steps','beacon','card','lwt','cmd','request','encrypted']);
 const enc=new TextEncoder();
@@ -51,21 +52,25 @@ export function createAssistance({store,installationId,publicOrigin='https://wer
  // A saved note or task must not depend on the availability of GPS history.
  // References stay explicitly unverified when their optional journal is absent.
  if(!value.entries.some(entry=>entry.kind==='activity'&&entry.segmentRef))return contextView(value,null);
- try{const points=await store.points(installationId);return contextView(value,recorderCount(points.filter(p=>berlinDay(p.tst)===date))>1?null:selectPoints(points,date,Number.MAX_SAFE_INTEGER).journal);}
+ try{
+ const points=await store.points(installationId),dayPoints=points.filter(p=>berlinDay(p.tst)===date);
+ try{return contextView(value,null,archiveRecorderJournals(points,date,{allowLegacy:true}));}
+ catch{return contextView(value,recorderCount(dayPoints)===1?selectPoints(points,date,Number.MAX_SAFE_INTEGER).journal:null);}
+ }
  catch{return contextView(value,null);}
  }
  async function archiveCompleted(points,known){
- const today=berlinDay(now()/1000),present=new Set(known.map(a=>a.date)),ordered=[...points].sort((a,b)=>a.tst-b.tst||a.receivedAt.localeCompare(b.receivedAt)),deferredDates=[];
+ const today=berlinDay(now()/1000),present=new Set(known.map(a=>a.date)),ordered=[...points].sort(compareArchivePoints),deferredDates=[];
  for(const date of [...new Set(ordered.map(p=>berlinDay(p.tst)))].filter(d=>d<today&&!present.has(d))){
- const selected=ordered.filter(p=>berlinDay(p.tst)===date);
- // Archive v1 contains one journal for the entire day. Persisting mixed devices
- // would either invent connecting legs or silently omit a source. Until a
- // versioned multi-recorder archive exists, retain all raw points live instead.
- if(recorderCount(selected)>1){deferredDates.push(date);continue;}
- const journal=selectPoints(ordered,date,Number.MAX_SAFE_INTEGER).journal,stamp=new Date(now()).toISOString();
- const contentHash=await sha256(JSON.stringify({points:selected,journal}));
- const payload={schemaVersion:1,date,revision:1,pointCount:selected.length,tripCount:journal.trips.length,stayCount:journal.stays.length,firstTimestamp:selected[0].tst,lastTimestamp:selected.at(-1).tst,archivedAt:stamp,updatedAt:stamp,contentHash,timeZone:'Europe/Berlin',journal,points:selected};
- await store.ensureArchive(installationId,date,payload,gpxForDay(date,selected));
+ const stamp=new Date(now()).toISOString();let content;
+ try{content=archiveV2Content(ordered,date);}catch{deferredDates.push(date);continue;}
+ if(!content.points.length||!content.journals.length){deferredDates.push(date);continue;}
+ const contentHash=await sha256(JSON.stringify(content));
+ const payload={schemaVersion:2,date,revision:1,pointCount:content.points.length,recorderCount:content.journals.length,
+ tripCount:content.journals.reduce((sum,value)=>sum+value.tripCount,0),stayCount:content.journals.reduce((sum,value)=>sum+value.stayCount,0),
+ firstTimestamp:content.points[0].tst,lastTimestamp:content.points.at(-1).tst,archivedAt:stamp,updatedAt:stamp,contentHash,timeZone:'Europe/Berlin',...content};
+ const originalJson=JSON.stringify(payload,null,2)+'\n',gpx=gpxForDay(date,content.points,{schemaVersion:2});
+ await store.ensureArchive(installationId,date,payload,gpx,originalJson);
  }
  return {archives:await store.archives(installationId),deferredDates};
  }
@@ -109,7 +114,12 @@ export function createAssistance({store,installationId,publicOrigin='https://wer
  for(const p of data.points){if(!object(p)||!iso(p.receivedAt))error(400,'Ungültiger Standortimport.');const checked=await normalizeLocation({...p,_type:'location'},p.source,p.device,now());if(checked.id!==p.id)error(400,'Ungültige Standort-ID.');}
  for(const h of data.health)validateHealthDay(h,h.date);
  for(const c of data.contexts)validateContextValue(c,c.date);
- for(const a of data.archives){limitedKeys(a,['date','json','gpx']);if(!dateOK(a.date)||typeof a.json!=='string'||typeof a.gpx!=='string')error(400,'Ungültiges Archiv.');let parsed;try{parsed=JSON.parse(a.json);}catch{error(400,'Ungültiges Archiv.');}if(parsed?.schemaVersion!==1||parsed.date!==a.date||parsed.timeZone!=='Europe/Berlin'||!Array.isArray(parsed.points)||!parsed.journal||!Number.isInteger(parsed.revision)||parsed.revision<1)error(400,'Ungültiges Archiv.');if(await sha256(JSON.stringify({points:parsed.points,journal:parsed.journal}))!==parsed.contentHash)error(400,'Ungültiger Archiv-Hash.');for(const p of parsed.points){const checked=await normalizeLocation({...p,_type:'location'},p.source,p.device,now());if(checked.id!==p.id||!iso(p.receivedAt)||berlinDay(p.tst)!==a.date)error(400,'Ungültiger Archivstandort.');}}
+ for(const a of data.archives){
+ limitedKeys(a,['date','json','gpx']);if(!dateOK(a.date)||typeof a.json!=='string'||typeof a.gpx!=='string')error(400,'Ungültiges Archiv.');let parsed;
+ try{parsed=JSON.parse(a.json);validateArchiveStructure(parsed,a.date);}catch{error(400,'Ungültiges Archiv.');}
+ if(await sha256(JSON.stringify(archiveHashInput(parsed)))!==parsed.contentHash)error(400,'Ungültiger Archiv-Hash.');
+ for(const p of parsed.points){const checked=await normalizeLocation({...p,_type:'location'},p.source,p.device,now());if(checked.id!==p.id||!iso(p.receivedAt)||berlinDay(p.tst)!==a.date)error(400,'Ungültiger Archivstandort.');}
+ }
  return reply({ok:true,...await store.import(installationId,data)});
  }
  if(route==='import-catalog'&&req.method==='POST'){
@@ -139,7 +149,13 @@ export function createAssistance({store,installationId,publicOrigin='https://wer
  query(url,['date','source','device']);const selection=recorderQuery(url),date=url.searchParams.get('date')??berlinDay(now()/1000);if(date!=='all'&&!dateOK(date))error(400,'Ungültiges Datum.');
  const [points,health,knownArchives,ingestion]=await Promise.all([store.points(installationId),store.health(installationId),store.archives(installationId),store.receipts(installationId)]);
  const view=selectPoints(points,date,20000,selection),{archives,deferredDates}=await archiveCompleted(points,knownArchives);
- const olderDates=[];const days=archives.map(a=>{const {date,pointCount,tripCount,stayCount,revision,updatedAt}=a.payload;const current=points.filter(p=>berlinDay(p.tst)===date).sort((a,b)=>a.tst-b.tst||a.receivedAt.localeCompare(b.receivedAt)),journal=selectPoints(points,date,Number.MAX_SAFE_INTEGER).journal,multipleRecorders=recorderCount(current)>1;const archiveSnapshotOlder=multipleRecorders||JSON.stringify(current.map(p=>p.id))!==JSON.stringify(a.payload.points.map(p=>p.id))||JSON.stringify(journal)!==JSON.stringify(a.payload.journal);if(archiveSnapshotOlder)olderDates.push(date);return{date,pointCount,tripCount,stayCount,revision,updatedAt,archiveSnapshotOlder,multipleRecorders,livePointCount:current.length};});
+ const olderDates=[];const days=archives.map(a=>{
+ const {date,pointCount,tripCount,stayCount,revision,updatedAt,schemaVersion,contentHash}=a.payload,current=points.filter(p=>berlinDay(p.tst)===date).sort(compareArchivePoints),multipleRecorders=recorderCount(current)>1;
+ let archiveSnapshotOlder=true;
+ if(schemaVersion===2){try{archiveSnapshotOlder=!archiveMatchesContent(a.payload,archiveV2Content(points,date));}catch{archiveSnapshotOlder=true;}}
+ else{const journal=multipleRecorders?null:selectPoints(points,date,Number.MAX_SAFE_INTEGER).journal;archiveSnapshotOlder=multipleRecorders||JSON.stringify(current.map(p=>p.id))!==JSON.stringify(a.payload.points.map(p=>p.id))||JSON.stringify(journal)!==JSON.stringify(a.payload.journal);}
+ if(archiveSnapshotOlder)olderDates.push(date);return{date,schemaVersion,contentHash,pointCount,recorderCount:a.payload.recorderCount??1,tripCount,stayCount,revision,updatedAt,archiveSnapshotOlder,multipleRecorders,livePointCount:current.length};
+ });
  return reply({...view,health:healthView(health,date),archive:{enabled:true,days,status:{ok:true,mode:'on-demand',checkedAt:new Date(now()).toISOString(),archiveSnapshotOlder:olderDates.length>0,olderDates,deferredDates}},ingestion:ingestion??null,refreshedAt:new Date(now()).toISOString()});
  }
  if(route==='map/context'){query(url,['date']);const date=url.searchParams.get('date');if(!dateOK(date))error(400,'Ungültiges Datum.');const value=await store.context(installationId,date)??emptyContext(date);validateContextValue(value,date);return reply(await manualView(value,date));}
@@ -156,7 +172,9 @@ export function createAssistance({store,installationId,publicOrigin='https://wer
  }
  if(route==='map/archive'){
  query(url,['date','format']);const date=url.searchParams.get('date'),format=url.searchParams.get('format')??'gpx';if(!dateOK(date)||!['gpx','json'].includes(format))error(400,'Ungültiges Archivdatum.');let saved=await store.archive(installationId,date);if(!saved){await archiveCompleted(await store.points(installationId),await store.archives(installationId));saved=await store.archive(installationId,date);}if(!saved)error(404,'Dieser Tag ist noch nicht archiviert.');
- const body=format==='gpx'?(saved.gpx??gpxForDay(date,saved.payload.points)):JSON.stringify({...saved.payload,health:healthView(await store.health(installationId),date)},null,2)+'\n';return new Response(body,{headers:{'Content-Type':format==='gpx'?'application/gpx+xml; charset=utf-8':'application/json; charset=utf-8','Cache-Control':'no-store','Content-Disposition':`attachment; filename="Nick-GPS-${date}.${format}"`}});
+ const version=saved.payload.schemaVersion,body=format==='gpx'?(saved.gpx??gpxForDay(date,saved.payload.points,{schemaVersion:version})):(saved.original_json??saved.originalJson??JSON.stringify(saved.payload,null,2)+'\n');
+ const filename=version===2?`WerkTag-GPS-${date}-v2.${format}`:`Nick-GPS-${date}.${format}`;
+ return new Response(body,{headers:{'Content-Type':format==='gpx'?'application/gpx+xml; charset=utf-8':'application/json; charset=utf-8','Cache-Control':'no-store','X-WerkTag-Archive-Version':String(version),'Content-Disposition':`attachment; filename="${filename}"`}});
  }
  error(404,'Nicht gefunden.');
  }catch(e){const status=[400,401,403,404,405,409,413,415,422,429].includes(e.status??e.statusCode)?e.status??e.statusCode:503;return reply({error:status===503?'Assistenz vorübergehend nicht verfügbar.':e.message},status,status===401&&isPub?{'WWW-Authenticate':'Basic realm="GPS ingestion", charset="UTF-8"'}:{});}

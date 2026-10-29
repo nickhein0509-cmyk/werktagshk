@@ -11,6 +11,9 @@ const metrics = [
   ['active_energy_total', 'Aktive Energie', 'kcal', 1],
   ['exercise_time_total', 'Trainingszeit', 'Min.', 1],
   ['distance_walk_run_total', 'Geh- / Laufstrecke · Health', 'km', 0.001],
+  ['sleep_analysis_core_seconds', 'Schlaf · Core', 'Min.', 1 / 60],
+  ['sleep_analysis_deep_seconds', 'Schlaf · Tief', 'Min.', 1 / 60],
+  ['sleep_analysis_rem_seconds', 'Schlaf · REM', 'Min.', 1 / 60],
   ['sleep_total_seconds', 'Erfasster Schlaf · Quelltag', 'Std.', 1 / 3600],
   ['heart_rate_merged_avg', 'Puls · Tagesmittel', 'bpm', 1],
   ['resting_heart_rate_merged_avg', 'Ruhepuls', 'bpm', 1],
@@ -87,6 +90,8 @@ export function createStatistics({ onDay, onLocked }) {
       button.addEventListener('click', () => openDay(day.date)); dateCell.append(button);
       if (day.provisional) dateCell.append(element('span', 'vorläufig', 'pill provisional'));
       const valueCell = element('td', formatted(valueOf(day, key), key)), evidence = [];
+      const observation = day.health?.metrics?.[key];
+      if (key === 'vo2_max' && observation?.observedAt) valueCell.append(element('small', ' · Gemessen: ' + new Date(observation.observedAt).toLocaleString('de-DE', { timeZone: 'Europe/Berlin' })));
       if (day.gps?.present) evidence.push('GPS');
       if (day.health?.present) evidence.push('Health');
       const evidenceCell = element('td', evidence.length ? evidence.join(' · ') : 'Keine Daten', evidence.length ? 'subtle' : 'missing');
@@ -108,7 +113,12 @@ export function createStatistics({ onDay, onLocked }) {
       const group = add('g', { class: 'chart-bucket', role: 'button', tabindex: 0, 'aria-label': shortDate(bucket.from) + (bucket.from !== bucket.to ? ' bis ' + shortDate(bucket.to) : '') + ': ' + formatted(value, key) + (bucket.provisional ? ', vorläufig' : '') });
       group.append(add('rect', { x: x - step / 2 + 2, y: 12, width: Math.max(1, step - 4), height: baseline - 6, fill: 'transparent' }));
       if (Number.isFinite(value)) {
-        const h = Math.max(2, value / max * 150);
+        const h = value / max * 150;
+        const isPoint = key.includes('_avg') || key === 'vo2_max';
+        if (isPoint) {
+          if (key !== 'vo2_max' && i > 0 && Number.isFinite(data[i - 1])) group.append(add('line', { x1: x - step, y1: baseline - data[i - 1] / max * 150, x2: x, y2: baseline - h, stroke: '#236658', 'stroke-width': 2 }));
+          group.append(add('circle', { cx: x, cy: baseline - h, r: 5, fill: '#236658' }));
+        } else
         group.append(add('rect', { x: x - Math.min(22, step * 0.32), y: baseline - h, width: Math.max(2, Math.min(44, step * 0.64)), height: h, rx: 3, class: bucket.provisional || bucket.partial ? 'chart-bar provisional-bar' : 'chart-bar' }));
       } else group.append(add('line', { x1: x, x2: x, y1: baseline - 16, y2: baseline - 2, class: 'chart-missing' }));
       group.append(add('title', {}, shortDate(bucket.from) + ': ' + (Number.isFinite(value) ? formatted(value, key) : 'Kein Wert gespeichert')));
@@ -120,13 +130,13 @@ export function createStatistics({ onDay, onLocked }) {
     $('statistics-chart').replaceChildren(svg);
     const average = model.buckets?.some(bucket => bucket.health?.metrics?.[key]?.aggregation === 'mean-of-daily-values');
     const latestObservation = key === 'vo2_max';
-    $('statistics-chart-note').textContent = (latestObservation ? 'Letzte übermittelte Beobachtung je Zeitraum; kein Tagesmittel. ' : average ? 'Mittel der vorhandenen Tageswerte; kein Mittel aller Einzelmessungen. ' : 'Summen der vorhandenen Tage. ') + (key === 'gps.distanceMetres' ? 'GPS-Strecken sind ungeglättete Näherungen aus den Originalpunkten und können Fahrten enthalten. Die bereinigte Tagesansicht kann davon abweichen. ' : '') + 'Lücken bedeuten fehlende Werte. Umrandete Balken können unvollständig sein. Tippe einen Balken für die Tagesansicht.';
+    $('statistics-chart-note').textContent = (latestObservation ? 'Letzte übermittelte Beobachtung je Zeitraum; kein Tagesmittel. ' : average ? 'Mittel der vorhandenen Tageswerte; kein Mittel aller Einzelmessungen. ' : 'Summen der vorhandenen Tage. ') + (key === 'gps.distanceMetres' ? 'GPS-Strecken sind ungeglättete Näherungen aus den Originalpunkten und können Fahrten enthalten. Die bereinigte Tagesansicht kann davon abweichen. ' : '') + 'Lücken bedeuten fehlende Werte. Der laufende Tag und Zeiträume mit fehlenden Tagen können unvollständig sein. Wähle einen Datenpunkt oder Balken für die Tagesansicht.';
   }
   function render() {
     $('statistics-message').hidden = true; $('statistics-content').hidden = false;
     const currentMetric = $('statistics-metric').value, available = metrics.filter(([key]) => key.startsWith('gps.') || model.days.some(day => Number.isFinite(valueOf(day, key))));
     $('statistics-metric').replaceChildren(...available.map(([key, label]) => { const option = element('option', label); option.value = key; return option; }));
-    $('statistics-metric').value = available.some(([key]) => key === currentMetric) ? currentMetric : available[0][0];
+    $('statistics-metric').value = available.some(([key]) => key === currentMetric) ? currentMetric : (available.find(([key]) => !key.startsWith('gps.')) ?? available[0])[0];
     $('statistics-coverage').textContent = model.quality.presentGpsDays + '/' + model.quality.totalDays + ' Tage mit GPS · ' + model.quality.presentHealthDays + '/' + model.quality.totalDays + ' mit Health';
     $('statistics-quality').textContent = 'Zeitraum ' + shortDate(model.from) + ' – ' + shortDate(model.to) + '. ' + (model.quality.provisional ? 'Der laufende Tag ist vorläufig. ' : '') + 'Vorhandene Tage belegen keine lückenlose Aufzeichnung. Health-Tageswerte gelten für den ganzen Quelltag und werden keiner GPS-Teilstrecke zugeordnet.';
     const source = model.selectedRecorder ?? recorder;

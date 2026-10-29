@@ -3,6 +3,7 @@ import assert from 'node:assert/strict';
 import {selectPoints,berlinDay,healthView,validateHealthDay,emptyContext,updateContextValue,validateContextValue,contextView,validateContextRange,contextRange,statisticsFromData,gpxForDay} from './domain.mjs';
 import {route} from './semantics/route.js';
 import {buildJournal} from './semantics/journal.js';
+import {archiveRecorderJournals,archiveV2Content,validateArchiveStructure} from './archive-contract.mjs';
 
 const id='12345678-1234-4234-8234-123456789abc';
 const point=(iso,lon=13.4,extra={})=>({id:iso,tst:Date.parse(iso)/1000,lat:52.5,lon,receivedAt:iso,...extra});
@@ -244,4 +245,70 @@ test('statistics do not match an old context reference against a colliding segme
   assert.equal(single.summary.context.needsReviewCount,0);
   const mixed=statisticsFromData({points:[...owntracks,...other],contexts:[context],from:'2026-10-27',to:'2026-10-27',now});
   assert.equal(mixed.summary.context.needsReviewCount,1);assert.deepEqual(mixed.summary.context.activityLabels,[]);
+});
+
+test('v2 statistics select one archived recorder and switch to live derivation only after its snapshot changes',()=>{
+  const {owntracks,native}=parallelRecordings(),points=[...owntracks,...native],date='2026-10-27',content=archiveV2Content(points,date),stamp='2026-10-28T00:00:00.000Z';
+  const archive={schemaVersion:2,date,timeZone:'Europe/Berlin',revision:1,updatedAt:stamp,archivedAt:stamp,contentHash:'stable-v2-fingerprint',pointCount:content.points.length,recorderCount:content.journals.length,tripCount:content.journals.reduce((sum,j)=>sum+j.tripCount,0),stayCount:content.journals.reduce((sum,j)=>sum+j.stayCount,0),firstTimestamp:content.points[0].tst,lastTimestamp:content.points.at(-1).tst,...content};
+  assert.equal(validateArchiveStructure(archive,date),archive);
+  const reversed=structuredClone(archive),journal=reversed.journals[0];journal.pointIds.reverse();journal.firstTimestamp=reversed.points.find(point=>point.id===journal.pointIds[0]).tst;journal.lastTimestamp=reversed.points.find(point=>point.id===journal.pointIds.at(-1)).tst;
+  assert.throws(()=>validateArchiveStructure(reversed,date));
+  let result=statisticsFromData({points,archives:[archive],from:date,to:date,now});assert.equal(result.days[0].gps.source.kind,'archive');assert.equal(result.days[0].gps.source.schemaVersion,2);assert.equal(result.days[0].gps.pointCount,2);assert.ok(result.days[0].gps.distanceMetres<70);
+  result=statisticsFromData({points,archives:[archive],from:date,to:date,now,source:'iphone',device:'owntracks'});assert.equal(result.days[0].gps.source.kind,'archive');assert.equal(result.days[0].gps.pointCount,2);
+  const late={...native.at(-1),id:'native-late',tst:native.at(-1).tst+30,receivedAt:now};
+  result=statisticsFromData({points:[...points,late],archives:[archive],from:date,to:date,now});assert.equal(result.days[0].gps.source.kind,'cloud-derived');assert.equal(result.days[0].gps.source.archiveSnapshotOlder,true);assert.equal(result.days[0].gps.pointCount,3);
+});
+
+test('v2 journals preserve one recorder across Berlin midnight and never join a device change',()=>{
+  const make=(iso,source='iphone',device='primary',lat=52.5)=>point(iso,13.4,{id:source+'-'+device+'-'+iso,source,device,lat,acc:5});
+  const points=[make('2026-10-27T22:55:00Z'),make('2026-10-27T23:05:00Z'),make('2026-10-27T23:05:00Z','werktag_ios','secondary',52.6),make('2026-10-27T23:15:00Z','werktag_ios','secondary',52.6)];
+  const first=archiveRecorderJournals(points,'2026-10-27'),second=archiveRecorderJournals(points,'2026-10-28');
+  assert.equal(first.length,1);assert.equal(first[0].source,'iphone');assert.equal(first[0].journal.stays[0].crossesMidnight,true);
+  assert.equal(second.length,2);assert.deepEqual(second.map(value=>[value.source,value.device]),[['iphone','primary'],['werktag_ios','secondary']]);
+  assert.equal(second[0].journal.stays[0].crossesMidnight,true);assert.equal(second[1].journal.stays[0].crossesMidnight,false);
+});
+
+test('a legacy point on another day cannot block a valid v2 recorder archive',()=>{
+  const legacy=point('2026-10-26T10:00:00Z'),current=point('2026-10-27T10:00:00Z',13.4,{id:'current',source:'iphone',device:'primary'});
+  const content=archiveV2Content([legacy,current],'2026-10-27');assert.equal(content.points.length,1);assert.equal(content.journals.length,1);assert.equal(content.journals[0].device,'primary');
+  assert.throws(()=>archiveV2Content([legacy,current],'2026-10-26'));
+});
+
+test('v2 recorder order uses runtime-independent code-unit ordering for Unicode device names',()=>{
+  const devices=['ä-Gerät','Z-Gerät','a-Gerät'],points=devices.map((device,index)=>point('2026-10-27T10:00:00Z',13.4,{id:'unicode-'+index,source:'iphone',device}));
+  const expected=[...devices].sort((left,right)=>JSON.stringify(['iphone',left])<JSON.stringify(['iphone',right])?-1:JSON.stringify(['iphone',left])>JSON.stringify(['iphone',right])?1:0);
+  assert.deepEqual(archiveRecorderJournals(points,'2026-10-27').map(value=>value.device),expected);
+});
+
+test('archive and live views order offset receipt times by instant and IDs by code unit',()=>{
+  const base={source:'iphone',device:'primary'},earlier=point('2026-10-27T07:00:00Z',13.4,{...base,id:'z-earlier',receivedAt:'2026-10-27T10:00:00+02:00'}),
+    tieZ=point('2026-10-27T07:00:00Z',13.4,{...base,id:'z-tie',receivedAt:'2026-10-27T09:00:00Z'}),tieA=point('2026-10-27T07:00:00Z',13.4,{...base,id:'a-tie',receivedAt:'2026-10-27T10:00:00+01:00'});
+  const shuffled=[tieZ,earlier,tieA],expected=['z-earlier','a-tie','z-tie'];
+  assert.deepEqual(archiveV2Content(shuffled,'2026-10-27').points.map(value=>value.id),expected);
+  const view=selectPoints(shuffled,'2026-10-27');assert.deepEqual(view.points.map(value=>value.id),expected);assert.equal(view.latestReceivedAt,tieA.receivedAt);
+  const statistics=statisticsFromData({points:shuffled,from:'2026-10-27',to:'2026-10-27',now});assert.equal(statistics.days[0].gps.source.updatedAt,tieA.receivedAt);
+});
+
+test('statistics accept v1 timestamp ties in original input order without mutating the archive',()=>{
+  const date='2026-10-27',points=['ffffffff-ffff-4fff-8fff-ffffffffffff','11111111-1111-4111-8111-111111111111'].map(id=>point(date+'T10:00:00Z',13.4,{id,source:'iphone',device:'primary',acc:5}));
+  const archive={schemaVersion:1,date,timeZone:'Europe/Berlin',revision:1,updatedAt:now,pointCount:points.length,points,journal:buildJournal(points)};
+  const before=JSON.stringify(archive);
+  const result=statisticsFromData({points,archives:[archive],from:date,to:date,now});
+  assert.equal(result.summary.gps.pointCount,2);
+  assert.equal(JSON.stringify(archive),before);
+  const invalid=structuredClone(archive);invalid.points[1].tst-=60;
+  assert.throws(()=>statisticsFromData({points,archives:[invalid],from:date,to:date,now}),e=>e.code==='STATISTICS_INVALID_ARCHIVE');
+});
+
+test('reused recorder journals preserve midnight clipping and avoid rereading other days',async()=>{
+  const {createArchiveJournalReader}=await import('./archive-contract.mjs');
+  let oldDayReads=0;
+  const points=['2026-10-27T22:55:00Z','2026-10-27T23:05:00Z','2026-10-27T23:15:00Z'].map(iso=>point(iso,13.4,{source:'iphone',device:'primary',acc:5}));
+  const expected=archiveRecorderJournals(points,'2026-10-28');
+  Object.defineProperty(points[0],'lat',{get(){oldDayReads++;return 52.5;},enumerable:true});
+  const read=createArchiveJournalReader(points);
+  assert.equal(read('2026-10-27')[0].journal.stays[0].crossesMidnight,true);
+  oldDayReads=0;
+  assert.deepEqual(read('2026-10-28'),expected);
+  assert.equal(oldDayReads,0,'a second day must reuse the full recorder journal');
 });

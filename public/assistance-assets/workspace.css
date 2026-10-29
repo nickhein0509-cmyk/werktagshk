@@ -198,3 +198,24 @@ button:focus-visible, a:focus-visible, input:focus-visible, select:focus-visible
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after { transition: none !important; animation: none !important; scroll-behavior: auto !important; }
 }
+
+/* Reading comes first; optional capture remains a native, keyboard-accessible disclosure. */
+.assistant-more { margin: 0 0 22px; color: var(--atelier-shell-muted); }
+.assistant-more > summary, #workspace-capture > summary, #today-content summary { cursor: pointer; min-height: 44px; padding-block: 12px; }
+.assistant-more > p { max-width: 70ch; line-height: 1.6; }
+#workspace-capture > summary { font-weight: 650; margin-bottom: 12px; }
+#today-overview { margin-bottom: 28px; }
+#today-content h3 { margin-top: 28px; }
+#today-content ul { padding-left: 22px; line-height: 1.8; }
+#today-content li + li { margin-top: 10px; }
+.today-actions { display: flex; flex-wrap: wrap; gap: 12px; margin: 24px 0; }
+.today-actions button, #today-overview > button { min-height: 44px; white-space: normal; }
+.today-actions button:first-child { background: #173e3e; color: #fffdf8; }
+#today-content details { margin: 18px 0; }
+#today-content .overview-grid { grid-template-columns: repeat(4, minmax(0, 1fr)); }
+#today-content .overview-grid strong { font-size: clamp(23px, 3vw, 36px); overflow-wrap: anywhere; }
+@media(max-width:650px) { #today-content .overview-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); } #today-overview { padding: 22px 17px; } }
+.view-switch { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+.heading { min-height: auto; padding-block: 28px; }
+.heading h1 { font-size: clamp(36px, 4.5vw, 64px); }
+@media(max-width:650px) { .view-switch button { padding-inline: 8px; font-size: 12px; } .heading .subtitle { margin-top: 16px; } }

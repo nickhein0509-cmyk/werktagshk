@@ -1,5 +1,19 @@
 # WerkTag: shared production platform for three products
 
+## Supabase migration decision — 29 October 2026
+
+Nick now explicitly requests moving all WerkTag data from source project
+`hrqaxsbddpmphblmoyly` to target project `mvkksfecimpjnytvbrrb`. This supersedes
+the earlier decision to keep using the old project permanently. Read
+[the migration record](docs/supabase-project-migration.md) before backend,
+credential, deployment or iOS configuration work. PR #20 and the current public production configuration point to the target.
+The earlier blocked preparation report is historical; do not repeat a restore
+or cutover without checking current target state. Full private-data completeness
+and authenticated personal use are not established by the public config check.
+Preserve users/IDs, private content, history, storage and encryption dependencies.
+Repository SQL files are not a complete database backup. Update the execution
+record with actual evidence, and switch production only after target validation.
+
 Nick clarified on 28 October 2026 that WerkTag contains three independent
 products under `werk-tag.com`: **Lernapp** for school/examination preparation,
 **Assistent** for personal documentation and records, and **Materialliste** for

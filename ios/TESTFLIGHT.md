@@ -41,6 +41,12 @@ Screenshots, Issue-Anhänge oder öffentliche Dateien übernehmen.
 
 ## Bereitstellung
 
+Für den am 29.10.2026 beauftragten Wechsel auf `mvkksfecimpjnytvbrrb` zuerst die
+[vollständige Datenmigration](../docs/supabase-project-migration.md) und
+Kontozuordnung prüfen. Die Webverbindung verwendet seit PR #20 das neue Ziel;
+dies ersetzt keine Prüfung aller privaten Daten und des Geräts. Ein TestFlight-Upload
+kopiert weder Supabase-Benutzer noch ihre Aufzeichnungen ins neue Projekt.
+
 Zuerst das [native Backend](README.md#backend-bereitstellen) bereitstellen und mit
 dem zugeordneten WerkTag-Konto prüfen. Die anonyme CI-Probe prüft nur Erreichbarkeit
 und Ablehnung ungültiger Tokens, nicht die vollständige Kontointegration.

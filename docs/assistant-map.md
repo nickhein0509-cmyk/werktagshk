@@ -106,8 +106,9 @@ Ein Wechsel oder Sperren verwirft ausstehende Ergebnisse; eine alte
 Statistikantwort kann die neu gewählte Geräteansicht nicht überschreiben.
 Beim Sperren wird auch die Geräteauswahl entfernt. Alte Antworten ohne
 Quellenmetadaten bleiben darstellbar, ohne eine Quellenbezeichnung zu erfinden.
-Bei mehreren Geräten werden zurückgestellte Archivierungen beziehungsweise
-unverändert angebotene ältere Archive ausdrücklich erklärt.
+Bei mehreren Geräten werden die getrennten Recorderjournale des
+[Tagesarchivs v2](assistant-archive-v2.md) beziehungsweise unverändert
+angebotene ältere v1-Archive ausdrücklich erklärt.
 
 Gezielte Regressionen: `node --test scripts/test-assistant-map.mjs` sowie
 `tests/e2e/assistant-timeline.spec.ts`. Die Browserfälle verwenden ausschließlich

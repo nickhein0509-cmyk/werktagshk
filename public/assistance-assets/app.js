@@ -2,6 +2,7 @@ import { analyzeRoute } from '/assistenz/route.js';
 import { renderHealth, resetHealth } from '/assistenz/health-v2.js';
 import { createStatistics } from '/assistenz/statistics-v1.js';
 import { createContext } from '/assistenz/context-v1.js';
+import { createToday } from '/assistance-assets/today.js';
 import { createWorkspace } from '/assistance-assets/workspace.js';
 import { renderJourneyMap, recorderKey, recorderLabel, recorderQuery } from '/assistance-assets/map-presentation.js';
 const $=id=>document.getElementById(id),fmt=new Intl.NumberFormat('de-DE',{maximumFractionDigits:1});
@@ -14,11 +15,12 @@ let map,layers,basemap,mapLibraryPromise=null,first=true,busy=false,active='toda
 let basemapRevision=0,basemapTimer,provider='openfreemap';
 let view='overview', contextReady=false, accessReady=false;
 let mapBounds=null,requestedRecorder=null,recorderChoices=[],dataController;
+const todayOverview=createToday({onLocked:()=>locked(),onDay:day=>changeDay(day),onTrends:()=>showView('statistics')});
 const statistics=createStatistics({onDay:(day,recorder)=>{requestedRecorder=recorderKey(recorder)?recorder:null;changeDay(day);},onLocked:()=>locked()});
 const context=createContext({onLocked:()=>locked(),onAccessChanged:()=>refresh(true),onChanged:()=>{statistics.invalidate(String(Date.now()));lastView='';workspace.invalidate();workspace.refresh();}});
-const workspace=createWorkspace({onLocked:()=>locked(),onChanged:()=>{statistics.invalidate(String(Date.now()));lastView='';context.refresh();},onDay:day=>changeDay(day),onOwner:()=>{showView('day');$('context-owner-details').open=true;$('context-owner-token').focus();$('context-owner').scrollIntoView({block:'nearest'});}});
+const workspace=createWorkspace({onLocked:()=>locked(),onChanged:()=>{statistics.invalidate(String(Date.now()));lastView='';context.refresh();},onDay:day=>changeDay(day),onOwner:()=>{showView('day');$('day-additions').open=true;$('context-owner-details').open=true;$('context-owner-token').focus();$('context-owner').scrollIntoView({block:'nearest'});}});
 function showView(next){
-  view=next;document.body.classList.toggle('is-day-view',next==='day');$('day-view').hidden=next!=='day';statistics.show(next==='statistics');workspace.show(next);
+  view=next;document.body.classList.toggle('is-day-view',next==='day');$('day-view').hidden=next!=='day';statistics.show(next==='statistics');workspace.show(next);todayOverview.show(next==='overview');
   for(const name of ['overview','workspace','day','statistics']){const button=$('view-'+name);button.classList.toggle('chosen',next===name);button.setAttribute('aria-pressed',String(next===name));}
   $('day').closest('.date-control').hidden=next!=='day';
   // The provider sees viewport requests only after opening Mein Tag. Measured
@@ -226,11 +228,11 @@ function renderTimeline(data,models){
 }
 function renderArchive(data){
   const day=active==='today'?today():active,archive=data.archive,entry=archive?.days.find(e=>e.date===day);
-  $('archive-status').textContent=archive?.status?.ok===false?'Archivierung braucht Aufmerksamkeit. Die GPS-Rohdaten bleiben gespeichert.':day==='all'?'Alle vorhandenen Aufzeichnungen bleiben gespeichert. Wähle einen Tag für den Tagesexport.':entry?'Tagesarchiv gespeichert · '+entry.pointCount+' Punkte · GPX und vollständige Tagesdatei':day===today()?'Heute wird fortlaufend gespeichert. Tagesarchiv automatisch nach Mitternacht.':data.totalSelected===0&&data.health?.status==='ok'?'Health-Tageswerte gespeichert. Für diesen Tag gibt es keine GPS-Aufzeichnung.':data.totalSelected===0?'Für diesen Tag ist keine GPS-Aufzeichnung gespeichert.':'Tagesarchiv wird beim nächsten automatischen Abgleich erstellt.';
+  $('archive-status').textContent=archive?.status?.ok===false?'Archivierung braucht Aufmerksamkeit. Die GPS-Rohdaten bleiben gespeichert.':day==='all'?'Alle vorhandenen Aufzeichnungen bleiben gespeichert. Wähle einen Tag für den Tagesexport.':entry?'Tagesarchiv v'+(entry.schemaVersion??1)+' gespeichert · '+entry.pointCount+' Punkte · GPX und vollständige Tagesdatei':day===today()?'Heute wird fortlaufend gespeichert. Tagesarchiv automatisch nach Mitternacht.':data.totalSelected===0&&data.health?.status==='ok'?'Health-Tageswerte gespeichert. Für diesen Tag gibt es keine GPS-Aufzeichnung.':data.totalSelected===0?'Für diesen Tag ist keine GPS-Aufzeichnung gespeichert.':'Tagesarchiv wird beim nächsten automatischen Abgleich erstellt.';
   $('download-gpx').hidden=!entry;$('download-json').hidden=!entry;
+  if(archive?.status?.deferredDates?.includes(day)&&!entry)$('archive-status').textContent='Mindestens eine ältere Aufzeichnung dieses Tages hat keine eindeutige Recorderkennung. Die Rohdaten bleiben erhalten; ein v2-Archiv wird noch nicht erzeugt.';
+  if(entry?.multipleRecorders)$('archive-status').textContent=entry.schemaVersion===2?'Tagesarchiv v2 gespeichert · '+entry.recorderCount+' Geräte sind getrennt archiviert; die Ansicht zeigt nur das gewählte Gerät.':'Mehrere Geräte zeichnen diesen Tag auf. Downloads enthalten den ursprünglichen v1-Archivstand und entsprechen nicht zwingend der gewählten Geräteansicht.';
   if(entry?.archiveSnapshotOlder)$('archive-status').textContent='Weitere Messungen sind nach dem Archiv eingetroffen. Tagesansicht und Statistik berücksichtigen sie; die Downloads erhalten den ursprünglichen Archivstand.';
-  if(archive?.status?.deferredDates?.includes(day)&&!entry)$('archive-status').textContent='Mehrere Geräte zeichnen diesen Tag auf. Die Tagesansicht zeigt das gewählte Gerät; ein gemeinsames Tagesarchiv wird nicht erzeugt.';
-  if(entry?.multipleRecorders)$('archive-status').textContent='Mehrere Geräte zeichnen diesen Tag auf. Downloads enthalten den ursprünglichen Archivstand und entsprechen nicht zwingend der gewählten Geräteansicht.';
   if(entry){$('download-gpx').href='/assistenz/archive?date='+day+'&format=gpx';$('download-json').href='/assistenz/archive?date='+day+'&format=json';}
 }
 function draw(data,force=false){
@@ -246,7 +248,7 @@ function draw(data,force=false){
   $('distance').textContent=distance(distanceMetres);
   if($('distance-note'))$('distance-note').textContent='GPS-Näherung · ohne erkannte Aufenthalte';
   $('latest').textContent=pts.length?time(pts.at(-1).tst)+' Uhr':'–';
-  const received=pts.reduce((value,p)=>!value||p.receivedAt>value?p.receivedAt:value,null);
+  const received=pts.reduce((value,p)=>!value||Date.parse(p.receivedAt)>Date.parse(value)||(Date.parse(p.receivedAt)===Date.parse(value)&&p.receivedAt>value)?p.receivedAt:value,null);
   $('received').textContent=received?'Empfangen '+time(Date.parse(received)/1000)+' Uhr':'Noch keine Punkte';
   const knownDays=[...new Set([...(active!=='today'&&active!=='all'?[active]:[]),...data.days,...(data.archive?.days.map(e=>e.date)??[]),...(data.health?.days??[])])].filter(d=>d!==today()).sort().reverse();
   const options=[['today','Heute'],...knownDays.map(d=>[d,new Date(d+'T12:00:00Z').toLocaleDateString('de-DE',{day:'numeric',month:'long',year:'numeric',timeZone:'Europe/Berlin'})+(data.archive?.days.some(e=>e.date===d)?' · archiviert':'')]),['all','Alle Aufzeichnungen']];
@@ -260,7 +262,7 @@ function draw(data,force=false){
   $('quality').textContent='Bereinigte GPS-Näherung, keine berechnete Straßenstrecke. '+model.poorFixCount+' ungenaue Punkte · '+model.outlierCount+' isolierte Sprünge · '+model.suppressedJitterCount+' kleine GPS-Bewegungen geglättet. '+model.gapCount+' Lücken oder unplausible Übergänge werden nicht verbunden.'+(model.unknownAccuracyCount?' Bei '+model.unknownAccuracyCount+' Punkten fehlt die Genauigkeitsangabe.':'')+' Aufenthalte sind eine Näherung ab 10 Minuten im Bereich von ca. 100 m, nur bis zur letzten passenden Messung.'+(data.truncated?' Anzeige auf die neuesten 20.000 Punkte gekürzt. Bitte wähle einen einzelnen Tag.':'');
   renderTimeline(data,models);renderAnalysis(model,journal,selection);renderArchive(data);renderHealth(data.health,{selectedPart:Boolean(selection)});
   const chosenDay=active==='today'?today():active,archiveRevision=data.archive?.days.find(e=>e.date===chosenDay)?.revision;
-  context.setDay({date:chosenDay,segment:selection,journal:data.journal,archiveRevision});
+  context.setDay({date:chosenDay,segment:selection,journal:data.journal,recorder:data.selectedRecorder??null,archiveRevision});
   const latestFix=pts.at(-1),sensor=[];
   if(Number.isFinite(latestFix?.batt))sensor.push('Akku '+fmt.format(latestFix.batt)+' %');
   if(Number.isFinite(latestFix?.alt))sensor.push('Höhe '+fmt.format(latestFix.alt)+' m ü. M.');
@@ -274,7 +276,7 @@ function draw(data,force=false){
 function locked(){
   dataController?.abort();
   mapBounds=null;requestedRecorder=null;recorderChoices=[];$('recorder').replaceChildren();$('recorder').disabled=true;$('recorder-control').hidden=true;$('recorder-note').textContent='';$('map-mode').textContent='Geschützt';$('map-route-note').textContent='';
-  generation++;pendingRefresh=false;accessReady=false;disposeBasemap();if(map){map.remove();map=null;layers=null;}$('map-provider').disabled=true;$('basemap-status').dataset.state='idle';$('basemap-status').textContent='Karte nach der Anmeldung öffnen.';$('map-retry').hidden=true;statistics.reset();context.reset();workspace.reset();contextReady=false;for(const name of ['workspace','day','statistics'])$('view-'+name).disabled=true;$('calendar-day').disabled=true;updateDayNavigation();$('timeline-date-label').textContent='Deine Zeitachse';$('timeline-day-summary').textContent='Melde dich an, um deine Wege und Aufenthalte zu sehen.';$('map-selection-summary').textContent='Deine privaten Abschnitte erscheinen nach der Anmeldung.';$('sensor-details').textContent='';showView('overview');
+  generation++;pendingRefresh=false;accessReady=false;disposeBasemap();if(map){map.remove();map=null;layers=null;}$('map-provider').disabled=true;$('basemap-status').dataset.state='idle';$('basemap-status').textContent='Karte nach der Anmeldung öffnen.';$('map-retry').hidden=true;todayOverview.reset();statistics.reset();context.reset();workspace.reset();contextReady=false;for(const name of ['workspace','day','statistics'])$('view-'+name).disabled=true;$('calendar-day').disabled=true;updateDayNavigation();$('timeline-date-label').textContent='Deine Zeitachse';$('timeline-day-summary').textContent='Melde dich an, um deine Wege und Aufenthalte zu sehen.';$('map-selection-summary').textContent='Deine privaten Abschnitte erscheinen nach der Anmeldung.';$('sensor-details').textContent='';showView('overview');
   resetHealth('Melde dich über Mein Konto an oder öffne deinen privaten Kartenlink für deine Health-Werte.');
   status('Geschützter Zugriff');$('access').hidden=false;$('day').disabled=true;layers?.clearLayers();currentData=null;selected=null;$('timeline').replaceChildren();$('journal-summary').textContent='Zugriff erforderlich';$('archive-status').textContent='Melde dich über Mein Konto an oder öffne deinen privaten Kartenlink.';$('download-gpx').hidden=true;$('download-json').hidden=true;
   for(const id of ['distance','count','latest','received','range'])$(id).textContent='–';$('total').textContent='Zugriff erforderlich';$('map-message').hidden=false;$('map-message').textContent='Melde dich über Mein Konto an oder öffne deinen privaten Kartenlink.';
@@ -285,7 +287,7 @@ async function authorizeAccess(revision){
   const response=await fetch('/assistenz/session',{cache:'no-store',signal:AbortSignal.timeout(10000)});
   if(revision!==generation)return false;if(response.status===401){locked();return false;}if(!response.ok)throw new Error('session-unavailable');
   const session=await response.json();if(revision!==generation)return false;if(session.canRead!==true){locked();return false;}
-  accessReady=true;$('access').hidden=true;for(const name of ['workspace','day','statistics'])$('view-'+name).disabled=false;
+  accessReady=true;todayOverview.unlock();$('access').hidden=true;for(const name of ['workspace','day','statistics'])$('view-'+name).disabled=false;
   $('day').disabled=false;$('calendar-day').disabled=false;updateDayNavigation();
   await workspace.setSession(session);if(revision!==generation)return false;
   if(!contextReady){contextReady=true;await context.unlock();if(revision!==generation)return false;await context.setDay({date:active==='today'?today():active});if(revision!==generation)return false;}
@@ -301,10 +303,10 @@ async function refresh(force=false){
     if(revision!==generation)return;if(r.status===401){locked();return;}if(!r.ok)throw new Error('gps-unavailable');
     const data=await r.json();if(revision!==generation)return;renderFreshness(data);currentData=data;status('Assistent verbunden · Aufzeichnungen geladen','ok');
     const key=JSON.stringify([d,data.totalStored,data.totalSelected,data.latestReceivedAt,data.archive,data.health,data.recorders,data.selectedRecorder]);
-    if(force||lastView!==key){draw(data,force);lastView=key;statistics.invalidate(key);}statistics.refresh();
+    if(force||lastView!==key){draw(data,force);lastView=key;statistics.invalidate(key);}statistics.refresh();todayOverview.refresh();
   }catch(error){
     if(revision===generation){
-      status(navigator.onLine?(contextReady?'Notizen bereit · GPS gerade nicht erreichbar':'Verbindung gerade nicht erreichbar'):'Offline · Entwürfe bleiben im geöffneten Tab','error');
+      status(navigator.onLine?(contextReady?'GPS gerade nicht erreichbar':'Verbindung gerade nicht erreichbar'):'Offline · Entwürfe bleiben im geöffneten Tab','error');
       $('map-message').hidden=false;$('map-message').textContent=currentData?'Gerade kein neuer Abgleich. Der zuletzt geladene Stand bleibt sichtbar.':'GPS-Daten sind gerade nicht erreichbar. Notizen und Aufgaben bleiben unabhängig davon verfügbar.';
       if(!currentData){$('total').textContent='GPS-Dienst nicht erreichbar';$('journal-summary').textContent='GPS-Daten gerade nicht verfügbar';$('archive-status').textContent='Archivstatus gerade nicht abrufbar.';resetHealth('Health-Daten sind gerade nicht abrufbar. Gespeicherte Werte bleiben erhalten.');}
     }

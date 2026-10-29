@@ -1,9 +1,10 @@
 import { Buffer } from 'node:buffer';
-import { CATALOGUE_CSP, cataloguePath, catalogueType } from '../supabase/functions/assistance/catalog.mjs';
+import { CATALOGUE_CSP, CATALOGUE_FILES, cataloguePath, catalogueType } from '../supabase/functions/assistance/catalog.mjs';
 
 const COOKIE = '__Secure-werktag-assistance';
-const catalogueFiles = ['app.js','inflate.js','style-0.css','style-1.css','chrome.css','blocks/shk-offline-index.b64',...Array.from({length:42},(_,i)=>`blocks/shk-shard-${i}.b64`)];
+const catalogueFiles = CATALOGUE_FILES.filter(file => file !== 'index.html');
 const routes = new Map([
+  ['ai', ['POST']],
   ['pub', ['POST']], ['map/data', ['GET']], ['map/archive', ['GET']],
   ['map/statistics', ['GET']], ['map/context', ['GET', 'POST']], ['map/context-range', ['GET']],
   ['map/session', ['GET']], ['map/auth', ['POST']], ['map/owner', ['POST']],
@@ -33,7 +34,7 @@ export function createCloudProxy(options = {}) {
     if (req.method === 'POST' && route !== 'pub' && (req.headers.origin !== origin || req.headers['sec-fetch-site'] === 'cross-site')) return reply(res, 403, 'Ungültiger Ursprung.');
     let endpoint;
     try {
-      endpoint = new URL(options.endpoint ?? (route.startsWith('health/') ? process.env.ASSISTANCE_HEALTH_URL : process.env.ASSISTANCE_CLOUD_URL) ?? '');
+      endpoint = new URL(options.endpoint ?? (route === 'ai' ? process.env.WERKTAG_AI_URL : route.startsWith('health/') ? process.env.ASSISTANCE_HEALTH_URL : process.env.ASSISTANCE_CLOUD_URL) ?? '');
       if (endpoint.protocol !== 'https:' || endpoint.username || endpoint.password || endpoint.search || endpoint.hash || !/^\/functions\/v1\/[a-z0-9-]+$/.test(endpoint.pathname)) throw Error();
     } catch { return reply(res, 503, 'Die Cloud-Verbindung ist noch nicht eingerichtet.'); }
     const incoming = new URL(req.url ?? '/', origin);
@@ -45,9 +46,9 @@ export function createCloudProxy(options = {}) {
       if (typeof req.headers.authorization === 'string' && /^Basic [A-Za-z0-9+/]+=*$/i.test(req.headers.authorization)) headers.authorization = req.headers.authorization;
       for (const h of ['x-limit-d', 'x-limit-u', 'content-encoding']) if (typeof req.headers[h] === 'string') headers[h] = req.headers[h];
     } else {
-      const cookie = cloudCookie(req.headers.cookie);
+      const cookie = route === 'ai' ? '' : cloudCookie(req.headers.cookie);
       if (cookie) headers.cookie = cookie;
-      if ((route.startsWith('account/') || route.startsWith('health/')) && typeof req.headers.authorization === 'string' && /^Bearer [A-Za-z0-9._-]+$/i.test(req.headers.authorization)) headers.authorization = req.headers.authorization;
+      if ((route === 'ai' || route.startsWith('account/') || route.startsWith('health/')) && typeof req.headers.authorization === 'string' && /^Bearer [A-Za-z0-9._-]+$/i.test(req.headers.authorization)) headers.authorization = req.headers.authorization;
       if (req.method === 'POST') { headers.origin = origin; headers['sec-fetch-site'] = 'same-origin'; }
     }
     try {
@@ -57,11 +58,11 @@ export function createCloudProxy(options = {}) {
         else { const chunks = []; let size = 0; for await (const p of req) { size += p.length; if (size > 262144) return reply(res, 413, 'Anfrage zu groß.'); chunks.push(Buffer.from(p)); } bytes = Buffer.concat(chunks); }
         if (bytes.length > 262144) return reply(res, 413, 'Anfrage zu groß.');
       }
-      const r = await (options.fetchImpl ?? fetch)(endpoint, { method: req.method, headers, body: bytes, redirect: 'manual', signal: AbortSignal.timeout(route.startsWith('health/') ? 55000 : 20000) });
+      const r = await (options.fetchImpl ?? fetch)(endpoint, { method: req.method, headers, body: bytes, redirect: 'manual', signal: AbortSignal.timeout(route === 'ai' || route.startsWith('health/') ? 55000 : 20000) });
       if (r.status >= 300 && r.status < 400) throw Error();
       const parts = []; let size = 0;
       if (r.body) for await (const p of r.body) { size += p.length; if (size > 4 * 1024 * 1024) throw Error(); parts.push(Buffer.from(p)); }
-      for (const h of ['content-type', 'content-disposition', 'content-security-policy', 'www-authenticate', 'retry-after']) { const value = r.headers.get(h); if (value) res.setHeader(h, value); }
+      for (const h of ['content-type', 'content-disposition', 'content-security-policy', 'www-authenticate', 'retry-after', 'x-werktag-archive-version']) { const value = r.headers.get(h); if (value) res.setHeader(h, value); }
       const catalogue = cataloguePath(route);
       if (catalogue === 'index.html') {
         // Supabase's Edge gateway sanitizes HTML to plain text with a sandbox.
@@ -72,7 +73,7 @@ export function createCloudProxy(options = {}) {
         }
       }
       const cookies = (r.headers.getSetCookie?.() ?? []).filter(c => c.startsWith(COOKIE + '='));
-      if (route !== 'pub' && cookies.length) res.setHeader('Set-Cookie', cookies);
+      if (route !== 'pub' && route !== 'ai' && cookies.length) res.setHeader('Set-Cookie', cookies);
       res.statusCode = r.status; res.end(Buffer.concat(parts));
     } catch { return reply(res, 502, 'Cloud vorübergehend nicht erreichbar. Deine gespeicherten Daten bleiben erhalten.'); }
   };

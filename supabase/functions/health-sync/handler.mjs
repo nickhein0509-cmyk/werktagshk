@@ -22,7 +22,7 @@ export function createHealthSyncHandler({ supabaseUrl, serviceKey, publicOrigin 
     const result = await fetcher(base + '/auth/v1/user', { headers: { apikey: serviceKey, Authorization: authorization }, signal: AbortSignal.timeout(15000) });
     if (!result.ok) return null;
     const user = await result.json();
-    if (!uuid(user.id)) return null;
+    if (!uuid(user.id) || user.is_anonymous === true) return null;
     const installations = await db('assistance_installations?select=id&owner_user_id=eq.' + encodeURIComponent(user.id) + '&limit=2', null, 'GET');
     // A user with several installations must explicitly select one; do not silently reassign health history.
     const selected = new URL(req.url).searchParams.get('installationId');

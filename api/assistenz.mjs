@@ -1,9 +1,10 @@
 import { Buffer } from 'node:buffer';
 import { cloudProxy } from '../server/assistance-cloud.mjs';
+import { CATALOGUE_FILES } from '../supabase/functions/assistance/catalog.mjs';
 
 const files = ['app-v4.js','app-v4.css','app-v3.js','app-v3.css','app-v2.js','app-v2.css','app.js','app.css','route.js','health-v2.js','health-v2.css','health-v1.js','health-v1.css','statistics-v1.js','context-v1.js','vendor/leaflet.js','vendor/leaflet.css'];
 const reads = new Set(['/map','/map/','/map/data','/map/archive','/map/statistics','/map/context','/map/context-range','/map/session',...files.map(f=>'/map/'+f)]);
-const componentFiles = ['app.js','inflate.js','style-0.css','style-1.css','chrome.css','blocks/shk-offline-index.b64',...Array.from({length:42},(_,i)=>`blocks/shk-shard-${i}.b64`)];
+const componentFiles = CATALOGUE_FILES.filter(file => file !== 'index.html');
 const componentReads = new Set(['/map/components',...componentFiles.map(f=>'/map/components/'+f)]);
 const writes = new Set(['/map/auth','/map/logout','/map/owner','/map/context']);
 const cookies = new Set(['__Secure-nick-map','__Secure-nick-map-owner']);
@@ -109,7 +110,7 @@ export function createGateway(options={}) {
         if(isPage&&response.status===200)content=chrome(content,publicOrigin);
         result=Buffer.from(content);
       }
-      for(const h of ['content-type','content-disposition','content-security-policy','www-authenticate','retry-after']){const value=response.headers.get(h);if(value)res.setHeader(h,value);}
+      for(const h of ['content-type','content-disposition','content-security-policy','www-authenticate','retry-after','x-werktag-archive-version']){const value=response.headers.get(h);if(value)res.setHeader(h,value);}
       const setCookies=response.headers.getSetCookie?.()??[];
       const filtered=setCookies.map(rewriteCookie).filter(Boolean);
       if(!ingestion&&filtered.length)res.setHeader('Set-Cookie',filtered);

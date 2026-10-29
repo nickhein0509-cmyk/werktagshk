@@ -1,85 +1,17 @@
 import { buildJournal, clipJournal, dayOf, settings } from './semantics/journal.js';
 import { route } from './semantics/route.js';
-import { recorderKey, selectRecorder } from './semantics/recorders.js';
+import { recorderKey, selectRecorder, validateRecorderSelection } from './semantics/recorders.js';
+import {
+  HEALTH_METRICS,
+  HEALTH_SOURCE,
+  fail as healthFail,
+  newer,
+  validHealthDate,
+  validateHealthDay,
+} from '../_shared/health-contract.mjs';
+export { HEALTH_METRICS, HEALTH_SOURCE, validHealthDate, validateHealthDay };
+import { createArchiveJournalReader, archiveSelection, archiveSelectionMatches, compareArchivePoints, validateArchiveStructure } from './archive-contract.mjs';
 export const berlinDay = dayOf;
-
-export const HEALTH_SOURCE = 'Apple Health via Freddy';
-export const HEALTH_METRICS = Object.freeze({
-  steps_total:'count', active_energy_total:'kcal', basal_energy_total:'kcal',
-  distance_walk_run_total:'m', exercise_time_total:'min', stand_time_total:'min',
-  flights_climbed_total:'count', heart_rate_merged_avg:'bpm',
-  resting_heart_rate_merged_avg:'bpm', hrv_sdnn_merged_avg:'ms_sdnn',
-  sleep_analysis_core_seconds:'s', sleep_analysis_deep_seconds:'s', sleep_analysis_rem_seconds:'s',
-  time_in_daylight_total:'min', respiratory_rate_merged_avg:'count/min', vo2_max:'ml/kg/min'
-});
-const own = (object,key) => Object.prototype.hasOwnProperty.call(object,key);
-const healthFail = code => { const error = new Error(code); error.code=code; throw error; };
-export const validHealthDate = value => typeof value==='string' && /^\d{4}-\d{2}-\d{2}$/.test(value) && Number.isFinite(Date.parse(value)) && new Date(value).toISOString().slice(0,10)===value;
-const timestamp = value => {
-  if(typeof value!=='string' || !/^\d{4}-\d{2}-\d{2}T.*(?:Z|[+-]\d{2}:\d{2})$/.test(value) || !Number.isFinite(Date.parse(value))) healthFail('HEALTH_INVALID_TIMESTAMP');
-  return new Date(value).toISOString();
-};
-const optionalTimestamp = value => value==null ? null : timestamp(value);
-const newer = (left,right) => !left ? right : !right ? left : Date.parse(left)>=Date.parse(right)?left:right;
-function validateObservation(value){
-  if(!value || !Number.isFinite(value.value) || value.value<0 || value.unit!=='ml/kg/min' || typeof value.sourceDevice!=='string' || !value.sourceDevice || value.sourceDevice.length>256 || /[\r\n\0]/.test(value.sourceDevice) || value.sourceDevice==='Merged (HealthKit daily statistics)')healthFail('HEALTH_INVALID_OBSERVATION');
-  timestamp(value.observedAt);timestamp(value.updatedAt);
-  if(!['minute','second','millisecond'].includes(value.observedAtPrecision) || typeof value.sourceTimestamp!=='string' || !value.sourceTimestamp || value.sourceTimestamp.length>80 || /[\r\n\0]/.test(value.sourceTimestamp))healthFail('HEALTH_INVALID_OBSERVATION');
-}
-function makeObservationMetric(observations,updatedAt){
-  if(!Array.isArray(observations)||!observations.length||observations.length>1000)healthFail('HEALTH_INVALID_OBSERVATION');
-  for(const value of observations)validateObservation(value);
-  const ordered=[...observations].sort((a,b)=>Date.parse(a.observedAt)-Date.parse(b.observedAt)||a.sourceDevice.localeCompare(b.sourceDevice));
-  const latest=ordered.at(-1),ties=ordered.filter(value=>value.observedAt===latest.observedAt);
-  if(ties.some(value=>value.value!==latest.value))healthFail('HEALTH_AMBIGUOUS_OBSERVATION');
-  return {...latest,updatedAt,aggregation:'latest-observation',observations:ordered};
-}
-function parseObservation(beforeDevice,unit,date,metric){
-  const tail=beforeDevice.slice(unit.length).trim();
-  const matched=/^@\s+((?:(\d{4}-\d{2}-\d{2})T)?(\d{2}):(\d{2})(?::(\d{2})(\.\d{1,3})?)?\s+UTC([+-])(\d{2}):(\d{2}))$/.exec(tail);
-  if(!matched)healthFail('HEALTH_OBSERVATION_TIME_REQUIRED');
-  const sampleDate=matched[2]??date,hour=Number(matched[3]),minute=Number(matched[4]),second=Number(matched[5]??0),offsetHour=Number(matched[8]),offsetMinute=Number(matched[9]);
-  if(!validHealthDate(sampleDate)||hour>23||minute>59||second>59||offsetHour>14||offsetMinute>59||(offsetHour===14&&offsetMinute!==0))healthFail('HEALTH_INVALID_OBSERVATION_TIME');
-  const iso=sampleDate+'T'+matched[3]+':'+matched[4]+':'+(matched[5]??'00')+(matched[6]??'')+matched[7]+matched[8]+':'+matched[9];
-  return {...metric,observedAt:timestamp(iso),observedAtPrecision:matched[6]?'millisecond':matched[5]?'second':'minute',sourceTimestamp:matched[1]};
-}
-function combineObservationMetrics(old,incoming){
-  const values=new Map();
-  for(const observation of [...(old?.observations??[]),...incoming.observations]){
-    const key=observation.observedAt+'\0'+observation.sourceDevice,previous=values.get(key);
-    if(!previous||Date.parse(observation.updatedAt)>Date.parse(previous.updatedAt))values.set(key,observation);
-  }
-  return makeObservationMetric([...values.values()],newer(old?.updatedAt,incoming.updatedAt));
-}
-
-function validateMetric(key,value){
-  if(!own(HEALTH_METRICS,key) || !value || !Number.isFinite(value.value) || value.value<0 || value.unit!==HEALTH_METRICS[key] || typeof value.sourceDevice!=='string' || !value.sourceDevice || value.sourceDevice.length>256 || /[\r\n\0]/.test(value.sourceDevice)) healthFail('HEALTH_INVALID_RECORD');
-  timestamp(value.updatedAt);
-  if(key==='vo2_max'){
-    const rebuilt=makeObservationMetric(value.observations,value.updatedAt);
-    if(value.aggregation!=='latest-observation'||value.value!==rebuilt.value||value.unit!==rebuilt.unit||value.sourceDevice!==rebuilt.sourceDevice||value.observedAt!==rebuilt.observedAt||value.observedAtPrecision!==rebuilt.observedAtPrecision||value.sourceTimestamp!==rebuilt.sourceTimestamp)healthFail('HEALTH_INVALID_OBSERVATION');
-  }
-  if((key.endsWith('_total')||key.includes('_merged_')) && !/^Merged \(HealthKit daily statistics\)$/.test(value.sourceDevice)) healthFail('HEALTH_NON_MERGED_RECORD');
-}
-export function validateHealthDay(value,date){
-  if(!value || value.schemaVersion!==1 || value.date!==date || value.provider!=='APPLE_HEALTH' || value.timezone!=='Europe/Berlin' || value.source!==HEALTH_SOURCE || !value.metrics || typeof value.metrics!=='object' || Array.isArray(value.metrics)) healthFail('HEALTH_INVALID_STORE');
-  timestamp(value.fetchedAt);optionalTimestamp(value.sourceLastSyncAt);optionalTimestamp(value.sourceLastDataAt);
-  for(const [key,metric] of Object.entries(value.metrics))validateMetric(key,metric);
-  return value;
-}
-
-function validateIndex(value){
-  if(!value)return null;
-  if(value.schemaVersion!==1||value.source!==HEALTH_SOURCE||value.provider!=='APPLE_HEALTH'||value.timezone!=='Europe/Berlin'||!Array.isArray(value.days))healthFail('HEALTH_INVALID_INDEX');
-  timestamp(value.fetchedAt);optionalTimestamp(value.sourceLastSyncAt);optionalTimestamp(value.sourceLastDataAt);
-  const seen=new Set();
-  for(const entry of value.days){
-    if(!entry||!validHealthDate(entry.date)||seen.has(entry.date)||!Number.isSafeInteger(entry.metricCount)||entry.metricCount<0||entry.metricCount>Object.keys(HEALTH_METRICS).length)healthFail('HEALTH_INVALID_INDEX');
-    timestamp(entry.fetchedAt);seen.add(entry.date);
-  }
-  return value;
-}
-
 
 export function healthView(healthDays = [], date) {
   const empty={status:'empty',source:HEALTH_SOURCE,date,days:[],fetchedAt:null,sourceLastSyncAt:null,sourceLastDataAt:null,metrics:{}};
@@ -140,7 +72,7 @@ function interval(input, date) {
 }
 function segment(value, times) {
   if (value === undefined) return undefined;
-  keys(value, ['journalIdAtCreation', 'archiveRevisionAtCreation', 'algorithmVersion', 'startTimestamp', 'endTimestamp', 'segmentKind', 'anchorFingerprint']);
+  keys(value, ['journalIdAtCreation', 'archiveRevisionAtCreation', 'algorithmVersion', 'startTimestamp', 'endTimestamp', 'segmentKind', 'anchorFingerprint', 'source', 'device']);
   const out = {
     journalIdAtCreation: text(value.journalIdAtCreation, 160, true),
     archiveRevisionAtCreation: value.archiveRevisionAtCreation == null ? null : number(value.archiveRevisionAtCreation, 0, Number.MAX_SAFE_INTEGER, true, true),
@@ -152,6 +84,7 @@ function segment(value, times) {
   if (!['trip', 'stay'].includes(out.segmentKind) || out.endTimestamp < out.startTimestamp || Math.abs(Date.parse(times.startAt) / 1000 - out.startTimestamp) > 1 || Math.abs(Date.parse(times.endAt) / 1000 - out.endTimestamp) > 1) fail('Ungültiger Abschnittsbezug.');
   const fingerprint = text(value.anchorFingerprint, 256);
   if (fingerprint !== undefined) out.anchorFingerprint = fingerprint;
+  if (value.source !== undefined || value.device !== undefined) Object.assign(out, validateRecorderSelection({ source: value.source, device: value.device }));
   return out;
 }
 const kindFields = {
@@ -231,13 +164,22 @@ export function validateContextValue(value,date){
   }catch{fail('Kontextdaten sind beschädigt; sie wurden nicht überschrieben.',500,'context-storage');}
 }
 
-export function contextView(value, journal) {
+export function contextView(value, journal, recorderJournals) {
   const out = structuredClone(value);
-  const available = journal && Array.isArray(journal.trips) && Array.isArray(journal.stays);
-  const segments = available ? [...journal.trips, ...journal.stays] : [];
+  const fallbackAvailable = journal && Array.isArray(journal.trips) && Array.isArray(journal.stays);
   out.entries = out.entries.map(entry => {
     if (entry.kind !== 'activity' || !entry.segmentRef) return entry;
     const ref = entry.segmentRef;
+    let available = fallbackAvailable, selectedJournal = journal;
+    if (Array.isArray(recorderJournals)) {
+      if (ref.source !== undefined || ref.device !== undefined) {
+        const matches = recorderJournals.filter(value => value.source === ref.source && value.device === ref.device);
+        available = matches.length === 1; selectedJournal = available ? matches[0].journal : null;
+      } else {
+        available = recorderJournals.length === 1 && Boolean(recorderJournals[0].journal); selectedJournal = available ? recorderJournals[0].journal : null;
+      }
+    }
+    const segments = available ? [...selectedJournal.trips, ...selectedJournal.stays] : [];
     const matches = segments.filter(item => item.id === ref.journalIdAtCreation && item.kind === ref.segmentKind && item.startTimestamp === ref.startTimestamp && item.endTimestamp === ref.endTimestamp && (!ref.anchorFingerprint || ref.anchorFingerprint === [item.kind, item.startTimestamp, item.endTimestamp, item.pointCount].join(':')));
     return { ...entry, needsReview: !available || matches.length !== 1, segmentStatus: !available ? 'unverified' : matches.length === 1 ? 'matched' : 'needs-review' };
   });
@@ -301,7 +243,7 @@ export function contextRange(values, from, to) {
 
 export function selectPoints(rows, date, limit = 20000, options = {}) {
   const selection = selectRecorder(rows, point => date === 'all' || berlinDay(point.tst) === date, options);
-  const ordered = [...selection.rows].sort((a,b)=>a.tst-b.tst||a.receivedAt.localeCompare(b.receivedAt));
+  const ordered = [...selection.rows].sort(compareArchivePoints);
   const days = [...new Set(rows.map(r => berlinDay(r.tst)))].sort().reverse();
   const all = ordered.filter(r => date === 'all' || berlinDay(r.tst) === date);
   const selected = all.slice(-limit), from=selected.length?ordered.indexOf(selected[0]):0, to=selected.length?ordered.indexOf(selected.at(-1)):-1;
@@ -309,12 +251,12 @@ export function selectPoints(rows, date, limit = 20000, options = {}) {
   return { date, days, totalStored: rows.length, totalSelected: all.length, truncated: selected.length < all.length, journal,
     recorders: selection.recorders, selectedRecorder: selection.selectedRecorder,
     latestSourceTimestamp: rows.reduce((last, r) => Math.max(last ?? 0, r.tst), null),
-    latestReceivedAt: rows.reduce((last, r) => !last || r.receivedAt > last ? r.receivedAt : last, null),
+    latestReceivedAt: rows.reduce((last, r) => !last || Date.parse(r.receivedAt) > Date.parse(last) || (Date.parse(r.receivedAt) === Date.parse(last) && r.receivedAt > last) ? r.receivedAt : last, null),
     points: selected.map(({ id, source, device, tst, lat, lon, acc, alt, vel, cog, batt, receivedAt }) => ({ id, source, device, tst, lat, lon, acc, alt, vel, cog, batt, receivedAt })) };
 }
 
 
-export function gpxForDay(date,points){
+export function gpxForDay(date,points,{schemaVersion=1}={}){
   let part=[],previous=null;const segments=[];
   const flush=()=>{if(part.length)segments.push(part);part=[];previous=null;};
   // A fallback export of an old mixed snapshot must keep each device's track
@@ -334,7 +276,8 @@ export function gpxForDay(date,points){
    }
   }
   flush();
-  return '<?xml version="1.0" encoding="UTF-8"?>\n<gpx version="1.1" creator="Nick GPS Journal" xmlns="http://www.topografix.com/GPX/1/1"><trk><name>Nick '+date+'</name>'+segments.map(s=>'<trkseg>'+s.map(p=>'<trkpt lat="'+p.lat+'" lon="'+p.lon+'">'+(Number.isFinite(p.alt)?'<ele>'+p.alt+'</ele>':'')+'<time>'+new Date(p.tst*1000).toISOString()+'</time></trkpt>').join('')+'</trkseg>').join('')+'</trk></gpx>\n';
+  const v2=schemaVersion===2,creator=v2?'WerkTag GPS Journal archive-v2':'Nick GPS Journal',metadata=v2?'<metadata><name>WerkTag Tagesarchiv v2 · '+date+'</name></metadata>':'';
+  return '<?xml version="1.0" encoding="UTF-8"?>\n<gpx version="1.1" creator="'+creator+'" xmlns="http://www.topografix.com/GPX/1/1">'+metadata+'<trk><name>Nick '+date+'</name>'+segments.map(s=>'<trkseg>'+s.map(p=>'<trkpt lat="'+p.lat+'" lon="'+p.lon+'">'+(Number.isFinite(p.alt)?'<ele>'+p.alt+'</ele>':'')+'<time>'+new Date(p.tst*1000).toISOString()+'</time></trkpt>').join('')+'</trkseg>').join('')+'</trk></gpx>\n';
 }
 
 export const STATISTICS_VERSION = 'statistics-v1';
@@ -355,21 +298,16 @@ function gpsSummary(points,journal,source){
     tripObservedSeconds:journal.trips.reduce((sum,row)=>sum+row.durationSeconds,0),stayObservedSeconds:journal.stays.reduce((sum,row)=>sum+row.durationSeconds,0),
     uncertain:quality.uncertain,gaps:quality.gaps,source};
 }
-function validRows(points,date){
+function validRows(points,date,schemaVersion=2){
   if(!Array.isArray(points))statisticsFail('STATISTICS_INVALID_ARCHIVE');
   for(let i=0;i<points.length;i++){
     const p=points[i];
     if(!p||!Number.isSafeInteger(p.tst)||!Number.isFinite(p.lat)||Math.abs(p.lat)>90||!Number.isFinite(p.lon)||Math.abs(p.lon)>180||!Number.isFinite(Date.parse(p.receivedAt))||dayOf(p.tst)!==date)statisticsFail('STATISTICS_INVALID_ARCHIVE');
-    if(i&&(p.tst<points[i-1].tst||(p.tst===points[i-1].tst&&p.receivedAt<points[i-1].receivedAt)))statisticsFail('STATISTICS_INVALID_ARCHIVE');
+    if(i&&(schemaVersion===1
+      ? p.tst<points[i-1].tst||(p.tst===points[i-1].tst&&p.receivedAt<points[i-1].receivedAt)
+      : compareArchivePoints(points[i-1],p)>0))statisticsFail('STATISTICS_INVALID_ARCHIVE');
   }
 }
-function validJournal(journal,points){
-  if(!journal||!Array.isArray(journal.trips)||!Array.isArray(journal.stays)||!journal.settings)statisticsFail('STATISTICS_INVALID_ARCHIVE');
-  for(const kind of ['trips','stays'])for(const e of journal[kind]){
-    if(!e||!Number.isSafeInteger(e.startIndex)||!Number.isSafeInteger(e.endIndex)||e.startIndex<0||e.endIndex<e.startIndex||e.endIndex>=points.length||!Number.isFinite(e.durationSeconds)||e.durationSeconds<0||e.startTimestamp!==points[e.startIndex].tst||e.endTimestamp!==points[e.endIndex].tst||e.durationSeconds!==e.endTimestamp-e.startTimestamp)statisticsFail('STATISTICS_INVALID_ARCHIVE');
-  }
-}
-
 function healthSummary(healthDays,date){
   const day=healthDays.find(day=>day.date===date),metrics=emptyMetrics();
   if(day)validateHealthDay(day,date);
@@ -444,14 +382,14 @@ function aggregate(days,{key,start,end},contextRecords=[]){
   return {key,from:first,to:last,periodStart:start,periodEnd:end,partial:first!==start||last!==end||gps.partial||Object.values(metrics).some(m=>m.partial),provisional:days.some(d=>d.provisional),dayCount:days.length,gps,health:{present:days.some(d=>d.health.present),metrics},context:contextSummary(contextRecords)};
 }
 
-const canonicalValue = value => Array.isArray(value) ? value.map(canonicalValue) : value && typeof value==='object' ? Object.fromEntries(Object.keys(value).sort().map(key=>[key,canonicalValue(value[key])])) : value;
 export function statisticsFromData({points=[],healthDays=[],contexts=[],archives=[],from,to,bucket='day',now=Date.now(),source,device}={}){
   if(typeof now==='string')now=Date.parse(now);if(!Number.isFinite(now))statisticsFail('STATISTICS_INVALID_TIME',400);
   const today=dayOf(now/1000);to=to??today;if(!validDate(to))statisticsFail('STATISTICS_INVALID_RANGE',400);from=from??shift(to,-6);
   if(!validDate(from)||from>to||to>today||!['day','week','month'].includes(bucket))statisticsFail('STATISTICS_INVALID_RANGE',400);
   if((Date.parse(to)-Date.parse(from))/DAY+1>366)statisticsFail('STATISTICS_RANGE_TOO_LARGE',400);
   const selection=selectRecorder(points,p=>{const date=dayOf(p.tst);return date>=from&&date<=to;},{source,device});
-  const dates=datesBetween(from,to),rows=[...selection.rows].sort((a,b)=>a.tst-b.tst||a.receivedAt.localeCompare(b.receivedAt)),journal=buildJournal(rows),days=[],records=[];
+  const dates=datesBetween(from,to),rows=[...selection.rows].sort(compareArchivePoints),journal=buildJournal(rows),days=[],records=[];
+  let readReferenceJournals;
   const dayRecorders=new Map();for(const p of points){const date=dayOf(p.tst);if(date<from||date>to)continue;if(!dayRecorders.has(date))dayRecorders.set(date,new Set());dayRecorders.get(date).add(recorderKey(p));}
   for(const date of dates){
     const saved=archives.find(a=>a.date===date);let selected,dayJournal,source,gps;
@@ -459,20 +397,24 @@ export function statisticsFromData({points=[],healthDays=[],contexts=[],archives
     while(toIndex>=0&&toIndex+1<rows.length&&dayOf(rows[toIndex+1].tst)===date)toIndex++;
     const livePoints=fromIndex<0?[]:rows.slice(fromIndex,toIndex+1);validRows(livePoints,date);
     const liveJournal=livePoints.length?clipJournal(journal,rows,fromIndex,toIndex):null;
-    let snapshotOlder=false,recorderMismatch=false;
+    let snapshotOlder=false,recorderMismatch=false,savedSelection=null;
     if(saved){
-      if(saved.schemaVersion!==1||saved.timeZone!=='Europe/Berlin'||!Number.isSafeInteger(saved.revision)||saved.revision<1||!Number.isFinite(Date.parse(saved.updatedAt)))statisticsFail('STATISTICS_INVALID_ARCHIVE');
-      validRows(saved.points,date);validJournal(saved.journal,saved.points);if(saved.pointCount!==saved.points.length)statisticsFail('STATISTICS_INVALID_ARCHIVE');
-      recorderMismatch=saved.points.some(p=>recorderKey(p)!==selection.selectedKey);
-      snapshotOlder=!recorderMismatch&&(saved.points.length!==livePoints.length||saved.points.some((p,i)=>p.id!==livePoints[i]?.id)||JSON.stringify(canonicalValue(saved.journal))!==JSON.stringify(canonicalValue(liveJournal)));
+      try{validateArchiveStructure(saved,date);}catch{statisticsFail('STATISTICS_INVALID_ARCHIVE');}
+      if(!Number.isFinite(Date.parse(saved.updatedAt))||saved.pointCount!==saved.points.length)statisticsFail('STATISTICS_INVALID_ARCHIVE');
+      validRows(saved.points,date,saved.schemaVersion);savedSelection=archiveSelection(saved,selection.selectedKey);recorderMismatch=savedSelection.recorderMismatch;
+      snapshotOlder=!recorderMismatch&&!archiveSelectionMatches(saved,selection.selectedKey,livePoints,liveJournal);
     }
-    if(saved&&!snapshotOlder&&!recorderMismatch){selected=saved.points;dayJournal=saved.journal;source={kind:'archive',revision:saved.revision,contentHash:saved.contentHash??null,updatedAt:saved.updatedAt,settings:dayJournal.settings};}
-    else{selected=livePoints;dayJournal=liveJournal;source={kind:snapshotOlder?'cloud-derived':date===today?'live':'cloud-derived',revision:null,contentHash:null,updatedAt:selected.reduce((latest,p)=>!latest||p.receivedAt>latest?p.receivedAt:latest,null),settings,...(snapshotOlder?{archiveSnapshotOlder:true}: {}),...(recorderMismatch?{archiveRecorderMismatch:true}: {})};}
+    if(saved&&!snapshotOlder&&!recorderMismatch){selected=savedSelection.points;dayJournal=savedSelection.journal;source={kind:'archive',schemaVersion:saved.schemaVersion,revision:saved.revision,contentHash:saved.contentHash??null,updatedAt:saved.updatedAt,settings:dayJournal.settings};}
+    else{selected=livePoints;dayJournal=liveJournal;source={kind:snapshotOlder?'cloud-derived':date===today?'live':'cloud-derived',revision:null,contentHash:null,updatedAt:selected.reduce((latest,p)=>!latest||Date.parse(p.receivedAt)>Date.parse(latest)||(Date.parse(p.receivedAt)===Date.parse(latest)&&p.receivedAt>latest)?p.receivedAt:latest,null),settings,...(snapshotOlder?{archiveSnapshotOlder:true}: {}),...(recorderMismatch?{archiveRecorderMismatch:true}: {})};}
     gps=selected.length?gpsSummary(selected,dayJournal,source):emptyGps();
-    // Existing segment references have no recorder identity. Equal timestamps
-    // from another device cannot prove a match; leave them explicitly unverified.
-    const referenceJournal=(dayRecorders.get(date)?.size??0)>1?null:dayJournal;
-    const value=contexts.find(value=>value.date===date)??emptyContext(date);validateContextValue(value,date);const record={date,value:contextView(value,referenceJournal)};records.push(record);
+    // New references resolve against their exact recorder. Legacy references
+    // remain matchable only while the day has one unambiguous recorder.
+    const value=contexts.find(value=>value.date===date)??emptyContext(date);validateContextValue(value,date);
+    let referenceJournals=[];
+    if(value.entries.some(entry=>entry.segmentRef)){
+      try{readReferenceJournals??=createArchiveJournalReader(points,{allowLegacy:true});referenceJournals=readReferenceJournals(date);}catch{if((dayRecorders.get(date)?.size??0)===1&&dayJournal)referenceJournals=[{journal:dayJournal}];}
+    }
+    const record={date,value:contextView(value,null,referenceJournals)};records.push(record);
     days.push({date,provisional:date===today,gps,health:healthSummary(healthDays,date),context:contextSummary([record])});
   }
   const grouped=new Map();for(const day of days){const p=period(day.date,bucket);if(!grouped.has(p.key))grouped.set(p.key,{p,days:[]});grouped.get(p.key).days.push(day);}

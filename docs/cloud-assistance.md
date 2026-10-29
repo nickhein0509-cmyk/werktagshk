@@ -18,7 +18,7 @@ Alle Assistenz-Tabellen haben RLS und entziehen `anon`, `authenticated` und `PUB
 
 Der private Import übernimmt kanonische Rohpunkte, vorhandene Health-Tage und Tageseinträge sowie originale JSON-/GPX-Archive. Bereits vorhandene Datensätze werden beim Import nicht überschrieben. Der Import verändert keine Dateien auf dem ursprünglichen PC. Er erhält Punkt-IDs, Messzeiten, Empfangszeiten und originale Archivstrings.
 
-Neue Cloud-Punkte bleiben fortlaufend in der Datenbank. Abgeschlossene Tage werden bei einem Kartenabruf als dauerhafte Tagesarchive ergänzt; dafür ist kein Mitternachts-Timer auf dem PC erforderlich. Vorhandene Archive werden erhalten. GPS-Abstände sind Näherungen; bereinigte Tagesansicht und ausdrücklich bezeichnete Rohdatenstatistik können voneinander abweichen. Datenlücken und unbekannte Genauigkeiten bleiben sichtbar.
+Neue Cloud-Punkte bleiben fortlaufend in der Datenbank. Abgeschlossene Tage werden bei einem Kartenabruf als dauerhafte [Tagesarchive v2](assistant-archive-v2.md) ergänzt; dafür ist kein Mitternachts-Timer auf dem PC erforderlich. Mehrere Recorder bleiben darin als getrennte Journale erhalten. Vorhandene v1-Archive und ihre originalen JSON-/GPX-Bytes werden weder ersetzt noch neu erzeugt. GPS-Abstände sind Näherungen; bereinigte Tagesansicht und ausdrücklich bezeichnete Rohdatenstatistik können voneinander abweichen. Datenlücken und unbekannte Genauigkeiten bleiben sichtbar.
 
 ## Health im 15-Minuten-Takt
 
@@ -30,7 +30,12 @@ Cloud-Abruf, erfolgreicher Import, letzter Quellen-Sync und letzte Quelldaten si
 
 ## Bereitstellung und Prüfung
 
-Die Migrationen sind auf das bestehende WerkTag-Projekt anzuwenden; danach werden `assistance` und `health-sync` bereitgestellt. Beide Funktionen verwenden eigene zwingende Authentifizierung und benötigen daher `verify_jwt=false` am Plattform-Gateway. Browser erhalten niemals einen Service-Schlüssel. Die serverseitigen Vercel-Variablen `ASSISTANCE_CLOUD_URL` und `ASSISTANCE_HEALTH_URL` verweisen auf die jeweiligen Supabase-Funktionen. Ein Zurücksetzen des Webdeployments allein kopiert neue Cloud-Daten nicht zurück auf den PC.
+Seit dem Auftrag vom 29.10.2026 ist `mvkksfecimpjnytvbrrb` das Ziel des
+[vollständigen Projektumzugs](supabase-project-migration.md); PR #20 und die aktuelle
+öffentliche Konfiguration verwenden bereits dieses Ziel. Die SQL-Dateien allein bilden keine
+vollständige Datenbank ab. Erst nach Bestandsübertragung die tatsächlich fehlenden
+Migrationen gegen die Live-Historie prüfen und die Funktionen bereitstellen.
+`assistance` und `health-sync` verwenden eigene zwingende Authentifizierung und benötigen daher `verify_jwt=false` am Plattform-Gateway. Browser erhalten niemals einen Service-Schlüssel. Die serverseitigen Vercel-Variablen `ASSISTANCE_CLOUD_URL` und `ASSISTANCE_HEALTH_URL` verweisen auf die jeweiligen Supabase-Funktionen. Ein Zurücksetzen des Webdeployments allein kopiert neue Cloud-Daten nicht zurück auf den PC oder in das Quellprojekt.
 
 `npm run check` prüft Build, bestehende Lernfunktionen, beide Gatewaypfade, die Cloud-Backendlogik und Browserabläufe mit isolierten synthetischen Daten. Reale Standort-Empfangsnachweise sind separat am Produktionsspeicher zu prüfen; keine erfundenen GPS-Punkte für einen Produktionstest senden. Ein aktivierter Cronjob beweist noch keinen neuen Health-Quellenstand. Ein vollständiger echter Health-API-Test setzt den privaten Nutzerschlüssel voraus.
 
