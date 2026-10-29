@@ -130,6 +130,10 @@ sind nicht automatisch harte Ausgabensperren.
 
 `npm run check` enthält die neuen Node-Tests automatisch über `test:cloud-assistance`.
 Gezielt: `node --test supabase/functions/ai/*.test.mjs`.
+Der normale Vite-Entwicklungsserver führt keine Serverless-Funktionen aus;
+`/api/ki` meldet dort wie die anderen privaten APIs ausdrücklich 503. Ein
+Browser-Smoke-Test muss diese Grenze beachten; die Handlerprüfungen verwenden
+gezielt eingespeiste Auth-, Datenbank- und Anbieterantworten.
 Die SQL-Prüfungen führen die echte Migration in eingebettetem PostgreSQL (PGlite)
 aus: Rollenrechte, Konten-/Produktgrenzen, Monats-/Minutenlimits, Rundung,
 Mehrfachanfragen und Kontolöschung. PGlite serialisiert Verbindungen; diese

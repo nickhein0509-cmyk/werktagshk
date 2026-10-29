@@ -163,6 +163,14 @@ beenden ihren eigenen Entwicklungsserver und verändern keine echten Lerndaten.
 - [Plugin-Fähigkeiten](docs/plugin-capabilities.md): verwendbare Plugins und ihre
   tatsächlichen Grenzen.
 
+## Vorbereitete OpenAI-Grundlage
+
+Die [serverseitige KI-Grundlage](docs/openai-foundation.md) ergänzt einen
+ausdrücklich freizugebenden Zugang für Lernen und Assistenz mit Kontotrennung,
+dauerhaften Nutzungsgrenzen und synthetischen Tests. Sie bleibt standardmäßig
+deaktiviert. Modell, Kostenrahmen, geschützter API-Zugang und Backend-Einrichtung
+sind vor echter Nutzung erforderlich; KI-Oberflächen sind noch nicht enthalten.
+
 ## Daten und Grenzen
 
 Die Modellübungen speichern zunächst in diesem Browser (`localStorage`). Gast-
