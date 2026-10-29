@@ -1,12 +1,12 @@
 ---
 name: shk-interface-design
 description: >-
-  Design and implement the SHK Lernbuddy web interface with a technical workshop
-  visual language, useful learning interactions, responsive layouts, and
-  accessible controls. Use for new screens or substantial UI refinements here.
+  Design and implement WerkTag's web interfaces with a coherent visual language,
+  useful interactions, responsive layouts, and accessible controls. Use for new
+  screens or substantial UI refinements across the product areas.
 ---
 
-# SHK interface design
+# WerkTag interface design
 
 This repository-local skill guides product design and implementation. It is not
 a native iOS or simulator workflow. Use the actual web stack and installed tools;
@@ -15,9 +15,17 @@ used. Keep user-facing copy in clear, concise German.
 
 ## Establish a coherent direction
 
-Read the existing screens, shared styles, and the relevant learning flow before
-editing. Preserve useful interactions while improving the composition. Build a
-technical workshop identity: warm pale surfaces, deep petrol structure, a copper
+For a general WerkTag design or beautification request, inspect and address
+Lernen, private Assistenz and Materialliste (Komponentenliste), together with
+shared navigation and the account entry. Identify the actual sources and
+deployment boundaries. Keep the visual language coherent and appropriate to
+each area's tasks, while preserving distinct data and access controls. Report
+any area that could not be changed or verified. If Nick explicitly limits the
+request to one area, respect that scope and check effects on shared elements.
+
+Read the existing screens, shared styles, and relevant flows before editing.
+Preserve useful interactions while improving the composition. For the Lernapp,
+build a technical workshop identity: warm pale surfaces, deep petrol structure, a copper
 or orange accent, and clear typography. Interpret SHK through purposeful pipe
 routes, system diagrams, flow direction, and component geometry instead of
 unrelated decoration or generic stock dashboards.
@@ -30,7 +38,8 @@ optional rather than making a learning screen depend on third-party availability
 
 ## Design around the next useful action
 
-Give each screen a clear title, context, and primary action. On the dashboard,
+Give each screen a clear title, context, and primary action. The following
+dashboard, exercise, and learning-progress guidance applies to the Lernapp. On its dashboard,
 connect topic selection to starting or continuing a real exercise. A progress
 summary must reflect stored learner events; show a helpful empty state before
 the first attempt. Do not invent streaks, percentages, messages, or notifications

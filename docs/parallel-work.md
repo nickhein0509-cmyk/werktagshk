@@ -6,6 +6,44 @@ Dateien werden getrennt bearbeitet. `main` enthält den gemeinsam geprüften
 Veröffentlichungsstand. Nick kann anschließend die gewünschten Aufgaben zusammen
 zum Livegang freigeben; der Koordinator verbindet genau diese Ergebnisse.
 
+## Aktuellen Stand und andere Aufträge finden
+
+Vor jedem neuen Auftrag den tatsächlichen GitHub-Stand abfragen. Frühere
+Chat-Aussagen und diese Anleitung sind keine Live-Statusanzeige. Die
+[Produktkarte](product-map.md) erklärt die Zuständigkeiten; Aufgaben und ihre
+Entscheidungen stehen in den jeweils verlinkten Issues und Pull Requests:
+
+- [Implementierung: Issues](https://github.com/nickhein0509-cmyk/werktagshk/issues),
+  [Pull Requests](https://github.com/nickhein0509-cmyk/werktagshk/pulls) und
+  [CI-Läufe](https://github.com/nickhein0509-cmyk/werktagshk/actions).
+- [Lernen](https://github.com/nickhein0509-cmyk/werktag-lernen/issues),
+  [Assistent](https://github.com/nickhein0509-cmyk/werktag-assistent/issues),
+  [Materialliste](https://github.com/nickhein0509-cmyk/werktag-materialliste/issues)
+  und [gemeinsame Plattform](https://github.com/nickhein0509-cmyk/projektzentrale/issues):
+  jeweils offene Aufgaben und bei Bedarf die verlinkten abgeschlossenen Aufgaben lesen.
+
+1. Aktuellen Remote-`main` und lokalen Arbeitsbaum samt vollständigen SHAs
+   feststellen; verfügbare offene PRs und kürzlich gemergte PRs samt Head,
+   Beschreibung, betroffenen Dateien und Prüfergebnissen durchsehen. Vorhandene
+   Arbeit nach Aufgabe und Schnittstellen abgleichen, nicht nach Branchname allein.
+2. Betroffene Produkt-Issues, gemeinsame Plattform-Issues und deren Abhängigkeiten
+   abfragen. Vor Umsetzung relevante Kommentare und verlinkte PRs lesen. Bei
+   widersprüchlichen Angaben Zeit, tatsächlichen Code und aktuellere Nachweise
+   vergleichen; einen ungeklärten Widerspruch ausdrücklich offenhalten.
+3. Branches und Worktrees prüfen, soweit erreichbar. Ein offener PR ist eine
+   Übergabe, aber kein Nachweis für Merge, Livegang oder erfolgreiche Prüfung.
+   Nicht gepushte Arbeiten oder Inhalte anderer Chats sind ohne konkrete Übergabe
+   nicht sichtbar. Fehlenden Repository- oder Issue-Zugriff ausdrücklich nennen.
+4. Zu Beginn und vor Integration erneut auf neue Änderungen prüfen. Die eigene
+   Übergabe im PR und im betroffenen Issue verlinken, dabei Ergebnis-SHA, Tests,
+   offene Abhängigkeiten und Bereitstellungsstatus getrennt ausweisen. Keine
+   vertraulichen Daten, Zugangsdaten oder vollständigen Chatverläufe veröffentlichen.
+
+Für GitHub-Abfragen ein tatsächlich verfügbares GitHub-Werkzeug oder eine
+angemeldete `gh`-CLI verwenden. Wenn der Zugriff fehlt, keinen alten Status als
+aktuell ausgeben. Ein Git-Remote-HEAD belegt den Quellstand, nicht den Zustand
+einer bereitgestellten Anwendung oder den Stand privater Daten.
+
 ## Einen Auftrag beginnen
 
 1. Aktuelles `AGENTS.md`, die [Produktkarte](product-map.md) und die betroffenen Übergaben lesen. Lernapp, Assistent, Materialliste oder gemeinsame Plattform als Ziel festhalten. Produktaufgaben gehören in den jeweiligen Produktbereich; solange der produktive Code hier liegt, verlinkt die Aufgabe den Implementierungs-PR in diesem Repository. Repository,

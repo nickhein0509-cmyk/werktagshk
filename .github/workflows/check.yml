@@ -33,6 +33,23 @@ jobs:
           else
             npx playwright install --with-deps chromium
           fi
+      - name: Kontextprüfungen testen
+        run: node --test scripts/test-context-guards.mjs scripts/test-index-repair.mjs
+      - name: Produktindex prüfen und bei Abweichung korrigieren
+        id: context_index
+        run: |
+          if ! node scripts/context-index.mjs --check; then
+            node scripts/context-index.mjs --write
+            echo "Korrigierter Index wird als Artefakt bereitgestellt; keine automatischen Commits."
+            exit 1
+          fi
+      - name: Korrigierten Produktindex bereitstellen
+        if: failure() && steps.context_index.outcome == 'failure'
+        uses: actions/upload-artifact@v4
+        with:
+          name: corrected-product-index
+          path: docs/generated-product-index.md
+          retention-days: 7
       - run: npm run check
         env:
           # Include the real client dependency graph without production credentials.

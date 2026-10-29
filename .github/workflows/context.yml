@@ -1,0 +1,31 @@
+name: WerkTag-Kontext prüfen
+
+on:
+  pull_request:
+    types: [opened, synchronize, reopened, edited]
+
+permissions:
+  contents: read
+
+jobs:
+  context:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      # Execute the guard from the PR base, never the untrusted PR head.
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.base.sha }}
+          persist-credentials: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+      - name: Umfang anhand der PR-Angaben prüfen
+        env:
+          WERKTAG_PR_BODY: ${{ github.event.pull_request.body }}
+        run: |
+          if [ -f scripts/check-pr-context.mjs ]; then
+            node scripts/check-pr-context.mjs
+          else
+            echo "Die Umfangsprüfung wird nach Übernahme in den Basisbranch aktiv."
+          fi
