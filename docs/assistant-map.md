@@ -1,6 +1,6 @@
 # Kartenbetrieb im Assistenten
 
-Produkt **ASSISTENT**, Version 0.13.0. Auftrag:
+Produkt **ASSISTENT**, Kartenbasis seit Version 0.13.0. Auftrag:
 [werktag-assistent #6](https://github.com/nickhein0509-cmyk/werktag-assistent/issues/6).
 Ausgangsstand war Plattform-main `e6d0dc003b7ab16e692b97d21b88209204a5d901`.
 
@@ -73,3 +73,46 @@ Die abschließende native Produktionsprüfung muss tatsächliche Straßen und
 Beschriftungen zeigen. Statuscodes und geladene HTML-Bilder allein genügen nicht.
 Keine Datenbankmigration oder Änderung am Health-/GPS-Empfang ist nötig.
 Ein Rückweg muss die bestehende Notiz-/Aufgabenvalidierung und privaten Daten erhalten.
+
+## Wegegestaltung und Geräteauswahl · 29. Oktober 2026
+
+Die gemessenen Wege erhalten eine helle Kontur und eine petrolfarbene Linie.
+Eine ausgewählte Teilstrecke erscheint in Kupfer; die anderen gemessenen Wege
+bleiben als leiser Kontext erhalten. Der Kartenausschnitt richtet sich nach der
+Auswahl. Bei einem Aufenthalt wird der vollständige ungefähre 100-m-Bereich
+eingepasst, einschließlich Abstand zu Kartenbedienelementen. Die unveränderte
+GPS-Analyse liefert weiterhin die einzelnen Liniensegmente und Entfernungen:
+keine Straßenanpassung, keine Verbindung über Aufzeichnungslücken und keine
+Änderung bestehender Tagesarchive.
+
+Nummerierte Aufenthalte entsprechen den Nummern der Zeitachse. Die Marker
+besitzen 44-px-Trefferflächen, verständliche zugängliche Namen und funktionieren
+mit Enter oder Leertaste. Start und Ende tragen zusätzlich die Zeichen S und E.
+Sie verwenden die erste beziehungsweise letzte gültige Messung, auch wenn die
+Linienglättung eine kleine letzte Bewegung unterdrückt. Ein Aufenthalt kann
+dadurch nicht mehr die letzte Messung fälschlich als Start anzeigen. Fokus in der
+Zeitachse und auf Kartenmarkern bleibt bei neuen Messdaten erhalten.
+
+Wenn der Server Quellenmetadaten liefert, wählt „GPS-Aufzeichnung“ ein Paar aus
+Quelle und Gerät. „Automatisch“ nutzt die vom Server ausgewählte neueste
+Aufzeichnung im Zeitraum. Eine bewusste Auswahl bleibt beim Wechsel des Tages
+erhalten. Gerätewege werden weder auf der Karte verbunden noch in der
+GPS-Statistik addiert. Quelle und Gerät werden gemeinsam als URL-Parameter
+übermittelt; Gerätenamen bleiben vollständig erhalten. Die Statistik verwendet
+dieselbe Aufzeichnung, und ein Sprung aus der Statistik übernimmt diese Quelle
+für den gewählten Tag. Health-Tageswerte behalten ihre eigene Herkunft.
+
+Ein Wechsel oder Sperren verwirft ausstehende Ergebnisse; eine alte
+Statistikantwort kann die neu gewählte Geräteansicht nicht überschreiben.
+Beim Sperren wird auch die Geräteauswahl entfernt. Alte Antworten ohne
+Quellenmetadaten bleiben darstellbar, ohne eine Quellenbezeichnung zu erfinden.
+Bei mehreren Geräten werden zurückgestellte Archivierungen beziehungsweise
+unverändert angebotene ältere Archive ausdrücklich erklärt.
+
+Gezielte Regressionen: `node --test scripts/test-assistant-map.mjs` sowie
+`tests/e2e/assistant-timeline.spec.ts`. Die Browserfälle verwenden ausschließlich
+synthetische Geräte, Messungen und Kartenkacheln. Sie prüfen unter anderem
+Endpunkte nach Glättung, Tastaturwahl, Kreisgrenzen bei 320 px, Fokuserhalt,
+vollständige Geräteparameter, Quellwechsel mit verspäteter Statistikantwort,
+Sperren und erneuten Sitzungszugriff. Screenshots dieser Fixtures belegen die
+Oberflächengestaltung, keine privaten Wege oder reale Straßenabdeckung.

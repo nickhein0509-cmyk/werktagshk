@@ -1,0 +1,12 @@
+build/
+.build/
+.swiftpm/
+WerkTag.xcodeproj/
+*.png
+!WerkTag/Assets.xcassets/AppIcon.appiconset/*.png
+Local.xcconfig
+*.p12
+*.p8
+*.mobileprovision
+*.ipa
+__pycache__/
