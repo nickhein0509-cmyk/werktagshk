@@ -288,3 +288,27 @@ test('archive and live views order offset receipt times by instant and IDs by co
   const view=selectPoints(shuffled,'2026-10-27');assert.deepEqual(view.points.map(value=>value.id),expected);assert.equal(view.latestReceivedAt,tieA.receivedAt);
   const statistics=statisticsFromData({points:shuffled,from:'2026-10-27',to:'2026-10-27',now});assert.equal(statistics.days[0].gps.source.updatedAt,tieA.receivedAt);
 });
+
+test('statistics accept v1 timestamp ties in original input order without mutating the archive',()=>{
+  const date='2026-10-27',points=['ffffffff-ffff-4fff-8fff-ffffffffffff','11111111-1111-4111-8111-111111111111'].map(id=>point(date+'T10:00:00Z',13.4,{id,source:'iphone',device:'primary',acc:5}));
+  const archive={schemaVersion:1,date,timeZone:'Europe/Berlin',revision:1,updatedAt:now,pointCount:points.length,points,journal:buildJournal(points)};
+  const before=JSON.stringify(archive);
+  const result=statisticsFromData({points,archives:[archive],from:date,to:date,now});
+  assert.equal(result.summary.gps.pointCount,2);
+  assert.equal(JSON.stringify(archive),before);
+  const invalid=structuredClone(archive);invalid.points[1].tst-=60;
+  assert.throws(()=>statisticsFromData({points,archives:[invalid],from:date,to:date,now}),e=>e.code==='STATISTICS_INVALID_ARCHIVE');
+});
+
+test('reused recorder journals preserve midnight clipping and avoid rereading other days',async()=>{
+  const {createArchiveJournalReader}=await import('./archive-contract.mjs');
+  let oldDayReads=0;
+  const points=['2026-10-27T22:55:00Z','2026-10-27T23:05:00Z','2026-10-27T23:15:00Z'].map(iso=>point(iso,13.4,{source:'iphone',device:'primary',acc:5}));
+  const expected=archiveRecorderJournals(points,'2026-10-28');
+  Object.defineProperty(points[0],'lat',{get(){oldDayReads++;return 52.5;},enumerable:true});
+  const read=createArchiveJournalReader(points);
+  assert.equal(read('2026-10-27')[0].journal.stays[0].crossesMidnight,true);
+  oldDayReads=0;
+  assert.deepEqual(read('2026-10-28'),expected);
+  assert.equal(oldDayReads,0,'a second day must reuse the full recorder journal');
+});

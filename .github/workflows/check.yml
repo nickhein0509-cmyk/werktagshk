@@ -21,13 +21,9 @@ jobs:
       - uses: denoland/setup-deno@v2
         with:
           deno-version: v2.9.6
-      - run: deno check supabase/functions/ai/index.ts
       - run: npm ci
-      - uses: denoland/setup-deno@v2
-        with:
-          deno-version: v2.9.6
       - name: Supabase-Edge-Importgraph prüfen
-        run: deno check supabase/functions/assistance/index.ts supabase/functions/health-sync/index.ts
+        run: deno check supabase/functions/ai/index.ts supabase/functions/assistance/index.ts supabase/functions/health-sync/index.ts
       - name: Vorhandenen Browser nutzen oder Chromium installieren
         shell: bash
         run: |

@@ -43,7 +43,8 @@ Screenshots, Issue-Anhänge oder öffentliche Dateien übernehmen.
 
 Für den am 29.10.2026 beauftragten Wechsel auf `mvkksfecimpjnytvbrrb` zuerst die
 [vollständige Datenmigration](../docs/supabase-project-migration.md) und
-Kontozuordnung prüfen. Noch ist keine Übertragung bestätigt. Ein TestFlight-Upload
+Kontozuordnung prüfen. Die Webverbindung verwendet seit PR #20 das neue Ziel;
+dies ersetzt keine Prüfung aller privaten Daten und des Geräts. Ein TestFlight-Upload
 kopiert weder Supabase-Benutzer noch ihre Aufzeichnungen ins neue Projekt.
 
 Zuerst das [native Backend](README.md#backend-bereitstellen) bereitstellen und mit

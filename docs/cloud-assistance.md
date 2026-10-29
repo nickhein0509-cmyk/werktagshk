@@ -31,8 +31,8 @@ Cloud-Abruf, erfolgreicher Import, letzter Quellen-Sync und letzte Quelldaten si
 ## Bereitstellung und Prüfung
 
 Seit dem Auftrag vom 29.10.2026 ist `mvkksfecimpjnytvbrrb` das Ziel des
-[vollständigen Projektumzugs](supabase-project-migration.md); das bisherige Projekt
-bleibt bis zur geprüften Umschaltung produktiv. Die SQL-Dateien allein bilden keine
+[vollständigen Projektumzugs](supabase-project-migration.md); PR #20 und die aktuelle
+öffentliche Konfiguration verwenden bereits dieses Ziel. Die SQL-Dateien allein bilden keine
 vollständige Datenbank ab. Erst nach Bestandsübertragung die tatsächlich fehlenden
 Migrationen gegen die Live-Historie prüfen und die Funktionen bereitstellen.
 `assistance` und `health-sync` verwenden eigene zwingende Authentifizierung und benötigen daher `verify_jwt=false` am Plattform-Gateway. Browser erhalten niemals einen Service-Schlüssel. Die serverseitigen Vercel-Variablen `ASSISTANCE_CLOUD_URL` und `ASSISTANCE_HEALTH_URL` verweisen auf die jeweiligen Supabase-Funktionen. Ein Zurücksetzen des Webdeployments allein kopiert neue Cloud-Daten nicht zurück auf den PC oder in das Quellprojekt.

@@ -3,8 +3,9 @@
 **Neue Entscheidung vom 29.10.2026:** Der folgende Bericht beschreibt die frühere
 Wiederanbindung. Sein damaliges „kein neues Supabase-Projekt“ ist durch den
 [beauftragten vollständigen Projektumzug](supabase-project-migration.md) ersetzt.
-Quelle bleibt bis zur geprüften Umschaltung `hrqaxsbddpmphblmoyly`, Ziel ist
-`mvkksfecimpjnytvbrrb`. Noch keine Datenübertragung bestätigt.
+PR #20 und die aktuelle öffentliche Konfiguration verwenden inzwischen das Ziel
+`mvkksfecimpjnytvbrrb`. Der folgende ältere Bericht belegt nicht den heutigen
+Migrations- oder Vollständigkeitsstatus.
 
 Stand: 23. Oktober 2026. Das neue Repository ist
 `nickhein0509-cmyk/werktagshk`. Die Anwendung läuft im bestehenden Vercel-Projekt

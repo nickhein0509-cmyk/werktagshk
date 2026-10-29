@@ -162,3 +162,11 @@ test('gateway forwards user bearer but strips private assistance cookies from th
   assert.equal(headers['Set-Cookie'], undefined);
   assert.equal(calls[0].url, base + '/functions/v1/ai?route=ai');
 });
+
+test('anonymous accounts cannot reserve budget or reach the provider', async () => {
+  const {calls,request}=setup({user:{id:userId,is_anonymous:true}});
+  const response=await request();
+  assert.equal(response.status,401);
+  assert.equal((await response.json()).error,'AI_UNAUTHORIZED');
+  assert.equal(calls.length,1);
+});

@@ -61,7 +61,9 @@ Fachwissen mit rein synthetischem Inhalt:
 
 **Supabase-Umzug beauftragt (29.10.2026):** Alle WerkTag-Daten sollen vom bisherigen
 Projekt `hrqaxsbddpmphblmoyly` nach `mvkksfecimpjnytvbrrb` übertragen werden.
-Die Ausführung ist derzeit mangels Zugang blockiert; keine Umschaltung erfolgt.
+PR #20 hat die Verbindung auf das Ziel umgestellt; die öffentliche Live-Konfiguration
+bestätigt das Ziel. Vollständigkeit privater Daten und persönliche Nutzung sind
+gesondert zu prüfen.
 [Verbindliche Zuordnung, vollständiger Ablauf und Ausführungsprotokoll](docs/supabase-project-migration.md).
 
 `/projekte` bietet Lernen, private Assistenz und Komponentenliste. `/konto` ist der gemeinsame Anmeldeeinstieg. GPS und der geschützte Katalog werden über die bestehende Supabase-Cloud bereitgestellt; private Inhalte bleiben außerhalb dieses öffentlichen Repositorys. Details: [Cloud-Assistenz](docs/cloud-assistance.md) und [Komponentenliste](docs/components.md).

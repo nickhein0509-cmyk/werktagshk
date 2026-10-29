@@ -5,7 +5,23 @@ technische Vorbereitung: Codex; Kontoinhaber: Nick. Gemeinsame Plattformänderun
 für Lernapp, Assistent, Materialliste und native iOS-Anbindung.
 [Verbindliche Aufgabe und Ausführungsstatus](https://github.com/nickhein0509-cmyk/projektzentrale/issues/15).
 
-## Verbindliche Entscheidung und tatsächlicher Status
+## Aktualisierung bei der PR-Integration am 29.10.2026
+
+Der nachfolgende Vorbereitungsbericht hält die frühere Prüfung um 05:24 MEZ
+fest. Sein damaliger Blocker ist **kein aktueller Laufzeitstatus**: PR #20 ist
+in `main` (`ef9f8b36220914bb1d137207ca3df7d471cdb46d`) enthalten. Vercel meldet
+für `werk-tag.com` genau diesen Produktionscommit als READY. Ein erneuter
+öffentlicher Konfigurationsabruf bei dieser Integration liefert HTTP 200 und
+`supabaseURL=https://mvkksfecimpjnytvbrrb.supabase.co`.
+Der [spätere Qualitätsbericht](supabase-quality-20261029.md) dokumentiert den
+Zielzugriff und die dort vorhandenen Funktionen. Eine erneute Umschaltung oder
+ein erneuter Restore darf daraus nicht abgeleitet werden. Vollständigkeit aller
+privaten Daten, Auth-/Vault-/Storage-Abhängigkeiten und persönliche Geräteabläufe
+sind durch den öffentlichen Konfigurationsabruf weiterhin nicht bewiesen.
+Vor weiteren Backendarbeiten den aktuellen Zielbestand und die Live-Historie
+prüfen; die folgenden Schritte dienen als historische Migrationscheckliste.
+
+## Ursprüngliche Entscheidung und damaliger Status
 
 | Rolle | Projekt-ID | Projekt-URL |
 | --- | --- | --- |

@@ -88,7 +88,7 @@ export function createAiHandler({ supabaseUrl, serviceKey, apiKey, publicOrigin 
       });
       if (!auth.ok) return failure(auth.status >= 500 ? 'AI_UNAVAILABLE' : 'AI_UNAUTHORIZED');
       const user = JSON.parse(await readLimited(auth.body, 32768, 'AI_UNAVAILABLE'));
-      if (!uuid(user.id)) return failure('AI_UNAUTHORIZED');
+      if (!uuid(user.id) || user.is_anonymous === true) return failure('AI_UNAUTHORIZED');
       if (!/^application\/json(?:\s*;|$)/i.test(req.headers.get('content-type') ?? '')) return failure('AI_INVALID_REQUEST');
       if (Number(req.headers.get('content-length')) > 32768) return failure('AI_TOO_LARGE');
       let body;

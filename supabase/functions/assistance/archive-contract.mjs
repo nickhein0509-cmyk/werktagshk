@@ -19,37 +19,49 @@ function validateJournal(journal, points) {
   }
 }
 
-export function archiveRecorderJournals(rows, date, { allowLegacy = false } = {}) {
+export function createArchiveJournalReader(rows, { allowLegacy = false } = {}) {
   const groups = new Map();
   for (const point of rows) {
     const key = recorderKey(point);
     if (!groups.has(key)) groups.set(key, []);
     groups.get(key).push(point);
   }
-  const journals = [];
-  for (const [key, group] of [...groups].sort(([left], [right]) => compareKeys(left, right))) {
-    const ordered = [...group].sort(compareArchivePoints);
-    const startIndex = ordered.findIndex(point => dayOf(point.tst) === date);
-    if (startIndex < 0) continue;
-    let endIndex = startIndex;
-    while (endIndex + 1 < ordered.length && dayOf(ordered[endIndex + 1].tst) === date) endIndex++;
-    const points = ordered.slice(startIndex, endIndex + 1);
-    const journal = clipJournal(buildJournal(ordered), ordered, startIndex, endIndex);
-    const { source, device } = points[0],value={
-      source, device, pointCount: points.length, tripCount: journal.trips.length, stayCount: journal.stays.length,
-      firstTimestamp: points[0].tst, lastTimestamp: points.at(-1).tst,
-      pointIds: points.map(point => point.id), journal,
-    };
-    // v2 cannot identify a legacy recorder. Context resolution may still use
-    // its journal as an ambiguity marker so exact labelled references work.
-    if (key === 'legacy') {
-      if (!allowLegacy) fail();
-      journals.push({ ...value, legacy: true }); continue;
+  const prepared = [...groups].sort(([left], [right]) => compareKeys(left, right)).map(([key, group]) => {
+    const ordered = [...group].sort(compareArchivePoints), ranges = new Map();
+    ordered.forEach((point, index) => {
+      const date = dayOf(point.tst), range = ranges.get(date);
+      if (range) range[1] = index; else ranges.set(date, [index, index]);
+    });
+    return { key, ordered, ranges, journal: null };
+  });
+  return date => {
+    const journals = [];
+    for (const entry of prepared) {
+      const { key, ordered, ranges } = entry, range = ranges.get(date);
+      if (!range) continue;
+      const [startIndex, endIndex] = range;
+      const points = ordered.slice(startIndex, endIndex + 1);
+      const journal = clipJournal(entry.journal ??= buildJournal(ordered), ordered, startIndex, endIndex);
+      const { source, device } = points[0],value={
+        source, device, pointCount: points.length, tripCount: journal.trips.length, stayCount: journal.stays.length,
+        firstTimestamp: points[0].tst, lastTimestamp: points.at(-1).tst,
+        pointIds: points.map(point => point.id), journal,
+      };
+      // v2 cannot identify a legacy recorder. Context resolution may still use
+      // its journal as an ambiguity marker so exact labelled references work.
+      if (key === 'legacy') {
+        if (!allowLegacy) fail();
+        journals.push({ ...value, legacy: true }); continue;
+      }
+      journals.push(value);
+      if (recorderKey({ source, device }) !== key) fail();
     }
-    journals.push(value);
-    if (recorderKey({ source, device }) !== key) fail();
-  }
-  return journals;
+    return journals;
+  };
+}
+
+export function archiveRecorderJournals(rows, date, options) {
+  return createArchiveJournalReader(rows, options)(date);
 }
 
 export function archiveV2Content(rows, date) {
