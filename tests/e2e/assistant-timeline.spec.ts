@@ -88,6 +88,8 @@ async function timelineFixture(page: Page, options: {
   webglUnavailable?: boolean;
   fullProductionCSP?: boolean;
   seeds?: Array<{ date: string; entry: ManualEntry }>;
+  archiveDays?: Array<{ date: string; schemaVersion: number; pointCount: number; recorderCount: number; archiveSnapshotOlder?: boolean; multipleRecorders?: boolean }>;
+  deferredDates?: string[];
 } = {}) {
   let authorized = true;
   let noGPS = options.noGPS ?? false;
@@ -204,7 +206,7 @@ async function timelineFixture(page: Page, options: {
     return route.fulfill({ json: {
       ...data, refreshedAt: stamp,
       health: { date, status: 'empty', metrics: {}, days: [], fetchedAt: stamp },
-      archive: { enabled: true, days: [], status: { ok: true } },
+      archive: { enabled: true, days: options.archiveDays ?? [], status: { ok: true, deferredDates: options.deferredDates ?? [] } },
       ingestion: { lastMessageAt: stamp, observedSince: stamp },
     } });
   });
@@ -342,6 +344,16 @@ test('incoming measurements preserve the timeline keyboard focus', async ({ page
   await expect(trip).toBeFocused();
 });
 
+test('last receipt display compares offset timestamps as instants', async ({ page }) => {
+  const records = [
+    { ...points[0], receivedAt: '2026-10-28T10:00:00+02:00' },
+    { ...points[1], receivedAt: '2026-10-28T09:00:00Z' },
+  ];
+  await timelineFixture(page, { points: records });
+  await openDay(page);
+  await expect(page.locator('#received')).toHaveText('Empfangen 10:00 Uhr');
+});
+
 test('recorder selection keeps source and device together through map, statistics and return to a day', async ({ page }) => {
   const own = { source: 'iphone', device: 'iPhone & Familie / +1' };
   const native = { source: 'werktag_ios', device: 'WerkTag Testgerät' };
@@ -375,6 +387,19 @@ test('recorder selection keeps source and device together through map, statistic
   await page.locator('#view-day').click();
   await expect(page.locator('#recorder')).toHaveValue('');
   await expect(page.locator('#recorder-note')).toContainText('WerkTag iPhone');
+});
+
+test('a late v2 multi-recorder snapshot keeps the stale-download warning visible', async ({ page }) => {
+  await timelineFixture(page, { archiveDays: [{ date: today, schemaVersion: 2, pointCount: points.length, recorderCount: 2, multipleRecorders: true, archiveSnapshotOlder: true }] });
+  await openDay(page);
+  await expect(page.locator('#archive-status')).toContainText('Weitere Messungen sind nach dem Archiv eingetroffen.');
+  await expect(page.locator('#archive-status')).not.toContainText('Geräte sind getrennt archiviert');
+});
+
+test('a deferred legacy day is not mislabeled as an unsupported multi-recorder day', async ({ page }) => {
+  await timelineFixture(page, { deferredDates: [today] });
+  await openDay(page);
+  await expect(page.locator('#archive-status')).toContainText('keine eindeutige Recorderkennung');
 });
 
 test('a delayed statistic from the previous recorder cannot replace the newly selected source', async ({ page }) => {

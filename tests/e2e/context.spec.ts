@@ -39,3 +39,27 @@ for (const variant of ['changed-fingerprint', 'unavailable-journal', 'matched'] 
     await expect(warning).toHaveCount(variant === 'matched' ? 0 : 1);
   });
 }
+
+test('a newly named GPS section stores the selected recorder identity', async ({ page }) => {
+  let written: Record<string, any> | null = null;
+  await page.route('**/assistenz/session', route => route.fulfill({ json: { canRead: true, canWrite: true, csrfToken: 'synthetic-csrf' } }));
+  await page.route('**/assistenz/context?**', route => route.fulfill({ json: { schemaVersion: 1, date: '2026-10-27', timezone: 'Europe/Berlin', revision: 0, updatedAt: null, entries: [] } }));
+  await page.route('**/assistenz/context', async route => {
+    if (route.request().method() === 'GET') return route.fulfill({ json: { schemaVersion: 1, date: '2026-10-27', timezone: 'Europe/Berlin', revision: 0, updatedAt: null, entries: [] } });
+    written = route.request().postDataJSON();
+    return route.fulfill({ json: { schemaVersion: 1, date: '2026-10-27', timezone: 'Europe/Berlin', revision: 1, updatedAt: '2026-10-28T12:00:00.000Z', entries: [] } });
+  });
+  await page.goto('/projekte');
+  await page.evaluate(async ({ segment }) => {
+    document.body.innerHTML = '<div id="context-view"></div>';
+    const { createContext } = await import('/assistance-assets/context.js');
+    const context = createContext({ onLocked() {}, onChanged() {} });
+    await context.unlock();
+    await context.setDay({ date: '2026-10-27', segment, journal: { trips: [segment], stays: [] }, recorder: { source: 'werktag_ios', device: 'WerkTag Testgerät' }, archiveRevision: 2 });
+  }, { segment });
+  await page.locator('#context-use-segment').click();
+  await page.locator('#context-form input[name="label"]').fill('Eigene Fahrt');
+  await page.locator('#context-form').evaluate((form: HTMLFormElement) => form.requestSubmit());
+  await expect.poll(() => written).not.toBeNull();
+  expect(written!.entry.segmentRef).toMatchObject({ source: 'werktag_ios', device: 'WerkTag Testgerät', archiveRevisionAtCreation: 2 });
+});

@@ -110,7 +110,7 @@ export function createGateway(options={}) {
         if(isPage&&response.status===200)content=chrome(content,publicOrigin);
         result=Buffer.from(content);
       }
-      for(const h of ['content-type','content-disposition','content-security-policy','www-authenticate','retry-after']){const value=response.headers.get(h);if(value)res.setHeader(h,value);}
+      for(const h of ['content-type','content-disposition','content-security-policy','www-authenticate','retry-after','x-werktag-archive-version']){const value=response.headers.get(h);if(value)res.setHeader(h,value);}
       const setCookies=response.headers.getSetCookie?.()??[];
       const filtered=setCookies.map(rewriteCookie).filter(Boolean);
       if(!ingestion&&filtered.length)res.setHeader('Set-Cookie',filtered);

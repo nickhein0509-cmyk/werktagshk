@@ -243,9 +243,9 @@ test('only cloud assistance Set-Cookie values are returned and ingestion never s
 
 test('GPX and JSON downloads retain content disposition without text rewriting', async () => {
   const gpx = '<?xml version="1.0"?><gpx><name>/map literal stays unchanged</name></gpx>';
-  const proxy = createCloudProxy({ endpoint, fetchImpl: async () => new Response(gpx, { headers: { 'content-type': 'application/gpx+xml', 'content-disposition': 'attachment; filename="synthetic.gpx"' } }) });
+  const proxy = createCloudProxy({ endpoint, fetchImpl: async () => new Response(gpx, { headers: { 'content-type': 'application/gpx+xml', 'content-disposition': 'attachment; filename="synthetic.gpx"', 'x-werktag-archive-version': '2' } }) });
   const res = response(); await proxy(request('/assistenz/archive?date=2026-10-28&format=gpx'), res, 'map/archive');
-  assert.equal(res.statusCode, 200); assert.equal(res.body, gpx); assert.match(res.headers['content-disposition'], /synthetic\.gpx/);
+  assert.equal(res.statusCode, 200); assert.equal(res.body, gpx); assert.match(res.headers['content-disposition'], /synthetic\.gpx/); assert.equal(res.headers['x-werktag-archive-version'], '2');
 });
 
 test('redirects, transport exceptions and excessive responses fail closed without details', async () => {

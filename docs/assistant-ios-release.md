@@ -42,11 +42,11 @@ Webkarte und Statistik erhalten `recorders`/`selectedRecorder`; Messpunkte behal
 `source`/`device`. Native Tagesabfrage ist zusätzlich auf `werktag_ios` und das
 jeweilige Gerät beschränkt. Das native Konto muss Besitzer der Installation sein.
 
-Bestehende Archive bleiben erhalten. Das alte v1-Format kann mehrere Recorder
-nicht eindeutig abbilden: Solche Tage werden bis zur Versionierung nicht neu
-archiviert; `deferredDates` macht dies im Vertrag sichtbar. Rohdaten bleiben
-abrufbar. Alte Abschnittsverweise ohne eindeutige Quelle bleiben ungeprüft.
-[Archiv-Folgeaufgabe](https://github.com/nickhein0509-cmyk/werktag-assistent/issues/11).
+Bestehende v1-Archive bleiben unverändert und bytegetreu abrufbar. Neue
+abgeschlossene Tage verwenden den [Archivvertrag v2](assistant-archive-v2.md):
+pro `source`/`device` entsteht ein eigenes Journal, ohne Gerätewege zu verbinden
+oder Entfernungen zu addieren. Neue Abschnittsverweise tragen die Recorderkennung;
+alte Verweise bleiben bei mehrdeutiger Zuordnung sichtbar ungeprüft.
 
 ## Oberfläche und Fehlerbehebung
 

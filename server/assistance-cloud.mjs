@@ -62,7 +62,7 @@ export function createCloudProxy(options = {}) {
       if (r.status >= 300 && r.status < 400) throw Error();
       const parts = []; let size = 0;
       if (r.body) for await (const p of r.body) { size += p.length; if (size > 4 * 1024 * 1024) throw Error(); parts.push(Buffer.from(p)); }
-      for (const h of ['content-type', 'content-disposition', 'content-security-policy', 'www-authenticate', 'retry-after']) { const value = r.headers.get(h); if (value) res.setHeader(h, value); }
+      for (const h of ['content-type', 'content-disposition', 'content-security-policy', 'www-authenticate', 'retry-after', 'x-werktag-archive-version']) { const value = r.headers.get(h); if (value) res.setHeader(h, value); }
       const catalogue = cataloguePath(route);
       if (catalogue === 'index.html') {
         // Supabase's Edge gateway sanitizes HTML to plain text with a sandbox.
