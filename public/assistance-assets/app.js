@@ -226,11 +226,11 @@ function renderTimeline(data,models){
 }
 function renderArchive(data){
   const day=active==='today'?today():active,archive=data.archive,entry=archive?.days.find(e=>e.date===day);
-  $('archive-status').textContent=archive?.status?.ok===false?'Archivierung braucht Aufmerksamkeit. Die GPS-Rohdaten bleiben gespeichert.':day==='all'?'Alle vorhandenen Aufzeichnungen bleiben gespeichert. Wähle einen Tag für den Tagesexport.':entry?'Tagesarchiv gespeichert · '+entry.pointCount+' Punkte · GPX und vollständige Tagesdatei':day===today()?'Heute wird fortlaufend gespeichert. Tagesarchiv automatisch nach Mitternacht.':data.totalSelected===0&&data.health?.status==='ok'?'Health-Tageswerte gespeichert. Für diesen Tag gibt es keine GPS-Aufzeichnung.':data.totalSelected===0?'Für diesen Tag ist keine GPS-Aufzeichnung gespeichert.':'Tagesarchiv wird beim nächsten automatischen Abgleich erstellt.';
+  $('archive-status').textContent=archive?.status?.ok===false?'Archivierung braucht Aufmerksamkeit. Die GPS-Rohdaten bleiben gespeichert.':day==='all'?'Alle vorhandenen Aufzeichnungen bleiben gespeichert. Wähle einen Tag für den Tagesexport.':entry?'Tagesarchiv v'+(entry.schemaVersion??1)+' gespeichert · '+entry.pointCount+' Punkte · GPX und vollständige Tagesdatei':day===today()?'Heute wird fortlaufend gespeichert. Tagesarchiv automatisch nach Mitternacht.':data.totalSelected===0&&data.health?.status==='ok'?'Health-Tageswerte gespeichert. Für diesen Tag gibt es keine GPS-Aufzeichnung.':data.totalSelected===0?'Für diesen Tag ist keine GPS-Aufzeichnung gespeichert.':'Tagesarchiv wird beim nächsten automatischen Abgleich erstellt.';
   $('download-gpx').hidden=!entry;$('download-json').hidden=!entry;
+  if(archive?.status?.deferredDates?.includes(day)&&!entry)$('archive-status').textContent='Mindestens eine ältere Aufzeichnung dieses Tages hat keine eindeutige Recorderkennung. Die Rohdaten bleiben erhalten; ein v2-Archiv wird noch nicht erzeugt.';
+  if(entry?.multipleRecorders)$('archive-status').textContent=entry.schemaVersion===2?'Tagesarchiv v2 gespeichert · '+entry.recorderCount+' Geräte sind getrennt archiviert; die Ansicht zeigt nur das gewählte Gerät.':'Mehrere Geräte zeichnen diesen Tag auf. Downloads enthalten den ursprünglichen v1-Archivstand und entsprechen nicht zwingend der gewählten Geräteansicht.';
   if(entry?.archiveSnapshotOlder)$('archive-status').textContent='Weitere Messungen sind nach dem Archiv eingetroffen. Tagesansicht und Statistik berücksichtigen sie; die Downloads erhalten den ursprünglichen Archivstand.';
-  if(archive?.status?.deferredDates?.includes(day)&&!entry)$('archive-status').textContent='Mehrere Geräte zeichnen diesen Tag auf. Die Tagesansicht zeigt das gewählte Gerät; ein gemeinsames Tagesarchiv wird nicht erzeugt.';
-  if(entry?.multipleRecorders)$('archive-status').textContent='Mehrere Geräte zeichnen diesen Tag auf. Downloads enthalten den ursprünglichen Archivstand und entsprechen nicht zwingend der gewählten Geräteansicht.';
   if(entry){$('download-gpx').href='/assistenz/archive?date='+day+'&format=gpx';$('download-json').href='/assistenz/archive?date='+day+'&format=json';}
 }
 function draw(data,force=false){
@@ -246,7 +246,7 @@ function draw(data,force=false){
   $('distance').textContent=distance(distanceMetres);
   if($('distance-note'))$('distance-note').textContent='GPS-Näherung · ohne erkannte Aufenthalte';
   $('latest').textContent=pts.length?time(pts.at(-1).tst)+' Uhr':'–';
-  const received=pts.reduce((value,p)=>!value||p.receivedAt>value?p.receivedAt:value,null);
+  const received=pts.reduce((value,p)=>!value||Date.parse(p.receivedAt)>Date.parse(value)||(Date.parse(p.receivedAt)===Date.parse(value)&&p.receivedAt>value)?p.receivedAt:value,null);
   $('received').textContent=received?'Empfangen '+time(Date.parse(received)/1000)+' Uhr':'Noch keine Punkte';
   const knownDays=[...new Set([...(active!=='today'&&active!=='all'?[active]:[]),...data.days,...(data.archive?.days.map(e=>e.date)??[]),...(data.health?.days??[])])].filter(d=>d!==today()).sort().reverse();
   const options=[['today','Heute'],...knownDays.map(d=>[d,new Date(d+'T12:00:00Z').toLocaleDateString('de-DE',{day:'numeric',month:'long',year:'numeric',timeZone:'Europe/Berlin'})+(data.archive?.days.some(e=>e.date===d)?' · archiviert':'')]),['all','Alle Aufzeichnungen']];
@@ -260,7 +260,7 @@ function draw(data,force=false){
   $('quality').textContent='Bereinigte GPS-Näherung, keine berechnete Straßenstrecke. '+model.poorFixCount+' ungenaue Punkte · '+model.outlierCount+' isolierte Sprünge · '+model.suppressedJitterCount+' kleine GPS-Bewegungen geglättet. '+model.gapCount+' Lücken oder unplausible Übergänge werden nicht verbunden.'+(model.unknownAccuracyCount?' Bei '+model.unknownAccuracyCount+' Punkten fehlt die Genauigkeitsangabe.':'')+' Aufenthalte sind eine Näherung ab 10 Minuten im Bereich von ca. 100 m, nur bis zur letzten passenden Messung.'+(data.truncated?' Anzeige auf die neuesten 20.000 Punkte gekürzt. Bitte wähle einen einzelnen Tag.':'');
   renderTimeline(data,models);renderAnalysis(model,journal,selection);renderArchive(data);renderHealth(data.health,{selectedPart:Boolean(selection)});
   const chosenDay=active==='today'?today():active,archiveRevision=data.archive?.days.find(e=>e.date===chosenDay)?.revision;
-  context.setDay({date:chosenDay,segment:selection,journal:data.journal,archiveRevision});
+  context.setDay({date:chosenDay,segment:selection,journal:data.journal,recorder:data.selectedRecorder??null,archiveRevision});
   const latestFix=pts.at(-1),sensor=[];
   if(Number.isFinite(latestFix?.batt))sensor.push('Akku '+fmt.format(latestFix.batt)+' %');
   if(Number.isFinite(latestFix?.alt))sensor.push('Höhe '+fmt.format(latestFix.alt)+' m ü. M.');

@@ -1,6 +1,7 @@
 import { buildJournal, clipJournal, dayOf, settings } from './semantics/journal.js';
 import { route } from './semantics/route.js';
-import { recorderKey, selectRecorder } from './semantics/recorders.js';
+import { recorderKey, selectRecorder, validateRecorderSelection } from './semantics/recorders.js';
+import { archiveRecorderJournals, archiveSelection, archiveSelectionMatches, compareArchivePoints, validateArchiveStructure } from './archive-contract.mjs';
 export const berlinDay = dayOf;
 
 export const HEALTH_SOURCE = 'Apple Health via Freddy';
@@ -140,7 +141,7 @@ function interval(input, date) {
 }
 function segment(value, times) {
   if (value === undefined) return undefined;
-  keys(value, ['journalIdAtCreation', 'archiveRevisionAtCreation', 'algorithmVersion', 'startTimestamp', 'endTimestamp', 'segmentKind', 'anchorFingerprint']);
+  keys(value, ['journalIdAtCreation', 'archiveRevisionAtCreation', 'algorithmVersion', 'startTimestamp', 'endTimestamp', 'segmentKind', 'anchorFingerprint', 'source', 'device']);
   const out = {
     journalIdAtCreation: text(value.journalIdAtCreation, 160, true),
     archiveRevisionAtCreation: value.archiveRevisionAtCreation == null ? null : number(value.archiveRevisionAtCreation, 0, Number.MAX_SAFE_INTEGER, true, true),
@@ -152,6 +153,7 @@ function segment(value, times) {
   if (!['trip', 'stay'].includes(out.segmentKind) || out.endTimestamp < out.startTimestamp || Math.abs(Date.parse(times.startAt) / 1000 - out.startTimestamp) > 1 || Math.abs(Date.parse(times.endAt) / 1000 - out.endTimestamp) > 1) fail('Ungültiger Abschnittsbezug.');
   const fingerprint = text(value.anchorFingerprint, 256);
   if (fingerprint !== undefined) out.anchorFingerprint = fingerprint;
+  if (value.source !== undefined || value.device !== undefined) Object.assign(out, validateRecorderSelection({ source: value.source, device: value.device }));
   return out;
 }
 const kindFields = {
@@ -231,13 +233,22 @@ export function validateContextValue(value,date){
   }catch{fail('Kontextdaten sind beschädigt; sie wurden nicht überschrieben.',500,'context-storage');}
 }
 
-export function contextView(value, journal) {
+export function contextView(value, journal, recorderJournals) {
   const out = structuredClone(value);
-  const available = journal && Array.isArray(journal.trips) && Array.isArray(journal.stays);
-  const segments = available ? [...journal.trips, ...journal.stays] : [];
+  const fallbackAvailable = journal && Array.isArray(journal.trips) && Array.isArray(journal.stays);
   out.entries = out.entries.map(entry => {
     if (entry.kind !== 'activity' || !entry.segmentRef) return entry;
     const ref = entry.segmentRef;
+    let available = fallbackAvailable, selectedJournal = journal;
+    if (Array.isArray(recorderJournals)) {
+      if (ref.source !== undefined || ref.device !== undefined) {
+        const matches = recorderJournals.filter(value => value.source === ref.source && value.device === ref.device);
+        available = matches.length === 1; selectedJournal = available ? matches[0].journal : null;
+      } else {
+        available = recorderJournals.length === 1 && Boolean(recorderJournals[0].journal); selectedJournal = available ? recorderJournals[0].journal : null;
+      }
+    }
+    const segments = available ? [...selectedJournal.trips, ...selectedJournal.stays] : [];
     const matches = segments.filter(item => item.id === ref.journalIdAtCreation && item.kind === ref.segmentKind && item.startTimestamp === ref.startTimestamp && item.endTimestamp === ref.endTimestamp && (!ref.anchorFingerprint || ref.anchorFingerprint === [item.kind, item.startTimestamp, item.endTimestamp, item.pointCount].join(':')));
     return { ...entry, needsReview: !available || matches.length !== 1, segmentStatus: !available ? 'unverified' : matches.length === 1 ? 'matched' : 'needs-review' };
   });
@@ -301,7 +312,7 @@ export function contextRange(values, from, to) {
 
 export function selectPoints(rows, date, limit = 20000, options = {}) {
   const selection = selectRecorder(rows, point => date === 'all' || berlinDay(point.tst) === date, options);
-  const ordered = [...selection.rows].sort((a,b)=>a.tst-b.tst||a.receivedAt.localeCompare(b.receivedAt));
+  const ordered = [...selection.rows].sort(compareArchivePoints);
   const days = [...new Set(rows.map(r => berlinDay(r.tst)))].sort().reverse();
   const all = ordered.filter(r => date === 'all' || berlinDay(r.tst) === date);
   const selected = all.slice(-limit), from=selected.length?ordered.indexOf(selected[0]):0, to=selected.length?ordered.indexOf(selected.at(-1)):-1;
@@ -309,12 +320,12 @@ export function selectPoints(rows, date, limit = 20000, options = {}) {
   return { date, days, totalStored: rows.length, totalSelected: all.length, truncated: selected.length < all.length, journal,
     recorders: selection.recorders, selectedRecorder: selection.selectedRecorder,
     latestSourceTimestamp: rows.reduce((last, r) => Math.max(last ?? 0, r.tst), null),
-    latestReceivedAt: rows.reduce((last, r) => !last || r.receivedAt > last ? r.receivedAt : last, null),
+    latestReceivedAt: rows.reduce((last, r) => !last || Date.parse(r.receivedAt) > Date.parse(last) || (Date.parse(r.receivedAt) === Date.parse(last) && r.receivedAt > last) ? r.receivedAt : last, null),
     points: selected.map(({ id, source, device, tst, lat, lon, acc, alt, vel, cog, batt, receivedAt }) => ({ id, source, device, tst, lat, lon, acc, alt, vel, cog, batt, receivedAt })) };
 }
 
 
-export function gpxForDay(date,points){
+export function gpxForDay(date,points,{schemaVersion=1}={}){
   let part=[],previous=null;const segments=[];
   const flush=()=>{if(part.length)segments.push(part);part=[];previous=null;};
   // A fallback export of an old mixed snapshot must keep each device's track
@@ -334,7 +345,8 @@ export function gpxForDay(date,points){
    }
   }
   flush();
-  return '<?xml version="1.0" encoding="UTF-8"?>\n<gpx version="1.1" creator="Nick GPS Journal" xmlns="http://www.topografix.com/GPX/1/1"><trk><name>Nick '+date+'</name>'+segments.map(s=>'<trkseg>'+s.map(p=>'<trkpt lat="'+p.lat+'" lon="'+p.lon+'">'+(Number.isFinite(p.alt)?'<ele>'+p.alt+'</ele>':'')+'<time>'+new Date(p.tst*1000).toISOString()+'</time></trkpt>').join('')+'</trkseg>').join('')+'</trk></gpx>\n';
+  const v2=schemaVersion===2,creator=v2?'WerkTag GPS Journal archive-v2':'Nick GPS Journal',metadata=v2?'<metadata><name>WerkTag Tagesarchiv v2 · '+date+'</name></metadata>':'';
+  return '<?xml version="1.0" encoding="UTF-8"?>\n<gpx version="1.1" creator="'+creator+'" xmlns="http://www.topografix.com/GPX/1/1">'+metadata+'<trk><name>Nick '+date+'</name>'+segments.map(s=>'<trkseg>'+s.map(p=>'<trkpt lat="'+p.lat+'" lon="'+p.lon+'">'+(Number.isFinite(p.alt)?'<ele>'+p.alt+'</ele>':'')+'<time>'+new Date(p.tst*1000).toISOString()+'</time></trkpt>').join('')+'</trkseg>').join('')+'</trk></gpx>\n';
 }
 
 export const STATISTICS_VERSION = 'statistics-v1';
@@ -360,16 +372,9 @@ function validRows(points,date){
   for(let i=0;i<points.length;i++){
     const p=points[i];
     if(!p||!Number.isSafeInteger(p.tst)||!Number.isFinite(p.lat)||Math.abs(p.lat)>90||!Number.isFinite(p.lon)||Math.abs(p.lon)>180||!Number.isFinite(Date.parse(p.receivedAt))||dayOf(p.tst)!==date)statisticsFail('STATISTICS_INVALID_ARCHIVE');
-    if(i&&(p.tst<points[i-1].tst||(p.tst===points[i-1].tst&&p.receivedAt<points[i-1].receivedAt)))statisticsFail('STATISTICS_INVALID_ARCHIVE');
+    if(i&&compareArchivePoints(points[i-1],p)>0)statisticsFail('STATISTICS_INVALID_ARCHIVE');
   }
 }
-function validJournal(journal,points){
-  if(!journal||!Array.isArray(journal.trips)||!Array.isArray(journal.stays)||!journal.settings)statisticsFail('STATISTICS_INVALID_ARCHIVE');
-  for(const kind of ['trips','stays'])for(const e of journal[kind]){
-    if(!e||!Number.isSafeInteger(e.startIndex)||!Number.isSafeInteger(e.endIndex)||e.startIndex<0||e.endIndex<e.startIndex||e.endIndex>=points.length||!Number.isFinite(e.durationSeconds)||e.durationSeconds<0||e.startTimestamp!==points[e.startIndex].tst||e.endTimestamp!==points[e.endIndex].tst||e.durationSeconds!==e.endTimestamp-e.startTimestamp)statisticsFail('STATISTICS_INVALID_ARCHIVE');
-  }
-}
-
 function healthSummary(healthDays,date){
   const day=healthDays.find(day=>day.date===date),metrics=emptyMetrics();
   if(day)validateHealthDay(day,date);
@@ -444,14 +449,13 @@ function aggregate(days,{key,start,end},contextRecords=[]){
   return {key,from:first,to:last,periodStart:start,periodEnd:end,partial:first!==start||last!==end||gps.partial||Object.values(metrics).some(m=>m.partial),provisional:days.some(d=>d.provisional),dayCount:days.length,gps,health:{present:days.some(d=>d.health.present),metrics},context:contextSummary(contextRecords)};
 }
 
-const canonicalValue = value => Array.isArray(value) ? value.map(canonicalValue) : value && typeof value==='object' ? Object.fromEntries(Object.keys(value).sort().map(key=>[key,canonicalValue(value[key])])) : value;
 export function statisticsFromData({points=[],healthDays=[],contexts=[],archives=[],from,to,bucket='day',now=Date.now(),source,device}={}){
   if(typeof now==='string')now=Date.parse(now);if(!Number.isFinite(now))statisticsFail('STATISTICS_INVALID_TIME',400);
   const today=dayOf(now/1000);to=to??today;if(!validDate(to))statisticsFail('STATISTICS_INVALID_RANGE',400);from=from??shift(to,-6);
   if(!validDate(from)||from>to||to>today||!['day','week','month'].includes(bucket))statisticsFail('STATISTICS_INVALID_RANGE',400);
   if((Date.parse(to)-Date.parse(from))/DAY+1>366)statisticsFail('STATISTICS_RANGE_TOO_LARGE',400);
   const selection=selectRecorder(points,p=>{const date=dayOf(p.tst);return date>=from&&date<=to;},{source,device});
-  const dates=datesBetween(from,to),rows=[...selection.rows].sort((a,b)=>a.tst-b.tst||a.receivedAt.localeCompare(b.receivedAt)),journal=buildJournal(rows),days=[],records=[];
+  const dates=datesBetween(from,to),rows=[...selection.rows].sort(compareArchivePoints),journal=buildJournal(rows),days=[],records=[];
   const dayRecorders=new Map();for(const p of points){const date=dayOf(p.tst);if(date<from||date>to)continue;if(!dayRecorders.has(date))dayRecorders.set(date,new Set());dayRecorders.get(date).add(recorderKey(p));}
   for(const date of dates){
     const saved=archives.find(a=>a.date===date);let selected,dayJournal,source,gps;
@@ -459,20 +463,21 @@ export function statisticsFromData({points=[],healthDays=[],contexts=[],archives
     while(toIndex>=0&&toIndex+1<rows.length&&dayOf(rows[toIndex+1].tst)===date)toIndex++;
     const livePoints=fromIndex<0?[]:rows.slice(fromIndex,toIndex+1);validRows(livePoints,date);
     const liveJournal=livePoints.length?clipJournal(journal,rows,fromIndex,toIndex):null;
-    let snapshotOlder=false,recorderMismatch=false;
+    let snapshotOlder=false,recorderMismatch=false,savedSelection=null;
     if(saved){
-      if(saved.schemaVersion!==1||saved.timeZone!=='Europe/Berlin'||!Number.isSafeInteger(saved.revision)||saved.revision<1||!Number.isFinite(Date.parse(saved.updatedAt)))statisticsFail('STATISTICS_INVALID_ARCHIVE');
-      validRows(saved.points,date);validJournal(saved.journal,saved.points);if(saved.pointCount!==saved.points.length)statisticsFail('STATISTICS_INVALID_ARCHIVE');
-      recorderMismatch=saved.points.some(p=>recorderKey(p)!==selection.selectedKey);
-      snapshotOlder=!recorderMismatch&&(saved.points.length!==livePoints.length||saved.points.some((p,i)=>p.id!==livePoints[i]?.id)||JSON.stringify(canonicalValue(saved.journal))!==JSON.stringify(canonicalValue(liveJournal)));
+      try{validateArchiveStructure(saved,date);}catch{statisticsFail('STATISTICS_INVALID_ARCHIVE');}
+      if(!Number.isFinite(Date.parse(saved.updatedAt))||saved.pointCount!==saved.points.length)statisticsFail('STATISTICS_INVALID_ARCHIVE');
+      validRows(saved.points,date);savedSelection=archiveSelection(saved,selection.selectedKey);recorderMismatch=savedSelection.recorderMismatch;
+      snapshotOlder=!recorderMismatch&&!archiveSelectionMatches(saved,selection.selectedKey,livePoints,liveJournal);
     }
-    if(saved&&!snapshotOlder&&!recorderMismatch){selected=saved.points;dayJournal=saved.journal;source={kind:'archive',revision:saved.revision,contentHash:saved.contentHash??null,updatedAt:saved.updatedAt,settings:dayJournal.settings};}
-    else{selected=livePoints;dayJournal=liveJournal;source={kind:snapshotOlder?'cloud-derived':date===today?'live':'cloud-derived',revision:null,contentHash:null,updatedAt:selected.reduce((latest,p)=>!latest||p.receivedAt>latest?p.receivedAt:latest,null),settings,...(snapshotOlder?{archiveSnapshotOlder:true}: {}),...(recorderMismatch?{archiveRecorderMismatch:true}: {})};}
+    if(saved&&!snapshotOlder&&!recorderMismatch){selected=savedSelection.points;dayJournal=savedSelection.journal;source={kind:'archive',schemaVersion:saved.schemaVersion,revision:saved.revision,contentHash:saved.contentHash??null,updatedAt:saved.updatedAt,settings:dayJournal.settings};}
+    else{selected=livePoints;dayJournal=liveJournal;source={kind:snapshotOlder?'cloud-derived':date===today?'live':'cloud-derived',revision:null,contentHash:null,updatedAt:selected.reduce((latest,p)=>!latest||Date.parse(p.receivedAt)>Date.parse(latest)||(Date.parse(p.receivedAt)===Date.parse(latest)&&p.receivedAt>latest)?p.receivedAt:latest,null),settings,...(snapshotOlder?{archiveSnapshotOlder:true}: {}),...(recorderMismatch?{archiveRecorderMismatch:true}: {})};}
     gps=selected.length?gpsSummary(selected,dayJournal,source):emptyGps();
-    // Existing segment references have no recorder identity. Equal timestamps
-    // from another device cannot prove a match; leave them explicitly unverified.
-    const referenceJournal=(dayRecorders.get(date)?.size??0)>1?null:dayJournal;
-    const value=contexts.find(value=>value.date===date)??emptyContext(date);validateContextValue(value,date);const record={date,value:contextView(value,referenceJournal)};records.push(record);
+    // New references resolve against their exact recorder. Legacy references
+    // remain matchable only while the day has one unambiguous recorder.
+    let referenceJournals=[];
+    try{referenceJournals=archiveRecorderJournals(points,date,{allowLegacy:true});}catch{if((dayRecorders.get(date)?.size??0)===1&&dayJournal)referenceJournals=[{journal:dayJournal}];}
+    const value=contexts.find(value=>value.date===date)??emptyContext(date);validateContextValue(value,date);const record={date,value:contextView(value,null,referenceJournals)};records.push(record);
     days.push({date,provisional:date===today,gps,health:healthSummary(healthDays,date),context:contextSummary([record])});
   }
   const grouped=new Map();for(const day of days){const p=period(day.date,bucket);if(!grouped.has(p.key))grouped.set(p.key,{p,days:[]});grouped.get(p.key).days.push(day);}

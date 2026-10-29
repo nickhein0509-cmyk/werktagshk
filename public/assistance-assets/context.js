@@ -46,7 +46,7 @@ function fieldsMarkup(kind) {
 }
 export function createContext({ onLocked, onChanged, onAccessChanged = () => {} }) {
   $('context-view').innerHTML = '<div class="panel-heading"><div><p class="eyebrow">DEIN PERSÖNLICHER KONTEXT</p><h2>Was war heute?</h2><p class="panel-intro">Bewusst ergänzt. Getrennt von den Sensordaten.</p></div><span id="context-owner-status" class="pill">Nur lesen</span></div><p id="context-message" class="panel-message" role="status"></p><div id="context-entry-list" class="context-entry-list"></div><div id="context-owner"><details id="context-owner-details"><summary>Einträge zum Bearbeiten freigeben</summary><form id="context-owner-form" class="owner-form"><label for="context-owner-token">Persönliche Besitzerfreigabe</label><input id="context-owner-token" type="password" autocomplete="off" spellcheck="false" required placeholder="Besitzerlink oder Freigabe einfügen"><button type="submit">Bearbeiten freigeben</button></form><p class="subtle">Dein normaler Kartenlink bleibt ein Lesezugang. Die Freigabe gilt für diesen Browser.</p></details></div><div id="context-editor" hidden><div class="context-create-heading"><h3 id="context-form-title">Eintrag ergänzen</h3><button id="context-use-segment" type="button" hidden>Ausgewählten Abschnitt benennen</button></div><label class="context-kind">Was möchtest du festhalten?<select id="context-kind">' + Object.entries(labels).map(([kind, title]) => '<option value="' + kind + '">' + title + '</option>').join('') + '</select></label><p id="context-segment-note" class="subtle"></p><form id="context-form"><div id="context-fields" class="context-fields"></div><label class="context-note">Notiz · optional<textarea name="note" rows="2" maxlength="2000" placeholder="Deine eigene Ergänzung"></textarea></label><details class="time-occurrence"><summary>Doppelte Uhrzeit bei Zeitumstellung</summary><label>Bei zweimal vorkommenden Uhrzeiten<select name="occurrence"><option value="first">Erste Uhrzeit verwenden</option><option value="second">Zweite Uhrzeit verwenden</option></select></label></details><p id="context-form-message" class="panel-message" role="status"></p><div class="form-actions"><button id="context-save" type="submit" class="primary">Eintrag speichern</button><button id="context-new" type="button">Neuen Eintrag beginnen</button><button id="context-rebase" type="button" hidden>Aktuellen Stand geprüft · Entwurf behalten</button></div></form><p class="subtle">Alle Einträge sind manuelle Angaben. Ein geplanter Termin bestätigt weder Anwesenheit noch Training. Entwürfe bleiben beim Tageswechsel in diesem geöffneten Tab erhalten.</p></div>';
-  let day = null, segment = null, journal = null, archiveRevision = null, session = { canRead: false, canWrite: false }, loadingVersion = 0, securityVersion = 0, saving = false, currentForm = null;
+  let day = null, segment = null, journal = null, recorder = null, archiveRevision = null, session = { canRead: false, canWrite: false }, loadingVersion = 0, securityVersion = 0, saving = false, currentForm = null;
   const documents = new Map(), drafts = new Map(), fetched = new Map();
   const validDay = value => /^\d{4}-\d{2}-\d{2}$/.test(value ?? '');
   function draft(date = day) { if (!drafts.has(date)) drafts.set(date, { kind: 'activity', fields: {}, editing: null, dirty: false, baseRevision: documents.get(date)?.revision ?? 0, conflict: false, pendingId: null }); return drafts.get(date); }
@@ -84,6 +84,7 @@ export function createContext({ onLocked, onChanged, onAccessChanged = () => {} 
     // The server also checks the original segment ID and point fingerprint.
     // Equal timestamps alone cannot override its stale/unverified verdict.
     if (entry.needsReview === true) return true;
+    if (entry.segmentStatus === 'matched') return false;
     const ref = entry.segmentRef;
     if (!ref || !journal) return false;
     return ![...(journal.trips ?? []), ...(journal.stays ?? [])].some(part => part.kind === ref.segmentKind && part.startTimestamp === ref.startTimestamp && part.endTimestamp === ref.endTimestamp);
@@ -219,7 +220,7 @@ export function createContext({ onLocked, onChanged, onAccessChanged = () => {} 
   $('context-use-segment').addEventListener('click', () => {
     if (!segment || !validDay(day)) return;
     capture(); const state = draft(); state.kind = 'activity'; state.editing = null; state.pendingId = null; state.dirty = true; state.conflict = false; state.baseRevision = documents.get(day)?.revision ?? 0;
-    state.segmentRef = { journalIdAtCreation: segment.id, archiveRevisionAtCreation: archiveRevision ?? null, algorithmVersion: 1, startTimestamp: segment.startTimestamp, endTimestamp: segment.endTimestamp, segmentKind: segment.kind, anchorFingerprint: segment.kind + ':' + segment.startTimestamp + ':' + segment.endTimestamp + ':' + segment.pointCount };
+    state.segmentRef = { journalIdAtCreation: segment.id, archiveRevisionAtCreation: archiveRevision ?? null, algorithmVersion: 1, startTimestamp: segment.startTimestamp, endTimestamp: segment.endTimestamp, segmentKind: segment.kind, anchorFingerprint: segment.kind + ':' + segment.startTimestamp + ':' + segment.endTimestamp + ':' + segment.pointCount, ...(recorder ? { source: recorder.source, device: recorder.device } : {}) };
     state.fields.activity = { ...(state.fields.activity ?? {}), startAt: localTime(new Date(segment.startTimestamp * 1000).toISOString()), endAt: localTime(new Date(segment.endTimestamp * 1000).toISOString()) };
     showForm(); $('context-fields').querySelector('input')?.focus();
   });
@@ -227,7 +228,7 @@ export function createContext({ onLocked, onChanged, onAccessChanged = () => {} 
   return {
     async setDay(value) {
       const next = value.date;
-      segment = value.segment ?? null; journal = value.journal ?? null; archiveRevision = value.archiveRevision ?? null;
+      segment = value.segment ?? null; journal = value.journal ?? null; recorder = value.recorder ?? null; archiveRevision = value.archiveRevision ?? null;
       $('context-use-segment').hidden = !segment || !session.canWrite || !validDay(next);
       if (next !== day) {
         capture(); day = next; currentForm = null;
@@ -240,7 +241,7 @@ export function createContext({ onLocked, onChanged, onAccessChanged = () => {} 
     enableOwner,
     refresh() { if(validDay(day) && !draft().dirty) load(day); },
     reset() {
-      loadingVersion++; securityVersion++; day = null; segment = journal = null; currentForm = null; session = { canRead: false, canWrite: false };
+      loadingVersion++; securityVersion++; day = null; segment = journal = recorder = null; currentForm = null; session = { canRead: false, canWrite: false };
       documents.clear(); drafts.clear(); fetched.clear(); $('context-entry-list').replaceChildren(); $('context-fields').replaceChildren(); $('context-form').reset(); $('context-owner-token').value = ''; updateAccess(); feedback('Öffne deinen persönlichen Kartenlink für deine Tageseinträge.');
     }
   };

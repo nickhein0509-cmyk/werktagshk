@@ -18,7 +18,7 @@ Alle Assistenz-Tabellen haben RLS und entziehen `anon`, `authenticated` und `PUB
 
 Der private Import übernimmt kanonische Rohpunkte, vorhandene Health-Tage und Tageseinträge sowie originale JSON-/GPX-Archive. Bereits vorhandene Datensätze werden beim Import nicht überschrieben. Der Import verändert keine Dateien auf dem ursprünglichen PC. Er erhält Punkt-IDs, Messzeiten, Empfangszeiten und originale Archivstrings.
 
-Neue Cloud-Punkte bleiben fortlaufend in der Datenbank. Abgeschlossene Tage werden bei einem Kartenabruf als dauerhafte Tagesarchive ergänzt; dafür ist kein Mitternachts-Timer auf dem PC erforderlich. Vorhandene Archive werden erhalten. GPS-Abstände sind Näherungen; bereinigte Tagesansicht und ausdrücklich bezeichnete Rohdatenstatistik können voneinander abweichen. Datenlücken und unbekannte Genauigkeiten bleiben sichtbar.
+Neue Cloud-Punkte bleiben fortlaufend in der Datenbank. Abgeschlossene Tage werden bei einem Kartenabruf als dauerhafte [Tagesarchive v2](assistant-archive-v2.md) ergänzt; dafür ist kein Mitternachts-Timer auf dem PC erforderlich. Mehrere Recorder bleiben darin als getrennte Journale erhalten. Vorhandene v1-Archive und ihre originalen JSON-/GPX-Bytes werden weder ersetzt noch neu erzeugt. GPS-Abstände sind Näherungen; bereinigte Tagesansicht und ausdrücklich bezeichnete Rohdatenstatistik können voneinander abweichen. Datenlücken und unbekannte Genauigkeiten bleiben sichtbar.
 
 ## Health im 15-Minuten-Takt
 
