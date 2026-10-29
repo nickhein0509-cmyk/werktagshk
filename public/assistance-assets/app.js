@@ -2,6 +2,7 @@ import { analyzeRoute } from '/assistenz/route.js';
 import { renderHealth, resetHealth } from '/assistenz/health-v2.js';
 import { createStatistics } from '/assistenz/statistics-v1.js';
 import { createContext } from '/assistenz/context-v1.js';
+import { createToday } from '/assistance-assets/today.js';
 import { createWorkspace } from '/assistance-assets/workspace.js';
 import { renderJourneyMap, recorderKey, recorderLabel, recorderQuery } from '/assistance-assets/map-presentation.js';
 const $=id=>document.getElementById(id),fmt=new Intl.NumberFormat('de-DE',{maximumFractionDigits:1});
@@ -14,11 +15,12 @@ let map,layers,basemap,mapLibraryPromise=null,first=true,busy=false,active='toda
 let basemapRevision=0,basemapTimer,provider='openfreemap';
 let view='overview', contextReady=false, accessReady=false;
 let mapBounds=null,requestedRecorder=null,recorderChoices=[],dataController;
+const todayOverview=createToday({onLocked:()=>locked(),onDay:day=>changeDay(day),onTrends:()=>showView('statistics')});
 const statistics=createStatistics({onDay:(day,recorder)=>{requestedRecorder=recorderKey(recorder)?recorder:null;changeDay(day);},onLocked:()=>locked()});
 const context=createContext({onLocked:()=>locked(),onAccessChanged:()=>refresh(true),onChanged:()=>{statistics.invalidate(String(Date.now()));lastView='';workspace.invalidate();workspace.refresh();}});
-const workspace=createWorkspace({onLocked:()=>locked(),onChanged:()=>{statistics.invalidate(String(Date.now()));lastView='';context.refresh();},onDay:day=>changeDay(day),onOwner:()=>{showView('day');$('context-owner-details').open=true;$('context-owner-token').focus();$('context-owner').scrollIntoView({block:'nearest'});}});
+const workspace=createWorkspace({onLocked:()=>locked(),onChanged:()=>{statistics.invalidate(String(Date.now()));lastView='';context.refresh();},onDay:day=>changeDay(day),onOwner:()=>{showView('day');$('day-additions').open=true;$('context-owner-details').open=true;$('context-owner-token').focus();$('context-owner').scrollIntoView({block:'nearest'});}});
 function showView(next){
-  view=next;document.body.classList.toggle('is-day-view',next==='day');$('day-view').hidden=next!=='day';statistics.show(next==='statistics');workspace.show(next);
+  view=next;document.body.classList.toggle('is-day-view',next==='day');$('day-view').hidden=next!=='day';statistics.show(next==='statistics');workspace.show(next);todayOverview.show(next==='overview');
   for(const name of ['overview','workspace','day','statistics']){const button=$('view-'+name);button.classList.toggle('chosen',next===name);button.setAttribute('aria-pressed',String(next===name));}
   $('day').closest('.date-control').hidden=next!=='day';
   // The provider sees viewport requests only after opening Mein Tag. Measured
@@ -274,7 +276,7 @@ function draw(data,force=false){
 function locked(){
   dataController?.abort();
   mapBounds=null;requestedRecorder=null;recorderChoices=[];$('recorder').replaceChildren();$('recorder').disabled=true;$('recorder-control').hidden=true;$('recorder-note').textContent='';$('map-mode').textContent='Geschützt';$('map-route-note').textContent='';
-  generation++;pendingRefresh=false;accessReady=false;disposeBasemap();if(map){map.remove();map=null;layers=null;}$('map-provider').disabled=true;$('basemap-status').dataset.state='idle';$('basemap-status').textContent='Karte nach der Anmeldung öffnen.';$('map-retry').hidden=true;statistics.reset();context.reset();workspace.reset();contextReady=false;for(const name of ['workspace','day','statistics'])$('view-'+name).disabled=true;$('calendar-day').disabled=true;updateDayNavigation();$('timeline-date-label').textContent='Deine Zeitachse';$('timeline-day-summary').textContent='Melde dich an, um deine Wege und Aufenthalte zu sehen.';$('map-selection-summary').textContent='Deine privaten Abschnitte erscheinen nach der Anmeldung.';$('sensor-details').textContent='';showView('overview');
+  generation++;pendingRefresh=false;accessReady=false;disposeBasemap();if(map){map.remove();map=null;layers=null;}$('map-provider').disabled=true;$('basemap-status').dataset.state='idle';$('basemap-status').textContent='Karte nach der Anmeldung öffnen.';$('map-retry').hidden=true;todayOverview.reset();statistics.reset();context.reset();workspace.reset();contextReady=false;for(const name of ['workspace','day','statistics'])$('view-'+name).disabled=true;$('calendar-day').disabled=true;updateDayNavigation();$('timeline-date-label').textContent='Deine Zeitachse';$('timeline-day-summary').textContent='Melde dich an, um deine Wege und Aufenthalte zu sehen.';$('map-selection-summary').textContent='Deine privaten Abschnitte erscheinen nach der Anmeldung.';$('sensor-details').textContent='';showView('overview');
   resetHealth('Melde dich über Mein Konto an oder öffne deinen privaten Kartenlink für deine Health-Werte.');
   status('Geschützter Zugriff');$('access').hidden=false;$('day').disabled=true;layers?.clearLayers();currentData=null;selected=null;$('timeline').replaceChildren();$('journal-summary').textContent='Zugriff erforderlich';$('archive-status').textContent='Melde dich über Mein Konto an oder öffne deinen privaten Kartenlink.';$('download-gpx').hidden=true;$('download-json').hidden=true;
   for(const id of ['distance','count','latest','received','range'])$(id).textContent='–';$('total').textContent='Zugriff erforderlich';$('map-message').hidden=false;$('map-message').textContent='Melde dich über Mein Konto an oder öffne deinen privaten Kartenlink.';
@@ -285,7 +287,7 @@ async function authorizeAccess(revision){
   const response=await fetch('/assistenz/session',{cache:'no-store',signal:AbortSignal.timeout(10000)});
   if(revision!==generation)return false;if(response.status===401){locked();return false;}if(!response.ok)throw new Error('session-unavailable');
   const session=await response.json();if(revision!==generation)return false;if(session.canRead!==true){locked();return false;}
-  accessReady=true;$('access').hidden=true;for(const name of ['workspace','day','statistics'])$('view-'+name).disabled=false;
+  accessReady=true;todayOverview.unlock();$('access').hidden=true;for(const name of ['workspace','day','statistics'])$('view-'+name).disabled=false;
   $('day').disabled=false;$('calendar-day').disabled=false;updateDayNavigation();
   await workspace.setSession(session);if(revision!==generation)return false;
   if(!contextReady){contextReady=true;await context.unlock();if(revision!==generation)return false;await context.setDay({date:active==='today'?today():active});if(revision!==generation)return false;}
@@ -301,10 +303,10 @@ async function refresh(force=false){
     if(revision!==generation)return;if(r.status===401){locked();return;}if(!r.ok)throw new Error('gps-unavailable');
     const data=await r.json();if(revision!==generation)return;renderFreshness(data);currentData=data;status('Assistent verbunden · Aufzeichnungen geladen','ok');
     const key=JSON.stringify([d,data.totalStored,data.totalSelected,data.latestReceivedAt,data.archive,data.health,data.recorders,data.selectedRecorder]);
-    if(force||lastView!==key){draw(data,force);lastView=key;statistics.invalidate(key);}statistics.refresh();
+    if(force||lastView!==key){draw(data,force);lastView=key;statistics.invalidate(key);}statistics.refresh();todayOverview.refresh();
   }catch(error){
     if(revision===generation){
-      status(navigator.onLine?(contextReady?'Notizen bereit · GPS gerade nicht erreichbar':'Verbindung gerade nicht erreichbar'):'Offline · Entwürfe bleiben im geöffneten Tab','error');
+      status(navigator.onLine?(contextReady?'GPS gerade nicht erreichbar':'Verbindung gerade nicht erreichbar'):'Offline · Entwürfe bleiben im geöffneten Tab','error');
       $('map-message').hidden=false;$('map-message').textContent=currentData?'Gerade kein neuer Abgleich. Der zuletzt geladene Stand bleibt sichtbar.':'GPS-Daten sind gerade nicht erreichbar. Notizen und Aufgaben bleiben unabhängig davon verfügbar.';
       if(!currentData){$('total').textContent='GPS-Dienst nicht erreichbar';$('journal-summary').textContent='GPS-Daten gerade nicht verfügbar';$('archive-status').textContent='Archivstatus gerade nicht abrufbar.';resetHealth('Health-Daten sind gerade nicht abrufbar. Gespeicherte Werte bleiben erhalten.');}
     }

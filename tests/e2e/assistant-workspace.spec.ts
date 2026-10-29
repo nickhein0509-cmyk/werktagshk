@@ -195,7 +195,9 @@ async function workspaceFixture(page: Page, seeds: Array<{ date: string; entry: 
 
 async function openWorkspace(page: Page) {
   await page.goto('/assistenz');
+  if (!await page.locator('#view-workspace').isVisible()) await page.locator('.assistant-more > summary').first().click();
   await page.locator('#view-workspace').click();
+  if (!await page.locator('#workspace-form').isVisible()) await page.locator('#workspace-capture > summary').click();
   await expect(page.locator('#workspace-form')).toBeVisible();
   await expect(page.locator('#workspace-save')).toBeEnabled();
 }
@@ -218,14 +220,18 @@ test('personal note CRUD survives reload and GPS failure without storing private
   // uses vector resources and may be unavailable without WebGL on this host.
   await page.locator('#map-provider').selectOption('osm');
   await expect.poll(() => state.tileRequests.length).toBeGreaterThan(0);
+  if (!await page.locator('#view-workspace').isVisible()) await page.locator('.assistant-more > summary').first().click();
   await page.locator('#view-workspace').click();
+  if (!await page.locator('#workspace-form').isVisible()) await page.locator('#workspace-capture > summary').click();
   await enterNote(page, 'Mein synthetischer Tagesplan', 'Privater Fixture-Text: Teile abholen.');
   await page.locator('#workspace-save').click();
   await expect.poll(() => state.entries().length).toBe(1);
   const card = page.locator('.workspace-card').filter({ hasText: 'Mein synthetischer Tagesplan' });
   await expect(card).toBeVisible();
   await page.reload();
+  if (!await page.locator('#view-workspace').isVisible()) await page.locator('.assistant-more > summary').first().click();
   await page.locator('#view-workspace').click();
+  if (!await page.locator('#workspace-form').isVisible()) await page.locator('#workspace-capture > summary').click();
   await expect(card).toContainText('Privater Fixture-Text: Teile abholen.');
   await card.getByRole('button', { name: 'Bearbeiten', exact: true }).click();
   await page.locator('#workspace-note').fill('Privater Fixture-Text: Teile wurden bereitgelegt.');
@@ -253,7 +259,9 @@ test('task deadline and completion status persist and can be reopened', async ({
   await card.getByRole('button', { name: 'Als erledigt markieren', exact: true }).click();
   await expect.poll(() => state.entries()[0]?.status).toBe('done');
   await page.reload();
+  if (!await page.locator('#view-workspace').isVisible()) await page.locator('.assistant-more > summary').first().click();
   await page.locator('#view-workspace').click();
+  if (!await page.locator('#workspace-form').isVisible()) await page.locator('#workspace-capture > summary').click();
   await page.locator('#workspace-filter').selectOption('task-done');
   await expect(card).toBeVisible();
   await card.getByRole('button', { name: 'Wieder öffnen', exact: true }).click();
@@ -348,6 +356,7 @@ test('the daily context editor retains its original revision across a background
   }) }]);
   await openWorkspace(page);
   await page.locator('#view-day').click();
+  await page.locator('#day-additions > summary').click();
   const card = page.locator('#context-entry-list .context-entry').filter({ hasText: 'Tagesnotiz im bestehenden Editor' });
   await card.getByRole('button', { name: 'Bearbeiten', exact: true }).click();
   const note = page.locator('#context-form textarea[name="note"]');
@@ -422,4 +431,67 @@ test('locking removes saved private text, search results and unsaved draft from 
   expect(values).not.toContain('SYNTHETIC_PRIVATE_DRAFT');
   expect(values).not.toContain('SYNTHETIC_PRIVATE_DRAFT_BODY');
   await expect(page.locator('#workspace-save')).toBeDisabled();
+});
+
+for (const width of [320, 390, 1440]) {
+  test(`automatic overview and all Health charts without capture at ${width}px`, async ({ page }) => {
+    await page.setViewportSize({ width, height: 1000 });
+    await workspaceFixture(page);
+    const healthKeys = ['steps_total','active_energy_total','basal_energy_total','distance_walk_run_total','exercise_time_total','stand_time_total','flights_climbed_total','heart_rate_merged_avg','resting_heart_rate_merged_avg','hrv_sdnn_merged_avg','sleep_analysis_core_seconds','sleep_analysis_deep_seconds','sleep_analysis_rem_seconds','time_in_daylight_total','respiratory_rate_merged_avg','vo2_max'];
+    let fail = false;
+    await page.route(url => url.pathname === '/assistenz/statistics', route => {
+      if (fail) return route.fulfill({ status: 503, json: {} });
+      const url = new URL(route.request().url()), from = url.searchParams.get('from')!, to = url.searchParams.get('to')!;
+      const metrics = Object.fromEntries(healthKeys.map(key => [key, { value: key === 'steps_total' ? 1234 : 60, present: true, observedAt: stamp }]));
+      const day = { date: to, gps: { present: false }, health: { present: true, metrics }, provisional: true };
+      return route.fulfill({ json: { from, to, days: [day], buckets: [{ ...day, from: to, to }], summary: { health: { metrics } }, quality: { totalDays: 7, presentHealthDays: 1, presentGpsDays: 0 }, computedAt: stamp } });
+    });
+    await page.goto('/assistenz');
+    await expect(page.locator('#today-content')).toContainText('1.234');
+    await expect(page.locator('#workspace-form')).not.toBeVisible();
+    await expect(page.locator('#context-form')).not.toBeVisible();
+    await expect(page.locator('.leaflet-container')).toHaveCount(0);
+    expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
+    await page.screenshot({ path: `test-results/assistant-ui/today-${width}-synthetic.png`, fullPage: true });
+    await page.getByRole('button', { name: 'Gesundheitsverläufe ansehen' }).click();
+    for (const key of healthKeys) {
+      await page.locator('#statistics-metric').selectOption(key);
+      await expect(page.locator('#statistics-chart svg')).toBeVisible();
+    }
+    await expect(page.locator('#statistics-days')).toContainText('Gemessen:');
+    await page.locator('#statistics-metric').selectOption('sleep_analysis_deep_seconds');
+    await expect(page.locator('#statistics-days')).toContainText('1 Min.');
+    expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
+    await page.screenshot({ path: `test-results/assistant-ui/health-${width}-synthetic.png`, fullPage: true });
+    await page.locator('#view-overview').click();
+    fail = true;
+    await page.getByRole('button', { name: 'Überblick aktualisieren' }).click();
+    await expect(page.locator('#today-message')).toContainText('nicht erreichbar');
+    await expect(page.locator('#today-content')).toBeEmpty();
+    fail = false;
+    await page.getByRole('button', { name: 'Überblick aktualisieren' }).click();
+    await expect(page.locator('#today-content')).toContainText('1.234');
+    await page.locator('#logout').click();
+    await expect(page.locator('#today-content')).toBeEmpty();
+  });
+}
+
+test('late overview responses cannot restore health data after locking', async ({ page }) => {
+  await workspaceFixture(page);
+  let release!: () => void;
+  const pending = new Promise<void>(resolve => { release = resolve; });
+  let started = false;
+  await page.route(url => url.pathname === '/assistenz/statistics', async route => {
+    started = true;
+    await pending;
+    const url = new URL(route.request().url());
+    await route.fulfill({ json: { from: url.searchParams.get('from'), to: today, days: [{ date: today, health: { metrics: { steps_total: { value: 987654 } } } }] } }).catch(() => {});
+  });
+  await page.goto('/assistenz');
+  await expect.poll(() => started).toBe(true);
+  await page.locator('#logout').click();
+  release();
+  await expect(page.locator('#today-message')).toContainText('Melde dich an');
+  await expect(page.locator('#today-content')).toBeEmpty();
+  await expect(page.locator('body')).not.toContainText('987.654');
 });
