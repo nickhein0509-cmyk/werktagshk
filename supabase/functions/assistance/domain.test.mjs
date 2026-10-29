@@ -1,6 +1,8 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {selectPoints,berlinDay,healthView,validateHealthDay,emptyContext,updateContextValue,validateContextValue,contextView,validateContextRange,contextRange,statisticsFromData,gpxForDay} from './domain.mjs';
+import {route} from './semantics/route.js';
+import {buildJournal} from './semantics/journal.js';
 
 const id='12345678-1234-4234-8234-123456789abc';
 const point=(iso,lon=13.4,extra={})=>({id:iso,tst:Date.parse(iso)/1000,lat:52.5,lon,receivedAt:iso,...extra});
@@ -165,4 +167,81 @@ test('notes/tasks statistics count manual entries without inventing activity or 
   assert.equal(result.summary.context.counts.note,1);assert.equal(result.summary.context.counts.task,1);
   assert.deepEqual(result.summary.context.activityLabels,[]);assert.equal(result.summary.context.planned.count,0);
   assert.equal(result.summary.gps.present,false);assert.equal(result.summary.health.present,false);
+});
+
+function parallelRecordings() {
+  const make=(source,device,seconds,lat,lon)=>point(new Date(Date.parse('2026-10-27T09:00:00Z')+seconds*1000).toISOString(),lon,{source,device,lat,acc:5,id:source+'-'+device+'-'+seconds});
+  return {
+    owntracks:[make('iphone','owntracks',0,52,13),make('iphone','owntracks',60,52,13.001)],
+    native:[make('werktag_ios','native',30,52.0002,13),make('werktag_ios','native',90,52.0002,13.001)],
+  };
+}
+
+test('a day chooses one recorder and never draws a connecting leg between parallel devices',()=>{
+  const {owntracks,native}=parallelRecordings(),points=[...owntracks,...native],before=JSON.stringify(points);
+  const view=selectPoints(points,'2026-10-27');
+  assert.deepEqual(view.selectedRecorder,{source:'werktag_ios',device:'native'});
+  assert.deepEqual(view.points.map(p=>p.id),native.map(p=>p.id));
+  assert.ok(view.points.every(p=>p.source==='werktag_ios'&&p.device==='native'));
+  assert.equal(view.recorders.length,2);assert.deepEqual(view.recorders.map(r=>r.pointCount),[2,2]);
+  assert.equal(view.totalStored,4);assert.equal(view.totalSelected,2);
+  const oldMixedDistance=route([...points].sort((a,b)=>a.tst-b.tst)).distance;
+  assert.ok(oldMixedDistance>110);assert.ok(view.journal.trips[0].distanceMetres<70);
+  const explicit=selectPoints(points,'2026-10-27',1,{source:'iphone',device:'owntracks'});
+  assert.equal(explicit.totalSelected,2);assert.equal(explicit.truncated,true);assert.equal(explicit.points[0].id,owntracks[1].id);
+  assert.equal(JSON.stringify(points),before);
+});
+
+test('recorder defaults are period-scoped and deterministic while explicit empty selections never switch',()=>{
+  const {owntracks,native}=parallelRecordings();
+  const later=native.map(p=>({...p,tst:p.tst+86400,receivedAt:'2026-10-28T10:00:00Z'}));
+  const points=[...owntracks,...later];
+  assert.deepEqual(selectPoints(points,'2026-10-27').selectedRecorder,{source:'iphone',device:'owntracks'});
+  const empty=selectPoints(points,'2026-10-27',20000,{source:'werktag_ios',device:'native'});
+  assert.deepEqual(empty.points,[]);assert.deepEqual(empty.selectedRecorder,{source:'werktag_ios',device:'native'});
+  assert.throws(()=>selectPoints(points,'2026-10-27',20000,{source:'werktag_ios',device:'missing'}),e=>e.status===404);
+  const tied=owntracks.map(p=>({...p,source:'alpha',device:'a'}));
+  for(const order of [[...owntracks,...tied],[...tied,...owntracks].reverse()])assert.deepEqual(selectPoints(order,'2026-10-27').selectedRecorder,{source:'alpha',device:'a'});
+  const sameSource=[...owntracks,...owntracks.map(p=>({...p,device:'second-device',tst:p.tst+1}))];
+  assert.equal(selectPoints(sameSource,'2026-10-27').recorders.length,2);
+});
+
+test('unlabelled legacy fixtures stay separate from named sources',()=>{
+  const legacy=[point('2026-10-27T10:00:00Z'),point('2026-10-27T10:01:00Z',13.401)];
+  const old=selectPoints(legacy,'2026-10-27');assert.equal(old.selectedRecorder,null);assert.deepEqual(old.recorders,[]);assert.equal(old.points.length,2);
+  const {native}=parallelRecordings(),combined=selectPoints([...native,...legacy],'2026-10-27');
+  assert.equal(combined.selectedRecorder,null);assert.equal(combined.points.length,2);assert.equal(combined.recorders.length,1);
+});
+
+test('statistics use one selected recorder for the whole range and ignore incompatible archived journals',()=>{
+  const {owntracks,native}=parallelRecordings(),points=[...owntracks,...native].sort((a,b)=>a.tst-b.tst);
+  const snapshot={schemaVersion:1,date:'2026-10-27',timeZone:'Europe/Berlin',revision:1,updatedAt:now,pointCount:points.length,contentHash:'unchanged',points,journal:buildJournal(points)};
+  const before=JSON.stringify(snapshot),result=statisticsFromData({points,archives:[snapshot],from:'2026-10-27',to:'2026-10-28',now});
+  assert.deepEqual(result.selectedRecorder,{source:'werktag_ios',device:'native'});assert.equal(result.recorders.length,2);
+  assert.equal(result.summary.gps.pointCount,2);assert.ok(result.summary.gps.distanceMetres<70);assert.equal(result.days[0].gps.source.archiveRecorderMismatch,true);
+  assert.equal(JSON.stringify(snapshot),before);
+  const selected=statisticsFromData({points,from:'2026-10-27',to:'2026-10-28',now,source:'iphone',device:'owntracks'});
+  assert.deepEqual(selected.selectedRecorder,{source:'iphone',device:'owntracks'});assert.equal(selected.summary.gps.pointCount,2);
+  const days=[...owntracks,...native.map(p=>({...p,tst:p.tst+86400}))];
+  const period=statisticsFromData({points:days,from:'2026-10-27',to:'2026-10-28',now});
+  assert.equal(period.days[0].gps.present,false);assert.equal(period.days[1].gps.pointCount,2);
+  assert.throws(()=>statisticsFromData({points,from:'2026-10-27',to:'2026-10-28',now,source:'iphone',device:'missing'}),e=>e.status===404);
+});
+
+test('mixed-source GPX fallback preserves points in separate segments without cross-device legs',()=>{
+  const {owntracks,native}=parallelRecordings(),points=[...owntracks,...native].sort((a,b)=>a.tst-b.tst),gpx=gpxForDay('2026-10-27',points);
+  const segments=[...gpx.matchAll(/<trkseg>(.*?)<\/trkseg>/g)].map(match=>match[1]);
+  assert.equal(segments.length,2);assert.ok(segments.every(segment=>(segment.match(/<trkpt /g)??[]).length===2));
+  assert.equal((gpx.match(/<trkpt /g)??[]).length,4);
+  assert.ok(!segments[0].includes('lat="52.0002"'));assert.ok(!segments[1].includes('lat="52"'));
+});
+
+test('statistics do not match an old context reference against a colliding segment from another recorder',()=>{
+  const {owntracks}=parallelRecordings(),other=owntracks.map(p=>({...p,source:'werktag_ios',device:'native'}));
+  const segment=selectPoints(owntracks,'2026-10-27').journal.trips[0];
+  const context=updateContextValue(null,{date:'2026-10-27',expectedRevision:0,operation:'upsert',entry:{id,kind:'activity',label:'Fahrt',startAt:new Date(segment.startTimestamp*1000).toISOString(),endAt:new Date(segment.endTimestamp*1000).toISOString(),segmentRef:{journalIdAtCreation:segment.id,archiveRevisionAtCreation:null,algorithmVersion:1,startTimestamp:segment.startTimestamp,endTimestamp:segment.endTimestamp,segmentKind:segment.kind,anchorFingerprint:[segment.kind,segment.startTimestamp,segment.endTimestamp,segment.pointCount].join(':')}}},now);
+  const single=statisticsFromData({points:owntracks,contexts:[context],from:'2026-10-27',to:'2026-10-27',now});
+  assert.equal(single.summary.context.needsReviewCount,0);
+  const mixed=statisticsFromData({points:[...owntracks,...other],contexts:[context],from:'2026-10-27',to:'2026-10-27',now});
+  assert.equal(mixed.summary.context.needsReviewCount,1);assert.deepEqual(mixed.summary.context.activityLabels,[]);
 });

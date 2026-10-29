@@ -45,3 +45,64 @@
   .timeline-layout .journey { padding: 22px 17px; }
   .timeline-layout .event { padding: 16px; }
 }
+
+/* The measured route is the foreground; the map supplies quiet context. */
+.recorder-control { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 16px 24px; align-items: end; margin: 0 0 20px; padding: 0 2px; color: #c9d7ce; }
+.recorder-control label { display: grid; gap: 7px; font-size: 12px; font-weight: 650; }
+.recorder-control select { width: 100%; min-width: 0; min-height: 44px; background: #f7f4ed; color: #173b3f; border-color: #a4b6ac; border-radius: 11px; font-size: 13px; }
+.recorder-control p { margin: 0 0 4px; font-size: 12px; line-height: 1.6; overflow-wrap: anywhere; }
+.timeline-layout .map-card { border-color: #ccd4c9; background: #f7f4ed; }
+.timeline-layout .map-bar { padding: 20px 20px 14px; }
+.timeline-layout .map-bar > div { display: block; }
+.timeline-layout .map-bar .eyebrow { color: #64756b; font-size: 9px; letter-spacing: .15em; margin-bottom: 6px; }
+.timeline-layout .map-bar strong { font-size: 20px; font-weight: 550; letter-spacing: -.025em; line-height: 1.3; display: block; }
+.timeline-layout .map-bar button { border: 1px solid #9eafa4; background: #fffdf8; color: #173b3f; border-radius: 11px; padding: 10px 12px; }
+.map-selection { padding: 0 20px 18px; }
+.map-mode { display: inline-block; padding: 5px 9px; margin-bottom: 8px; background: #e4e9df; color: #284e4a; border: 1px solid #bdcbbb; border-radius: 6px; font-size: 11px; font-weight: 700; }
+.map-selection .map-selection-summary { padding: 0; margin: 0; font-size: 12px; line-height: 1.6; }
+.timeline-layout #map { height: 550px; min-height: 350px; background: #e8ece2; border-block: 1px solid #d2dace; }
+.map-wrap .leaflet-control-zoom { border: 1px solid #9cafa3; border-radius: 12px; overflow: hidden; box-shadow: 0 3px 12px #173b3f14; }
+.map-wrap .leaflet-control-zoom a { width: 44px; height: 44px; line-height: 44px; background: #fffdf8; color: #173b3f; }
+.map-wrap .leaflet-control-zoom a:hover { background: #e4e9df; }
+.map-wrap .leaflet-control-attribution { background: #fffdf8ed; color: #3e5950; max-width: calc(100% - 12px); }
+.map-wrap .leaflet-control-attribution a { color: #254d4d; }
+.map-wrap .leaflet-popup-content-wrapper { background: #fffdf8; color: #173b3f; border: 1px solid #c4d0c1; border-radius: 13px; }
+.map-wrap .leaflet-popup-content { margin: 14px 22px 14px 16px; line-height: 1.6; }
+.map-wrap .leaflet-popup-close-button { min-width: 44px; min-height: 44px; }
+.journey-marker { display: grid !important; place-items: center; background: transparent; border: 0; border-radius: 50%; }
+.journey-marker-badge { display: grid; place-items: center; min-width: 30px; height: 30px; padding: 0 3px; background: #fffdf8; color: #173b3f; border: 2px solid #173b3f; border-radius: 50%; box-shadow: 0 0 0 3px #fffdf8e8, 0 3px 8px #173b3f30; font-family: inherit; font-size: 12px; font-weight: 750; line-height: 1; }
+.journey-marker--end .journey-marker-badge, .journey-marker--combined .journey-marker-badge { background: #173b3f; color: #fffdf8; border-radius: 9px; }
+.journey-marker--stay .journey-marker-badge { background: #a55232; color: #fffdf8; border-color: #a55232; border-radius: 10px 10px 10px 3px; }
+.journey-marker[aria-pressed="true"] .journey-marker-badge { box-shadow: 0 0 0 3px #fffdf8, 0 0 0 5px #a55232, 0 3px 8px #173b3f30; }
+.journey-marker.is-context .journey-marker-badge { background: #efe6d9; color: #704228; border-color: #b49d89; }
+.journey-marker:focus-visible, .map-wrap .leaflet-control-zoom a:focus-visible { outline: 3px solid #a55232; outline-offset: 3px; }
+.journey-marker:hover .journey-marker-badge { box-shadow: 0 0 0 4px #fffdf8, 0 3px 10px #173b3f40; }
+.timeline-layout .event.stay:before { content: attr(data-number); font-size: 11px; background: #a55232; }
+.timeline-layout .event.chosen { background: #f4e8dd; border-color: #a55232; box-shadow: inset 3px 0 #a55232; }
+.timeline-layout .event.chosen .event-hint { color: #84462e; }
+.timeline-layout .event.stay strong { color: #84462e; }
+.map-card .map-footer { display: block; padding: 15px 18px 18px; color: #52665c; }
+.map-legend { display: flex; flex-wrap: wrap; gap: 10px 15px; list-style: none; padding: 0; margin: 0; font-size: 11px; }
+.map-legend li { display: flex; gap: 6px; align-items: center; }
+.map-legend b { display: inline-grid; place-items: center; margin: 0; width: 18px; height: 18px; font-size: 9px; font-weight: 750; }
+.map-legend .legend-start { background: #fffdf8; color: #173b3f; border: 1.5px solid #173b3f; }
+.map-legend .legend-end { background: #173b3f; color: #fffdf8; border-radius: 4px; }
+.map-legend .legend-stay { background: #a55232; color: #fffdf8; border-radius: 5px 5px 5px 1px; }
+.legend-route { width: 22px; height: 5px; background: #174d51; border-radius: 3px; box-shadow: 0 0 0 2px white; }
+#map-route-note { font-size: 11px; line-height: 1.6; margin: 11px 0 0; }
+.map-recovery a { min-height: 44px; }
+@media (max-width: 700px) {
+  .recorder-control { grid-template-columns: minmax(0, 1fr); gap: 8px; }
+  .recorder-control select { font-size: 16px; }
+  .recorder-control p { font-size: 11px; }
+  .timeline-layout .map-bar { padding: 16px 14px 12px; align-items: center; }
+  .timeline-layout .map-bar strong { font-size: 18px; }
+  .timeline-layout .map-bar button { max-width: 110px; font-size: 11px; }
+  .map-selection { padding: 0 14px 14px; }
+  .timeline-layout #map { height: 380px; min-height: 310px; max-height: 52vh; }
+  .map-card .map-footer { padding: 13px 14px 15px; }
+  .map-legend { gap: 10px 12px; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .journey-marker, .journey-route { transition: none; }
+}

@@ -1,3 +1,4 @@
+import { recorderKey, recorderLabel } from '/assistance-assets/map-presentation.js';
 const $ = id => document.getElementById(id);
 const number = new Intl.NumberFormat('de-DE', { maximumFractionDigits: 1 });
 const integer = new Intl.NumberFormat('de-DE', { maximumFractionDigits: 0 });
@@ -36,7 +37,8 @@ function element(tag, text, className) {
   return node;
 }
 export function createStatistics({ onDay, onLocked }) {
-  let visible = false, model = null, version = 0, controller, lastFingerprint = '', lastFetch = 0, selectedBucket = null;
+  let visible = false, model = null, version = 0, controller, lastFingerprint = '', lastFetch = 0, selectedBucket = null, recorder = null;
+  const openDay = day => onDay(day, model?.selectedRecorder ?? recorder);
   const message = text => { $('statistics-message').hidden = false; $('statistics-message').textContent = text; };
   function renderSummary() {
     const summary = model.summary, cards = [
@@ -82,7 +84,7 @@ export function createStatistics({ onDay, onLocked }) {
     $('statistics-days').replaceChildren(...days.map(day => {
       const row = element('tr'), dateCell = element('td'), button = element('button', shortDate(day.date));
       button.type = 'button'; button.className = 'day-link'; button.setAttribute('aria-label', 'Tag ' + shortDate(day.date) + ' in der Karte öffnen');
-      button.addEventListener('click', () => onDay(day.date)); dateCell.append(button);
+      button.addEventListener('click', () => openDay(day.date)); dateCell.append(button);
       if (day.provisional) dateCell.append(element('span', 'vorläufig', 'pill provisional'));
       const valueCell = element('td', formatted(valueOf(day, key), key)), evidence = [];
       if (day.gps?.present) evidence.push('GPS');
@@ -111,7 +113,7 @@ export function createStatistics({ onDay, onLocked }) {
       } else group.append(add('line', { x1: x, x2: x, y1: baseline - 16, y2: baseline - 2, class: 'chart-missing' }));
       group.append(add('title', {}, shortDate(bucket.from) + ': ' + (Number.isFinite(value) ? formatted(value, key) : 'Kein Wert gespeichert')));
       if (buckets.length <= 10 || i === 0 || i === buckets.length - 1 || i % Math.ceil(buckets.length / (width < 500 ? 4 : 7)) === 0) group.append(add('text', { x, y: baseline + 22, 'text-anchor': 'middle', class: 'chart-label' }, shortDate(bucket.from)));
-      const choose = () => { if (bucket.from === bucket.to) onDay(bucket.from); else { selectedBucket = bucket; renderDays(); $('statistics-days-title').scrollIntoView({ block: 'nearest', behavior: 'smooth' }); } };
+      const choose = () => { if (bucket.from === bucket.to) openDay(bucket.from); else { selectedBucket = bucket; renderDays(); $('statistics-days-title').scrollIntoView({ block: 'nearest', behavior: matchMedia('(prefers-reduced-motion: reduce)').matches ? 'instant' : 'smooth' }); } };
       group.addEventListener('click', choose);
       group.addEventListener('keydown', event => { if (event.key === 'Enter' || event.key === ' ') { event.preventDefault(); choose(); } }); svg.append(group);
     });
@@ -127,7 +129,8 @@ export function createStatistics({ onDay, onLocked }) {
     $('statistics-metric').value = available.some(([key]) => key === currentMetric) ? currentMetric : available[0][0];
     $('statistics-coverage').textContent = model.quality.presentGpsDays + '/' + model.quality.totalDays + ' Tage mit GPS · ' + model.quality.presentHealthDays + '/' + model.quality.totalDays + ' mit Health';
     $('statistics-quality').textContent = 'Zeitraum ' + shortDate(model.from) + ' – ' + shortDate(model.to) + '. ' + (model.quality.provisional ? 'Der laufende Tag ist vorläufig. ' : '') + 'Vorhandene Tage belegen keine lückenlose Aufzeichnung. Health-Tageswerte gelten für den ganzen Quelltag und werden keiner GPS-Teilstrecke zugeordnet.';
-    $('statistics-source').textContent = 'Berechnet: ' + new Date(model.computedAt).toLocaleString('de-DE', { timeZone: 'Europe/Berlin' }) + ' Uhr · Berliner Zeit · Wochenbeginn Montag';
+    const source = model.selectedRecorder ?? recorder;
+    $('statistics-source').textContent = (recorderKey(source) ? 'GPS-Aufzeichnung: ' + recorderLabel(source) + '. ' : '') + 'Berechnet: ' + new Date(model.computedAt).toLocaleString('de-DE', { timeZone: 'Europe/Berlin' }) + ' Uhr · Berliner Zeit · Wochenbeginn Montag';
     renderSummary(); renderManualSummary(); renderChart(); renderDays();
   }
   async function refresh(force = false) {
@@ -137,7 +140,9 @@ export function createStatistics({ onDay, onLocked }) {
     const to = berlinDay(), from = shiftDay(to, -(Number($('statistics-period').value) - 1)), bucket = $('statistics-bucket').value;
     if (!model) message('Statistik wird geladen …');
     try {
-      const r = await fetch('/assistenz/statistics?' + new URLSearchParams({ from, to, bucket }), { cache: 'no-store', signal: AbortSignal.any([controller.signal, AbortSignal.timeout(10000)]) });
+      const query = new URLSearchParams({ from, to, bucket });
+      if (recorderKey(recorder)) { query.set('source', recorder.source); query.set('device', recorder.device); }
+      const r = await fetch('/assistenz/statistics?' + query, { cache: 'no-store', signal: AbortSignal.any([controller.signal, AbortSignal.timeout(10000)]) });
       if (requestVersion !== version) return;
       if (r.status === 401) { reset(); onLocked(); return; }
       if (!r.ok) throw new Error();
@@ -147,7 +152,8 @@ export function createStatistics({ onDay, onLocked }) {
     } catch (error) { if (requestVersion === version && error.name !== 'AbortError') message('Statistik vorübergehend nicht erreichbar. Erneuter Versuch folgt; gespeicherte Daten bleiben erhalten.'); }
   }
   function reset() {
-    version++; controller?.abort(); model = null; lastFetch = 0; lastFingerprint = ''; selectedBucket = null;
+    version++; controller?.abort(); model = null; lastFetch = 0; lastFingerprint = ''; selectedBucket = null; recorder = null;
+    $('statistics-source').textContent = ''; $('statistics-context-summary').replaceChildren();
     $('statistics-content').hidden = true; $('statistics-summary').replaceChildren(); $('statistics-days').replaceChildren(); $('statistics-chart').replaceChildren(); message('Öffne deinen persönlichen Kartenlink für die Statistik.');
   }
   $('statistics-period').addEventListener('change', () => { selectedBucket = null; refresh(true); });
@@ -157,6 +163,14 @@ export function createStatistics({ onDay, onLocked }) {
   return {
     show(value) { visible = value; $('statistics-view').hidden = !value; if (value) refresh(true); else { version++; controller?.abort(); } },
     refresh,
+    setRecorder(next) {
+      if (recorderKey(next) === recorderKey(recorder)) return;
+      recorder = recorderKey(next) ? { source: next.source, device: next.device } : null;
+      version++; controller?.abort(); model = null; selectedBucket = null; lastFetch = 0; lastFingerprint = '';
+      $('statistics-source').textContent = '';
+      $('statistics-content').hidden = true; message('Statistik für die gewählte Aufzeichnung wird geladen …');
+      if (visible) refresh(true);
+    },
     invalidate(fingerprint) { if (fingerprint !== lastFingerprint) { lastFingerprint = fingerprint; lastFetch = 0; if (visible) refresh(); } },
     reset
   };

@@ -1,6 +1,6 @@
 {
-  "release": "werktag-atelier-0.14.0",
-  "appVersion": "0.14.0",
+  "release": "werktag-assistant-0.15.0",
+  "appVersion": "0.15.0",
   "design": "atelier",
   "designVersion": 3,
   "learningSchemaVersion": 1,
@@ -64,6 +64,14 @@
     "recoverable-basemap-status",
     "atelier-visual-system",
     "self-hosted-manrope",
-    "local-product-routing"
-  ]
+    "local-product-routing",
+    "layered-journey-map",
+    "measured-route-endpoints",
+    "recorder-selection-ui"
+  ],
+  "nativeIOS": {
+    "version": "0.2.0",
+    "distribution": "TestFlight preparation; Apple configuration required",
+    "backend": "Separate Supabase deployment required"
+  }
 }
