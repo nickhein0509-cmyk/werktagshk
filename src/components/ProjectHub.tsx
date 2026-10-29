@@ -10,7 +10,7 @@ export function ProjectHub() {
         Zur Projektauswahl
       </a>
       <header className="project-hub__header">
-        <a className="project-hub__brand" href="/" aria-label="WerkTag SHK Lernbuddy öffnen">
+        <a className="project-hub__brand" href="/projekte" aria-label="WerkTag Projektauswahl öffnen">
           <span className="project-hub__brand-icon" aria-hidden="true">
             <Wrench size={22} strokeWidth={1.8} />
           </span>
@@ -28,7 +28,7 @@ export function ProjectHub() {
           <h1>Deine Projekte.</h1>
           <p>
             Wähle, womit du weitermachen möchtest: Lernen, persönliche Assistenz oder deine
-            Komponentenliste.
+            Materialliste.
           </p>
         </div>
 
@@ -42,16 +42,14 @@ export function ProjectHub() {
             </div>
             <span className="project-hub__category">01 · LERNEN</span>
             <h2 id="project-hub-learning-title">
-              WerkTag SHK
-              <br />
-              Lernbuddy
+              WerkTag Lernen
             </h2>
             <p>
               Deine Vorbereitung auf die Gesellenprüfung. Übungen, Fachwissen und Werkzeuge an einem
               Ort.
             </p>
             <span className="project-hub__project-link">
-              Zum Lernbuddy <ArrowRight size={18} aria-hidden="true" />
+              Zum Lernen <ArrowRight size={18} aria-hidden="true" />
             </span>
           </a>
 
@@ -89,7 +87,7 @@ export function ProjectHub() {
               <ArrowUpRight className="project-hub__arrow" size={24} strokeWidth={1.6} />
             </div>
             <span className="project-hub__category">03 · NACHSCHLAGEN</span>
-            <h2 id="project-hub-components-title">Komponentenliste</h2>
+            <h2 id="project-hub-components-title">Materialliste</h2>
             <p>
               Dein SHK-Katalog mit Herstellern, Rohrtypen und Bauteilen. Durchsuchen, filtern und
               technische Angaben mit ihrem Prüfstand nachschlagen.
@@ -98,7 +96,7 @@ export function ProjectHub() {
               <LockKeyhole size={15} aria-hidden="true" /> Über deinen privaten Zugang
             </span>
             <span className="project-hub__project-link">
-              Zur Komponentenliste <ArrowRight size={18} aria-hidden="true" />
+              Zur Materialliste <ArrowRight size={18} aria-hidden="true" />
             </span>
           </a>
         </nav>
@@ -107,7 +105,7 @@ export function ProjectHub() {
           <LockKeyhole size={19} aria-hidden="true" />
           <p>
             Dein Konto verbindet deine Anmeldung. Der SHK-Lernstand und die persönliche Assistenz
-            bleiben getrennt. Assistenz und Komponentenliste erreichst du über deinen privaten Zugang,
+            bleiben getrennt. Assistenz und Materialliste erreichst du über deinen privaten Zugang,
             den du einmalig deinem Profil zuordnest.
           </p>
         </aside>
