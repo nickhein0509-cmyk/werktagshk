@@ -1,0 +1,18 @@
+{
+  "folders": [{ "name": "WerkTag", "path": "." }],
+  "settings": {
+    "files.exclude": {
+      "**/node_modules": true,
+      "**/dist": true,
+      "**/test-results": true,
+      "**/.cache": true,
+    },
+    "search.exclude": {
+      "**/node_modules": true,
+      "**/dist": true,
+      "**/test-results": true,
+      "**/playwright-report": true,
+    },
+    "editor.formatOnSave": false,
+  },
+}
