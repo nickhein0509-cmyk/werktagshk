@@ -1,3 +1,4 @@
+import { WorkshopOrbit } from './WorkshopOrbit';
 import type { ReactNode } from 'react';
 import {
   ArrowRight,
@@ -50,6 +51,7 @@ export function FlowDashboard({
   return (
     <>
       <section className="flow-hero" aria-labelledby="flow-title">
+        <WorkshopOrbit />
         <div className="flow-hero-content">
           <p className="eyebrow flow-exam-eyebrow">SHK · ABSCHLUSSPRÜFUNG TEIL 2</p>
           <h1 id="flow-title">

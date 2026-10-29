@@ -10,3 +10,38 @@
 /* Separate the background provider from the private GPS-data state. */
 .basemap-controls{display:grid;grid-template-columns:auto minmax(0,1fr);align-items:center;gap:8px 12px;padding:14px 16px;border-top:1px solid var(--line);background:#f7faf7}.basemap-controls label{font-size:11px;font-weight:700;margin:0}.basemap-controls select{min-height:44px;width:100%;min-width:0;font:inherit;font-size:12px;color:var(--ink);padding:9px 10px;border:1px solid var(--line);border-radius:8px;background:white}.basemap-controls p{grid-column:1/-1;font-size:12px;line-height:1.5;margin:0;overflow-wrap:anywhere;color:var(--muted)}.basemap-controls p[data-state=error]{color:#8b3b24;font-weight:650}.basemap-controls p[data-state=ready]{color:#315f54}.werktag-vector-basemap{position:absolute;pointer-events:none;overflow:hidden}.werktag-vector-basemap .maplibregl-canvas{outline:none}.basemap-controls select:focus-visible{outline:3px solid #956442;outline-offset:3px}
 @media(max-width:700px){.basemap-controls{grid-template-columns:minmax(0,1fr);padding:12px}.basemap-controls select{font-size:16px}.basemap-controls p{font-size:11px}}
+
+/* A measured day reads as a journal, with the map as its working companion. */
+.day-title > .eyebrow { color: var(--accent); }
+.day-title > p:last-child { color: var(--atelier-shell-muted); }
+.day-title h2 { color: var(--atelier-shell-text); font-weight: 500; font-size: 34px; letter-spacing: -.04em; }
+.day-toolbar .date-control { background: #17383c; border-color: #3f5a5b; padding: 18px; border-radius: 17px; }
+.day-toolbar .date-control label { color: #c9d7ce; }
+.day-toolbar .date-control input, .day-toolbar .date-control select { background: var(--atelier-surface); border-color: #a4b6ac; border-radius: 11px; }
+.day-stepper button { background: #17383c; color: #f3eee5; border-color: #58736c; border-radius: 12px; }
+.day-stepper button:hover:not(:disabled) { background: #2b5152; }
+.stats { background: var(--atelier-surface); color: var(--ink); border: 0; border-radius: 20px; padding-block: 26px; }
+.stats strong { font-weight: 450; font-size: 35px; letter-spacing: -.045em; }
+.timeline-layout .journey, .timeline-layout .map-card { border-radius: 22px; box-shadow: none; }
+.timeline-layout .journey { padding: 27px 23px; }
+.timeline-layout .journey h2 { font-size: 24px; font-weight: 500; }
+.timeline-layout .event { background: #fffdf8; border-color: #d3ddcf; border-radius: 15px; padding: 18px; }
+.timeline-layout .event.stay { background: #f4e8d7; border-color: #ddc8aa; }
+.timeline-layout .event.chosen { background: #e2ecdf; border-color: #50785f; box-shadow: 0 0 0 1px #50785f; }
+.timeline-layout .event strong { font-weight: 650; }
+.map-bar { background: #f7f4ed; }
+.map-selection-summary { color: #526766; }
+.basemap-controls { background: #eeeee5; }
+.map-message { background: #fffdf8; color: var(--ink); border: 1px solid #d1d9cd; box-shadow: 0 8px 28px #0b23271c; }
+.map-recovery { background: #f7f4ed; }
+.map-footer { background: #f7f4ed; }
+.archive-line { color: var(--atelier-shell-muted); }
+.archive-links a { background: transparent; color: #e5c6a8; border-color: #59736b; border-radius: 10px; padding: 10px 13px; min-height: 44px; }
+.journey-diagnostics { color: var(--ink); background: var(--atelier-surface); border-radius: 18px; }
+@media (max-width: 700px) {
+  .day-title h2 { font-size: 28px; }
+  .stats { padding-block: 20px; }
+  .stats strong { font-size: 23px; }
+  .timeline-layout .journey { padding: 22px 17px; }
+  .timeline-layout .event { padding: 16px; }
+}

@@ -317,6 +317,10 @@ test('new default basemap renders synthetic vector tiles with the production doc
   const state = await timelineFixture(page, { fullProductionCSP: true });
   await page.goto('/assistenz');
   await expect(page.locator('#view-day')).toBeEnabled();
+  expect(await page.evaluate(async () => {
+    const faces = await document.fonts.load('16px Manrope');
+    return faces.length > 0 && faces.every(face => face.status === 'loaded');
+  })).toBe(true);
   expect(state.vectorRequests).toEqual([]);
   expect(state.tileRequests).toEqual([]);
   await page.locator('#view-day').click();

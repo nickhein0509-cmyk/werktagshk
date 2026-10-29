@@ -1,5 +1,6 @@
 import { ArrowRight, ArrowUpRight, BookOpen, Boxes, Compass, LockKeyhole, Wrench } from 'lucide-react';
 import './project-hub.css';
+import { WorkshopOrbit } from './WorkshopOrbit';
 
 /** Independent entry points for learning, personal assistance and the private catalogue. */
 export function ProjectHub() {
@@ -22,6 +23,7 @@ export function ProjectHub() {
 
       <main className="project-hub__main" id="project-hub-main" tabIndex={-1}>
         <div className="project-hub__intro">
+          <WorkshopOrbit />
           <p className="project-hub__eyebrow">DEIN ARBEITSBEREICH</p>
           <h1>Deine Projekte.</h1>
           <p>
