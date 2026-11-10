@@ -97,6 +97,7 @@ export function OAuthConsent() {
         </section> : <section className="account-card">
           <h2>Nick Cloud MCP</h2><p>Angemeldet als <strong>{session.user.email}</strong></p>
           <p>Die Verbindung darf freigegebene Projekteinträge suchen und deren Texte lesen. Sie kann diese Einträge nicht ändern oder löschen. Persönliche Lernfortschritte und Health-Daten gehören nicht zu diesem Zugriff.</p>
+          {details?.scope.split(' ').includes('email') && <p>Zur Zuordnung deines Kontos erhält ChatGPT außerdem deine E-Mail-Adresse.</p>}
           <p>Nach deiner Entscheidung kehrst du zu <strong>chatgpt.com</strong> zurück. Die Freigabe gilt nur für das berechtigte Besitzerkonto; sie erteilt keine Google-Administrationsrechte.</p>
           {details && <div className="account-actions"><button disabled={busy} onClick={() => void decide(false)}>Ablehnen</button><button className="account-primary" disabled={busy} onClick={() => void decide(true)}>Suchen und Lesen erlauben</button></div>}
           {resume && <button className="account-primary" onClick={() => window.location.assign(resume)}>Zurück zu ChatGPT</button>}
