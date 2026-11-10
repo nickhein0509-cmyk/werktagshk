@@ -1,5 +1,33 @@
 # MCP-Zustimmung in WerkTag
 
+## Live-Stand nach ausdrücklicher Freigabe am 10.11.2026
+
+PR #34 ist integriert. Vercel-Produktion für `werk-tag.com` meldete für
+Merge-Commit `557fb57dbd33f8468d0676133d42f88d9f8ca25e` READY.
+`/oauth/consent` liefert HTTP 200 mit `no-store` und `no-referrer`.
+
+Die private Konfigurationszeile für den unten genannten MCP-Client ist aktiviert
+und enthält das mit dem angemeldeten WerkTag-Konto abgeglichene Besitzerkonto.
+`public.nick_mcp_access_token_hook` ist als Custom Access Token Hook im
+Supabase-Dashboard aktiviert. SQL-Vertragsprüfung: MCP-Audience und
+Leseberechtigung korrekt, gewöhnliches Login-Ereignis unverändert. Owner-ID
+und Tokens bleiben außerhalb des Repositorys.
+
+Der eigene Cloud-Run-Service ist unter
+`https://nick-mcp-c4xkjyryfq-ey.a.run.app/mcp` bereitgestellt. Discovery liefert
+HTTP 200; anonyme und ungültig authentifizierte MCP-Aufrufe werden mit HTTP 401
+abgewiesen. Das private ChatGPT-Plugin ist angelegt, dessen Wissenswerkzeuge
+waren beim Verbindungstest aber noch nicht verfügbar. Echte OAuth-Anmeldung,
+Suche und Abruf aus ChatGPT sind deshalb weiterhin nicht abgenommen.
+
+Diese Dokumentationsfortsetzung verwendet Basis
+`557fb57dbd33f8468d0676133d42f88d9f8ca25e`, Branch
+`docs/mcp-auth-live-status`, Worktree `/workspace/werktag-mcp-live-docs`.
+Eigene Änderung ausschließlich diese Datei, keine neuen Abhängigkeiten.
+Die folgenden Abschnitte dokumentieren die Vorbereitung vor der Aktivierung.
+
+## Vorbereitung und Implementierung
+
 Auftrag: privates Projektwissen über Nick Cloud MCP mit ChatGPT verbinden.
 Bereich PLATTFORM; keine neue Lernfunktion. Basis `d0c3eb09a3e4ef63b99d7837e44486b57b8012fc`,
 Branch `feat/mcp-oauth-consent`, separate Arbeitskopie `/workspace/werktag-mcp-consent`.
