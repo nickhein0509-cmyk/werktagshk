@@ -1,5 +1,9 @@
 # MCP-Zustimmung in WerkTag
 
+Dieses Protokoll beschreibt den ursprünglichen Stand. Die spätere Erweiterung
+für Nicks getrennte persönliche SHK-Lerneinheiten und deren tatsächliche Prüfungen
+stehen im [aktuellen Rechteprotokoll](personal-shk-mcp-permissions.md).
+
 Auftrag: privates Projektwissen über Nick Cloud MCP mit ChatGPT verbinden.
 Bereich PLATTFORM; keine neue Lernfunktion. Basis `d0c3eb09a3e4ef63b99d7837e44486b57b8012fc`,
 Branch `feat/mcp-oauth-consent`, separate Arbeitskopie `/workspace/werktag-mcp-consent`.

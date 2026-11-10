@@ -18,7 +18,7 @@ export function OAuthConsent() {
   const submitting = useRef(false);
 
   useEffect(() => {
-    document.title = 'WerkTag · MCP-Verbindung freigeben';
+    document.title = 'Nick Cloud MCP · Lernzugriff freigeben';
     if (!supabase) { setReady(true); return; }
     let active = true;
     const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, next) => {
@@ -83,8 +83,8 @@ export function OAuthConsent() {
     <header className="account-header"><a href="/projekte">WerkTag · Projekte</a><a href="/konto">Mein Konto</a></header>
     <main className="account-main" id="consent-main" tabIndex={-1}>
       <p className="account-eyebrow">DEINE ENTSCHEIDUNG</p>
-      <h1>Wissen mit ChatGPT verbinden.</h1>
-      <p className="account-intro">Nick Cloud MCP kann freigegebenes WerkTag-Projektwissen für deine Fragen suchen und lesen.</p>
+      <h1>Deine SHK-Lerneinheiten mit ChatGPT verbinden.</h1>
+      <p className="account-intro">Für deinen persönlichen Lernbereich nutzt Nick Cloud MCP dein bestehendes Konto. WerkTag bleibt ein separates, vorerst pausiertes Projekt.</p>
       {!id ? <section className="account-card"><h2>Keine gültige Verbindungsanfrage</h2><p>Starte die Verbindung in ChatGPT. Danach kommst du für die Freigabe hierher zurück.</p></section>
         : !supabase ? <section className="account-card"><h2>Anmeldung nicht eingerichtet</h2><p>Die Kontoverbindung ist hier noch nicht verfügbar.</p></section>
         : !ready ? <p role="status">Anmeldung wird geprüft …</p>
@@ -96,10 +96,14 @@ export function OAuthConsent() {
           </form><p>Verwende dein bestehendes Konto. Die Anmeldung allein erteilt noch keine Freigabe.</p>
         </section> : <section className="account-card">
           <h2>Nick Cloud MCP</h2><p>Angemeldet als <strong>{session.user.email}</strong></p>
-          <p>Die Verbindung darf freigegebene Projekteinträge suchen und deren Texte lesen. Sie kann diese Einträge nicht ändern oder löschen. Persönliche Lernfortschritte und Health-Daten gehören nicht zu diesem Zugriff.</p>
+          <h3>Deine persönlichen SHK-Lerneinheiten</h3>
+          <p>Die Verbindung darf deinen Lernplan und Abgaben lesen, neue Originalabgaben speichern sowie fachliche Auswertungen und daraus abgeleitete Planänderungen speichern. Bereits abgegebene Originalantworten werden nicht überschrieben.</p>
+          <p>Sie darf den Abgleich mit deinem PC, der Web-App und Notion vorbereiten und bestätigen. Diese Freigabe allein überträgt noch keine Daten auf deinen PC oder nach Notion.</p>
+          <h3>WerkTag-Projektwissen</h3>
+          <p>Freigegebene Projekteinträge darf die Verbindung weiterhin nur suchen und lesen, nicht ändern oder löschen. Health-Daten gehören nicht zu diesem Zugriff.</p>
           {details?.scope.split(' ').includes('email') && <p>Zur Zuordnung deines Kontos erhält ChatGPT außerdem deine E-Mail-Adresse.</p>}
           <p>Nach deiner Entscheidung kehrst du zu <strong>chatgpt.com</strong> zurück. Die Freigabe gilt nur für das berechtigte Besitzerkonto; sie erteilt keine Google-Administrationsrechte.</p>
-          {details && <div className="account-actions"><button disabled={busy} onClick={() => void decide(false)}>Ablehnen</button><button className="account-primary" disabled={busy} onClick={() => void decide(true)}>Suchen und Lesen erlauben</button></div>}
+          {details && <div className="account-actions"><button disabled={busy} onClick={() => void decide(false)}>Ablehnen</button><button className="account-primary" disabled={busy} onClick={() => void decide(true)}>Lernzugriff erlauben</button></div>}
           {resume && <button className="account-primary" onClick={() => window.location.assign(resume)}>Zurück zu ChatGPT</button>}
         </section>}
       <p role="status" aria-label="Verbindungsstatus">{message}</p>

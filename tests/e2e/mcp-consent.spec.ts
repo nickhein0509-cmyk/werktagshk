@@ -23,20 +23,27 @@ async function fixture(page: Page, client = MCP_CLIENT_ID, callback = MCP_CALLBA
 test('missing authorization ID never offers approval', async ({ page }) => {
   await page.goto('/oauth/consent');
   await expect(page.getByRole('heading', { name: 'Keine gültige Verbindungsanfrage' })).toBeVisible();
-  await expect(page.getByRole('button', { name: 'Suchen und Lesen erlauben' })).toHaveCount(0);
+  await expect(page.getByRole('button', { name: 'Lernzugriff erlauben' })).toHaveCount(0);
 });
 test('a foreign OAuth client cannot obtain consent through this page', async ({ page }) => {
   const decisions = await fixture(page, 'foreign-client');
   await page.goto('/oauth/consent?authorization_id=synthetic-request');
   await expect(page.getByRole('status', { name: 'Verbindungsstatus' })).toContainText('nicht freigegeben');
-  await expect(page.getByRole('button', { name: 'Suchen und Lesen erlauben' })).toHaveCount(0);
+  await expect(page.getByRole('button', { name: 'Lernzugriff erlauben' })).toHaveCount(0);
   expect(decisions).toEqual([]);
 });
-for (const callback of MCP_CALLBACKS) for (const [label, action] of [['Suchen und Lesen erlauben', 'approve'], ['Ablehnen', 'deny']]) {
+for (const callback of MCP_CALLBACKS) for (const [label, action] of [['Lernzugriff erlauben', 'approve'], ['Ablehnen', 'deny']]) {
   test(`explicit ${action} decision is required for ${new URL(callback).pathname}`, async ({ page }) => {
     const decisions = await fixture(page, MCP_CLIENT_ID, callback);
     await page.goto('/oauth/consent?authorization_id=synthetic-request');
     await expect(page.getByRole('button', { name: label })).toBeVisible();
+    await expect(page.getByRole('heading', { name: 'Deine persönlichen SHK-Lerneinheiten' })).toBeVisible();
+    await expect(page.getByRole('heading', { name: 'WerkTag-Projektwissen' })).toBeVisible();
+    await expect(page.getByText(/neue Originalabgaben speichern sowie fachliche Auswertungen/)).toBeVisible();
+    await expect(page.getByText(/Bereits abgegebene Originalantworten werden nicht überschrieben/)).toBeVisible();
+    await expect(page.getByText(/allein überträgt noch keine Daten auf deinen PC oder nach Notion/)).toBeVisible();
+    await expect(page.getByText(/weiterhin nur suchen und lesen, nicht ändern oder löschen/)).toBeVisible();
+    await expect(page.getByText(/keine Google-Administrationsrechte/)).toBeVisible();
     await expect(page.getByText('Zur Zuordnung deines Kontos erhält ChatGPT außerdem deine E-Mail-Adresse.')).toBeVisible();
     expect(decisions).toEqual([]);
     await page.setViewportSize({ width: 320, height: 740 });
@@ -50,6 +57,6 @@ test('another ChatGPT connection cannot obtain consent', async ({ page }) => {
   const decisions = await fixture(page, MCP_CLIENT_ID, 'https://chatgpt.com/connector/oauth/another-connection');
   await page.goto('/oauth/consent?authorization_id=synthetic-request');
   await expect(page.getByRole('status', { name: 'Verbindungsstatus' })).toContainText('nicht freigegeben');
-  await expect(page.getByRole('button', { name: 'Suchen und Lesen erlauben' })).toHaveCount(0);
+  await expect(page.getByRole('button', { name: 'Lernzugriff erlauben' })).toHaveCount(0);
   expect(decisions).toEqual([]);
 });
