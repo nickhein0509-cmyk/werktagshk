@@ -12,6 +12,9 @@ const AccountPage = lazy(() => import('./components/AccountPage').then((module) 
   default: module.AccountPage,
 })));
 
+const OAuthConsent = lazy(() => import('./components/OAuthConsent').then(module => ({ default: module.OAuthConsent })));
+const consentRoute = /^\/oauth\/consent\/?$/.test(window.location.pathname);
+
 const accountRoute = /^\/konto\/?$/.test(window.location.pathname);
 const projectsRoute = /^\/projekte\/?$/.test(window.location.pathname);
 // Account and learning views manage their own titles after mounting.
@@ -21,7 +24,7 @@ ReactDOM.createRoot(document.getElementById('root')!).render(
   <React.StrictMode>
     <RouteBoundary>
       <Suspense fallback={<RouteLoading />}>
-        {accountRoute ? <AccountPage /> : projectsRoute ? <ProjectHub /> : <App />}
+        {consentRoute ? <OAuthConsent /> : accountRoute ? <AccountPage /> : projectsRoute ? <ProjectHub /> : <App />}
       </Suspense>
     </RouteBoundary>
   </React.StrictMode>,
