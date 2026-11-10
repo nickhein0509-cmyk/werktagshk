@@ -101,7 +101,7 @@ export function OAuthConsent() {
           {details && <div className="account-actions"><button disabled={busy} onClick={() => void decide(false)}>Ablehnen</button><button className="account-primary" disabled={busy} onClick={() => void decide(true)}>Suchen und Lesen erlauben</button></div>}
           {resume && <button className="account-primary" onClick={() => window.location.assign(resume)}>Zurück zu ChatGPT</button>}
         </section>}
-      <p role="status">{message}</p>
+      <p role="status" aria-label="Verbindungsstatus">{message}</p>
     </main>
   </div>;
 }

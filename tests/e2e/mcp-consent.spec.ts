@@ -28,7 +28,7 @@ test('missing authorization ID never offers approval', async ({ page }) => {
 test('a foreign OAuth client cannot obtain consent through this page', async ({ page }) => {
   const decisions = await fixture(page, 'foreign-client');
   await page.goto('/oauth/consent?authorization_id=synthetic-request');
-  await expect(page.getByRole('status')).toContainText('nicht freigegeben');
+  await expect(page.getByRole('status', { name: 'Verbindungsstatus' })).toContainText('nicht freigegeben');
   await expect(page.getByRole('button', { name: 'Suchen und Lesen erlauben' })).toHaveCount(0);
   expect(decisions).toEqual([]);
 });
