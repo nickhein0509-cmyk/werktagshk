@@ -58,19 +58,24 @@ Verträge und werden durch diese SQL-Migration nicht umgangen.
 
 ## Zustimmung und produktive Anschlussarbeit
 
-Die Seite zeigt persönliche SHK-Lernoperationen mit Schreibzugriff getrennt vom
-weiterhin nur lesbaren WerkTag-Projektwissen. Sie nennt Originalschutz und die
-Grenze zwischen Sync-Vorbereitung und tatsächlich erfolgter Übertragung. Die
+Die Seite zeigt den zunächst ausschließlich lesenden persönlichen SHK-Zugriff
+getrennt vom weiterhin nur lesbaren WerkTag-Projektwissen. Originalabgaben,
+Auswertungen, Planänderungen und Sync-Vorbereitung/-Bestätigung sind ausdrücklich
+als noch gesperrte Schreibstufe beschrieben. Die
 bestehenden beiden exakten ChatGPT-Callbacks sowie die OAuth-Scopes
 `openid`, `email` und `offline_access` bleiben erhalten. Anmeldung allein löst
 keine Zustimmung aus; Erlauben und Ablehnen verlangen weiterhin einen Klick und
 eine erneut geprüfte Kontozuordnung.
 
 Die explizite Freigabe für die aufgeführten Lernrechte liegt für diesen Auftrag
-vor. Die Migration selbst aktiviert sie trotzdem nicht. Der Integrator prüft den
-zusammengeführten Ressourcenserver, dessen Firestore-IAM-Zugriff und die neue
-Zustimmungsanzeige und konfiguriert anschließend gezielt den bestehenden
-Besitzer-Client. Keine pauschale Erweiterung anderer Clients oder Konten.
+vor. Die Migration selbst aktiviert sie trotzdem nicht. Die automatische
+Freigabeprüfung hat die Erweiterung der Google-Runtime-Schreibrechte blockiert;
+diese Rechte bleiben daher unverändert und der Ressourcenserver zunächst
+schreibgeschützt. Der Integrator konfiguriert gezielt nur `knowledge:read` und
+`learning:read` am bestehenden Besitzer-Client. Die späteren Schreibrechte
+benötigen eine geklärte Google-Freigabe, geprüften Ressourcenserver und passend
+aktualisierte Zustimmungsanzeige. Keine pauschale Erweiterung anderer Clients
+oder Konten und keine Umgehung der blockierten IAM-Änderung.
 
 Vorhandene Zugriffstokens ändern sich nicht rückwirkend. Für die Lernrechte sind
 frisch ausgestellte Tokens nötig; die konkrete ChatGPT-Verbindung und eine
@@ -104,10 +109,11 @@ Der Gesamtlauf wurde nach dieser Diagnose abgebrochen. Ein gezielter erneuter
 Start von `tests/e2e/mcp-consent.spec.ts --max-failures=1` bestätigt denselben
 Startfehler; keine Browserprüfung ist hier als bestanden gezählt.
 
-Die bestehenden sieben Consent-Browsertests enthalten weiterhin beide exakten
+Nach der Begrenzung auf den anfänglichen Lesezugriff bestanden Build und alle
+18 gezielten OAuth-/Hooktests erneut. Die bestehenden sieben Consent-Browsertests enthalten weiterhin beide exakten
 Callbacks, explizites Erlauben/Ablehnen, fremde Clients/Callbacks und 320-Pixel-
-Breite. Sie prüfen nun zusätzlich die getrennten Lern-/WerkTag-Rechte und
-Schreib-/Sync-Grenzen. Ihre Ausführung und die vollständige Browsersuite bleiben
+Breite. Sie prüfen nun zusätzlich die getrennten Lern-/WerkTag-Leserechte und
+ausdrücklich gesperrten Schreib-/Sync-Rechte. Ihre Ausführung und die vollständige Browsersuite bleiben
 auf einem Runner mit startfähigem Chromium zu bestätigen.
 
 Produktive SQL-Anwendung, geänderte Client-Rechte, Veröffentlichung und echte

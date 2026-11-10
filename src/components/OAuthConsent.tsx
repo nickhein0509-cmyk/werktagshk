@@ -18,7 +18,7 @@ export function OAuthConsent() {
   const submitting = useRef(false);
 
   useEffect(() => {
-    document.title = 'Nick Cloud MCP · Lernzugriff freigeben';
+    document.title = 'Nick Cloud MCP · Lesezugriff freigeben';
     if (!supabase) { setReady(true); return; }
     let active = true;
     const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, next) => {
@@ -97,13 +97,14 @@ export function OAuthConsent() {
         </section> : <section className="account-card">
           <h2>Nick Cloud MCP</h2><p>Angemeldet als <strong>{session.user.email}</strong></p>
           <h3>Deine persönlichen SHK-Lerneinheiten</h3>
-          <p>Die Verbindung darf deinen Lernplan und Abgaben lesen, neue Originalabgaben speichern sowie fachliche Auswertungen und daraus abgeleitete Planänderungen speichern. Bereits abgegebene Originalantworten werden nicht überschrieben.</p>
-          <p>Sie darf den Abgleich mit deinem PC, der Web-App und Notion vorbereiten und bestätigen. Diese Freigabe allein überträgt noch keine Daten auf deinen PC oder nach Notion.</p>
+          <p>Die Verbindung darf deinen Lernplan, Aufgaben und Abgaben lesen.</p>
+          <p>Schreibzugriff ist derzeit gesperrt: Neue Originalabgaben, fachliche Auswertungen und Planänderungen kann diese Verbindung noch nicht speichern. Auch das Vorbereiten und Bestätigen eines Abgleichs mit PC, Web-App oder Notion ist noch nicht freigeschaltet.</p>
+          <p>Eine spätere Schreibfreigabe wird separat eingerichtet und geprüft. Bereits abgegebene Originalantworten bleiben geschützt.</p>
           <h3>WerkTag-Projektwissen</h3>
           <p>Freigegebene Projekteinträge darf die Verbindung weiterhin nur suchen und lesen, nicht ändern oder löschen. Health-Daten gehören nicht zu diesem Zugriff.</p>
           {details?.scope.split(' ').includes('email') && <p>Zur Zuordnung deines Kontos erhält ChatGPT außerdem deine E-Mail-Adresse.</p>}
           <p>Nach deiner Entscheidung kehrst du zu <strong>chatgpt.com</strong> zurück. Die Freigabe gilt nur für das berechtigte Besitzerkonto; sie erteilt keine Google-Administrationsrechte.</p>
-          {details && <div className="account-actions"><button disabled={busy} onClick={() => void decide(false)}>Ablehnen</button><button className="account-primary" disabled={busy} onClick={() => void decide(true)}>Lernzugriff erlauben</button></div>}
+          {details && <div className="account-actions"><button disabled={busy} onClick={() => void decide(false)}>Ablehnen</button><button className="account-primary" disabled={busy} onClick={() => void decide(true)}>Lesen erlauben</button></div>}
           {resume && <button className="account-primary" onClick={() => window.location.assign(resume)}>Zurück zu ChatGPT</button>}
         </section>}
       <p role="status" aria-label="Verbindungsstatus">{message}</p>
