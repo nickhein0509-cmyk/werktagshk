@@ -1,5 +1,31 @@
 # Persönliche SHK-Lerneinheiten über den bestehenden MCP
 
+## Aktivierung am 11. November 2026
+
+Der bestehende MCP startet wieder nach Reparatur seines Firestore-Referenzwert-Decoders
+(PR [nick-cloud-mcp#28](https://github.com/nickhein0509-cmyk/nick-cloud-mcp/pull/28)).
+Cloud Run meldet die Revision `nick-mcp-ref041` als bereit, mit 100 Prozent Traffic.
+Die gezielt am bestehenden Runtime-Konto ergänzte Rolle erlaubt Erstellen und
+Aktualisieren in der bestehenden Standarddatenbank, ohne Löschrecht. Der Vergleich
+der IAM-Richtlinie bestätigt genau eine zusätzliche bedingte Bindung und keine
+entfernten Bindungen. Die Einschränkung auf persönliche Lernpfade erfolgt im MCP;
+die IAM-Bedingung selbst begrenzt nur die Datenbank.
+
+Die Zustimmungsseite beschreibt nun die sechs unten aufgeführten Rechte und
+unveränderte Originalantworten. WerkTag-Wissen bleibt nur lesbar, Health ausgeschlossen.
+Ein Sync-Auftrag oder seine Freigabe allein belegt noch keine Übernahme in ein Ziel.
+Authentifizierung, exakte Callbacks und die ausdrückliche Zustimmung bleiben erhalten.
+
+Umsetzungsbasis `946715ef949ddaff2ea746bb79e0e5644fdb95e3`, Branch
+`fix/mcp-write-consent-20261111`; eigene Dateien: Zustimmungsseite, bestehende
+Consent-Browsertests und dieses Protokoll. Gemeinsamer Bereich PLATTFORM für die
+persönliche SHK-Verbindung; keine Wiederaufnahme pausierter WerkTag-Funktionen.
+Nach Veröffentlichung sind die vier Lern-Schreibrechte nur am vorhandenen
+Besitzer-Client zu aktivieren und mit frisch ausgestellten Tokens zu prüfen.
+Dieser Quellbeitrag allein ist noch kein produktiver MCP-Schreibnachweis.
+
+Die folgenden Abschnitte dokumentieren den früheren Vorbereitungsstand.
+
 ## Auftrag und Grenze
 
 Nick hat am 10. November 2026 ausdrücklich die Zusammenführung, Lern-Schreibrechte
