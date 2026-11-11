@@ -1,3 +1,35 @@
+# WerkTag: Auftragsgrenzen und Fokus
+
+## Maßgeblicher Stand – 11. November 2026
+
+WerkTag ist vorerst pausiert. Keine automatische Fortsetzung des früheren
+Assistent-/Materiallisten-Backlogs. Konkrete neue Nutzeraufträge werden in ihrem
+benannten Umfang bearbeitet; eine Einzelaufgabe nimmt nicht das gesamte Projekt wieder auf.
+Bestehende Funktionen, Konten, IDs, private Daten und Historie erhalten.
+Keine Löschung, Migration, neue Integration oder Kostenfreigabe aus der Pause ableiten.
+KI-Lernhilfe und kommerzieller Lernapp-Ausbau bleiben ohne ausdrücklichen neuen Auftrag pausiert.
+
+Diese Datei regelt ausschließlich die WerkTag-Produktentwicklung. Persönliche
+SHK-Lerneinheiten, das Creator-Projekt und Nick Cloud/MCP haben eigene Aufträge
+und Zuständigkeiten. Eine gemeinsame Domain oder Cloud macht sie nicht zu
+WerkTag-Entwicklungsaufgaben. WerkTag-Regeln legen keine persönliche Gesamtpriorität fest.
+
+Die aktualisierte Einordnung folgt der späteren Nutzerklärung zur WerkTag-Pause,
+die im Auftrag vom 11.11.2026 als Gesprächskontext vorliegt. Die Entscheidung vom
+29.10. bleibt unten als Historie erhalten. Wiederholungen dieses älteren Standes
+in Aufgaben, Produktdokumenten und alten Chats sind keine aktuelle Aktivierung.
+Aktuelle konkrete Nutzerentscheidungen für denselben Geltungsbereich haben Vorrang.
+
+Codeort und Eigentümerschaft: [Produktkarte](product-map.md).
+Arbeitsablauf: [Parallelverfahren](parallel-work.md). Diese Links aktivieren keine
+Deployments. Repository-Regeln werden nicht automatisch in alle Chats übernommen.
+
+## Historischer Beschluss vom 29. Oktober 2026
+
+Der folgende unveränderte Text dokumentiert die frühere Reihenfolge. Seine
+Formulierungen „jetzt“, „aktuell“ und „aktiv“ beziehen sich auf den damaligen Stand
+und sind kein heutiger Arbeitsauftrag.
+
 # Aktueller WerkTag-Fokus
 
 Verbindliche Nutzerentscheidung vom **29. Oktober 2026 (Europe/Berlin)**.
