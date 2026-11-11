@@ -1,7 +1,7 @@
 # Profil „WerkTag Fokus“
 
-**Aktive Produkte: Assistent und Materialliste.** [Aktueller Fokus](../current-focus.md).
-KI-Lernhilfe und kommerzieller Lernapp-Ausbau sind vorerst pausiert.
+Dieses Profil beschreibt eine Entwicklungsumgebung, keine aktive Aufgabenfreigabe.
+Prioritäten ausschließlich im [aktuellen Fokus](../current-focus.md) prüfen.
 
 Ein Repository als Startbestand: `https://github.com/nickhein0509-cmyk/werktagshk`,
 Branch `main`. Die Umgebung wird aus dem aktuellen Remote aufgebaut, nicht aus

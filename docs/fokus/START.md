@@ -1,8 +1,7 @@
 # WerkTag: fokussierter Arbeitsstart
 
-**Jetzt: Assistent und Materialliste.** KI-Lernhilfe und kommerzieller Ausbau der
-Lernapp pausieren. Bestehende Lernfunktionen und private Prüfungsvorbereitung
-bleiben erhalten. [Maßgebliche Entscheidung](../current-focus.md).
+Zuerst die [maßgebliche Entscheidung](../current-focus.md) und den konkreten
+Auftrag lesen. Dieser Einstieg aktiviert keinen alten Backlog.
 
 Diese Datei ist der Einstieg für einen **neuen Chat**. Kein alter Chatverlauf,
 keine Fremdrepository-Sammlung und kein Sammelimport aller Dokumente sind nötig.
@@ -50,8 +49,8 @@ bei blockierten Aufgaben den genauen fehlenden Schritt festhalten.
 
 > Arbeite am aktuellen main von nickhein0509-cmyk/werktagshk. Lies zuerst
 > docs/fokus/START.md, AGENTS.md, docs/current-focus.md und docs/product-map.md.
-> Wähle eine technisch bearbeitbare Aufgabe für Assistent oder Materialliste.
-> KI-Lernhilfe und kommerzieller Lernapp-Ausbau sind pausiert. Lies nur ihren
+> Bearbeite ausschließlich die konkret beauftragte Aufgabe im geltenden Fokus.
+> Ohne solchen Auftrag keine frühere Produktentwicklung aufnehmen. Lies ihren
 > Produktvertrag und betroffene Quellen. Erstelle einen eigenen Branch/Worktree,
 > implementiere und prüfe die Änderung, öffne den PR und aktualisiere das Issue.
 > WerkTag hat drei Produkte; Fremdforks dienen nur gezielten Referenzen.

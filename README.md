@@ -1,8 +1,7 @@
 # WerkTag · Lernapp, Assistent und Materialliste
 
-**Aktueller Fokus (29.10.2026): Assistent und Materialliste.** KI-Lernhilfe und
-kommerzieller Lernapp-Ausbau sind vorerst pausiert. Bestehende Lernfunktionen und
-Daten bleiben erhalten. [Verbindliche Entscheidung](docs/current-focus.md).
+Prioritäten und Auftragsgrenzen stehen ausschließlich im [aktuellen Fokus](docs/current-focus.md).
+Bestehende Funktionen und Daten bleiben erhalten.
 Neue Entwicklungsumgebung: ausschließlich **`nickhein0509-cmyk/werktagshk`, `main`**.
 [Zweck aller Repositories und Stand der Fork-Auswertung](docs/repository-guide.md).
 
